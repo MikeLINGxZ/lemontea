@@ -5,13 +5,16 @@ import (
 	"archive/zip"
 	"compress/gzip"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"sort"
 	"strings"
@@ -423,6 +426,77 @@ func (m *Manager) SettingsURL(id string) (string, error) {
 		return entry + "?id=" + id, nil
 	}
 	return "file://" + filepath.ToSlash(filepath.Join(record.InstallPath, entry)), nil
+}
+
+func (m *Manager) ViewURL(id string, viewID string) (string, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	record, ok := m.records[id]
+	if !ok {
+		return "", fmt.Errorf("plugin %s not found", id)
+	}
+
+	viewID = strings.TrimSpace(viewID)
+	if viewID == "" {
+		return "", fmt.Errorf("plugin view id is required")
+	}
+
+	var entry string
+	if viewID == "settings" {
+		if record.Manifest.SettingsView == nil || strings.TrimSpace(record.Manifest.SettingsView.Entry) == "" {
+			return "", fmt.Errorf("plugin %s does not provide settings", id)
+		}
+		entry = strings.TrimSpace(record.Manifest.SettingsView.Entry)
+	} else {
+		for _, view := range record.Manifest.Views {
+			if strings.TrimSpace(view.ID) == viewID {
+				entry = strings.TrimSpace(view.Entry)
+				break
+			}
+		}
+		if entry == "" {
+			return "", fmt.Errorf("plugin %s view %s not found", id, viewID)
+		}
+	}
+
+	if strings.HasPrefix(entry, "http://") || strings.HasPrefix(entry, "https://") || strings.HasPrefix(entry, "/") {
+		return entry, nil
+	}
+	return "file://" + filepath.ToSlash(filepath.Join(record.InstallPath, entry)), nil
+}
+
+func (m *Manager) ViewDocument(id string, viewID string) (string, error) {
+	m.mu.RLock()
+	record, ok := m.records[id]
+	if !ok {
+		m.mu.RUnlock()
+		return "", fmt.Errorf("plugin %s not found", id)
+	}
+	installPath := record.InstallPath
+	entry, err := resolvePluginViewEntry(record, viewID)
+	m.mu.RUnlock()
+	if err != nil {
+		return "", err
+	}
+
+	if strings.HasPrefix(entry, "http://") || strings.HasPrefix(entry, "https://") || strings.HasPrefix(entry, "/") {
+		return "", fmt.Errorf("plugin view %s uses a non-local entry that cannot be embedded", viewID)
+	}
+
+	viewPath := filepath.Join(installPath, entry)
+	raw, err := os.ReadFile(viewPath)
+	if err != nil {
+		return "", err
+	}
+
+	content := string(raw)
+	baseDir := filepath.Dir(viewPath)
+	content, err = inlinePluginHTMLAssets(content, baseDir)
+	if err != nil {
+		return "", err
+	}
+	return content, nil
 }
 
 func (m *Manager) InstallFromFolder(path string) (*Summary, error) {
@@ -946,6 +1020,12 @@ func validateManifest(manifest *Manifest) error {
 	if manifest == nil || strings.TrimSpace(manifest.ID) == "" || strings.TrimSpace(manifest.Name) == "" || strings.TrimSpace(manifest.Version) == "" || strings.TrimSpace(manifest.Main) == "" {
 		return fmt.Errorf("plugin manifest missing required fields")
 	}
+	if manifest.PluginAPIVersion == 0 {
+		return fmt.Errorf("plugin manifest missing required field plugin_api_version")
+	}
+	if manifest.PluginAPIVersion != CurrentPluginAPIVersion {
+		return fmt.Errorf("unsupported plugin_api_version %d, current plugin system version is %d", manifest.PluginAPIVersion, CurrentPluginAPIVersion)
+	}
 	if manifest.Type != TypeAgent && manifest.Type != TypeGeneral {
 		return fmt.Errorf("unknown plugin type %s", manifest.Type)
 	}
@@ -1083,23 +1163,123 @@ func uniqueStrings(items []string) []string {
 
 func recordToSummary(record *PluginRecord) Summary {
 	return Summary{
-		ID:          record.Manifest.ID,
-		Name:        record.Manifest.Name,
-		Version:     record.Manifest.Version,
-		Description: record.Manifest.Description,
-		Type:        record.Manifest.Type,
-		Author:      record.Manifest.Author,
-		Enabled:     record.Enabled,
-		Status:      record.Status,
-		LastError:   record.LastError,
-		HasSettings: record.Manifest.SettingsView != nil,
-		Permissions: record.Manifest.Permissions,
-		UseTools:    record.Runtime.UseTools,
-		ViewTools:   record.Runtime.ViewTools,
-		Agents:      record.Runtime.Agents,
-		Views:       record.Runtime.Views,
-		Hooks:       record.Runtime.Hooks,
+		ID:               record.Manifest.ID,
+		Name:             record.Manifest.Name,
+		Version:          record.Manifest.Version,
+		PluginAPIVersion: record.Manifest.PluginAPIVersion,
+		Description:      record.Manifest.Description,
+		Type:             record.Manifest.Type,
+		Author:           record.Manifest.Author,
+		Enabled:          record.Enabled,
+		Status:           record.Status,
+		LastError:        record.LastError,
+		HasSettings:      record.Manifest.SettingsView != nil,
+		Permissions:      record.Manifest.Permissions,
+		UseTools:         record.Runtime.UseTools,
+		ViewTools:        record.Runtime.ViewTools,
+		Agents:           record.Runtime.Agents,
+		Views:            record.Runtime.Views,
+		Hooks:            record.Runtime.Hooks,
 	}
+}
+
+func resolvePluginViewEntry(record *PluginRecord, viewID string) (string, error) {
+	viewID = strings.TrimSpace(viewID)
+	if viewID == "" {
+		return "", fmt.Errorf("plugin view id is required")
+	}
+
+	if viewID == "settings" {
+		if record.Manifest.SettingsView == nil || strings.TrimSpace(record.Manifest.SettingsView.Entry) == "" {
+			return "", fmt.Errorf("plugin %s does not provide settings", record.Manifest.ID)
+		}
+		return strings.TrimSpace(record.Manifest.SettingsView.Entry), nil
+	}
+
+	for _, view := range record.Manifest.Views {
+		if strings.TrimSpace(view.ID) == viewID {
+			entry := strings.TrimSpace(view.Entry)
+			if entry == "" {
+				break
+			}
+			return entry, nil
+		}
+	}
+
+	return "", fmt.Errorf("plugin %s view %s not found", record.Manifest.ID, viewID)
+}
+
+func inlinePluginHTMLAssets(content string, baseDir string) (string, error) {
+	scriptPattern := regexp.MustCompile(`(?is)<script([^>]*?)\s+src=['"]([^'"]+)['"]([^>]*)></script>`)
+	linkPattern := regexp.MustCompile(`(?is)<link([^>]*?)rel=['"]stylesheet['"]([^>]*?)href=['"]([^'"]+)['"]([^>]*)>`)
+	imgPattern := regexp.MustCompile(`(?is)<img([^>]*?)\s+src=['"]([^'"]+)['"]([^>]*)>`)
+
+	inlineAssetText := func(assetPath string) (string, error) {
+		raw, err := os.ReadFile(filepath.Join(baseDir, filepath.Clean(assetPath)))
+		if err != nil {
+			return "", err
+		}
+		return string(raw), nil
+	}
+
+	content = scriptPattern.ReplaceAllStringFunc(content, func(match string) string {
+		parts := scriptPattern.FindStringSubmatch(match)
+		if len(parts) < 4 {
+			return match
+		}
+		src := strings.TrimSpace(parts[2])
+		if src == "" || strings.Contains(src, "://") || strings.HasPrefix(src, "/") {
+			return match
+		}
+		text, err := inlineAssetText(src)
+		if err != nil {
+			logger.Warm("inline plugin script failed:", err)
+			return match
+		}
+		text = strings.ReplaceAll(text, "</script>", "<\\/script>")
+		return "<script" + parts[1] + parts[3] + ">\n" + text + "\n</script>"
+	})
+
+	content = linkPattern.ReplaceAllStringFunc(content, func(match string) string {
+		parts := linkPattern.FindStringSubmatch(match)
+		if len(parts) < 5 {
+			return match
+		}
+		href := strings.TrimSpace(parts[3])
+		if href == "" || strings.Contains(href, "://") || strings.HasPrefix(href, "/") {
+			return match
+		}
+		text, err := inlineAssetText(href)
+		if err != nil {
+			logger.Warm("inline plugin stylesheet failed:", err)
+			return match
+		}
+		return "<style>\n" + text + "\n</style>"
+	})
+
+	content = imgPattern.ReplaceAllStringFunc(content, func(match string) string {
+		parts := imgPattern.FindStringSubmatch(match)
+		if len(parts) < 4 {
+			return match
+		}
+		src := strings.TrimSpace(parts[2])
+		if src == "" || strings.Contains(src, "://") || strings.HasPrefix(src, "/") {
+			return match
+		}
+		raw, err := os.ReadFile(filepath.Join(baseDir, filepath.Clean(src)))
+		if err != nil {
+			logger.Warm("inline plugin image failed:", err)
+			return match
+		}
+		mimeType := mime.TypeByExtension(filepath.Ext(src))
+		if mimeType == "" {
+			mimeType = http.DetectContentType(raw)
+		}
+		dataURL := "data:" + mimeType + ";base64," + base64.StdEncoding.EncodeToString(raw)
+		return `<img` + parts[1] + ` src="` + dataURL + `"` + parts[3] + `>`
+	})
+
+	return content, nil
 }
 
 func copyDir(src, dst string) error {

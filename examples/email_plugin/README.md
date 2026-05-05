@@ -96,6 +96,13 @@ Source lives in:
 src/main.js
 ```
 
+This plugin now uses the official SDK in `packages/plugin-sdk`.
+
+During build, the example copies:
+
+- `packages/plugin-sdk/runtime.js` -> `dist/sdk/runtime.js`
+- `packages/plugin-sdk/browser.js` -> `dist/views/sdk.js`
+
 `dist/main.js` is a small runtime bootstrap that loads the source entrypoint. If you need to refresh the bootstrap file, run:
 
 ```text

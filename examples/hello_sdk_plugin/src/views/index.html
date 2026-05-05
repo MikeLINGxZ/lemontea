@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hello SDK</title>
+    <script defer src="./sdk.js"></script>
+    <style>
+      body {
+        margin: 0;
+        font-family: "SF Pro Text", "PingFang SC", "Microsoft YaHei", sans-serif;
+        background: linear-gradient(180deg, #fdfefe 0%, #eef5f3 100%);
+        color: #183029;
+      }
+      .page {
+        padding: 24px;
+        display: grid;
+        gap: 16px;
+      }
+      .card {
+        background: #ffffff;
+        border: 1px solid #d7e6e0;
+        border-radius: 20px;
+        padding: 20px;
+        box-shadow: 0 16px 30px rgba(18, 38, 33, 0.08);
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 24px;
+      }
+      p {
+        margin: 0;
+        line-height: 1.6;
+      }
+      label {
+        display: grid;
+        gap: 8px;
+        font-size: 13px;
+      }
+      input {
+        border: 1px solid #d7e6e0;
+        border-radius: 12px;
+        padding: 10px 12px;
+        font-size: 14px;
+      }
+      .actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      button {
+        border: 0;
+        border-radius: 999px;
+        padding: 10px 16px;
+        cursor: pointer;
+        background: #1d7c67;
+        color: #fff;
+        font-weight: 600;
+      }
+      button.secondary {
+        background: #e8f4ef;
+        color: #1d7c67;
+      }
+      .message {
+        font-size: 18px;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <section class="card">
+        <h1>Hello SDK</h1>
+        <p>Minimal official plugin template using the Lemon Tea plugin SDK.</p>
+      </section>
+
+      <section class="card">
+        <div id="message" class="message">Loading...</div>
+      </section>
+
+      <section class="card">
+        <label>
+          <span>Default display name</span>
+          <input id="display-name" type="text" />
+        </label>
+        <div class="actions" style="margin-top: 14px;">
+          <button id="save" type="button">Save settings</button>
+          <button id="refresh" type="button" class="secondary">Refresh greeting</button>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      const sdk = window.LemonTeaPluginView;
+      let context = null;
+
+      function setMessage(text) {
+        document.getElementById('message').textContent = text;
+      }
+
+      async function loadSettings() {
+        const settings = await sdk.getSettings();
+        document.getElementById('display-name').value = settings.displayName || 'Lemon Tea';
+      }
+
+      async function renderGreeting() {
+        const result = await sdk.callTool('use_tool', 'hello_world', {});
+        setMessage(result.message || 'Hello!');
+      }
+
+      document.getElementById('save').addEventListener('click', async () => {
+        await sdk.saveSettings({
+          displayName: document.getElementById('display-name').value,
+        });
+        await renderGreeting();
+      });
+
+      document.getElementById('refresh').addEventListener('click', async () => {
+        await renderGreeting();
+      });
+
+      sdk.whenReady().then(async () => {
+        context = await sdk.getContext();
+        await loadSettings();
+        if (context.location === 'chat_side_panel' && context.payload && context.payload.data && context.payload.data.message) {
+          setMessage(context.payload.data.message);
+          return;
+        }
+        await renderGreeting();
+      }).catch((error) => {
+        setMessage(error.message || 'Failed to initialize view.');
+      });
+    </script>
+  </body>
+</html>

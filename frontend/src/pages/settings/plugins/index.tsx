@@ -233,7 +233,11 @@ const PluginSettingsPage: React.FC<{ className?: string }> = ({ className }) => 
     </Card>
   );
 
-  const renderCapabilitySection = (title: string, items: { id: string; name: string; description: string }[], tag: string) => (
+  const renderCapabilitySection = (
+    title: string,
+    items: Array<{ id: string; name: string; description?: string; entry?: string }>,
+    tag: string
+  ) => (
     <div className={styles.section}>
       <Text strong>{title}</Text>
       {items.length === 0 ? (
@@ -245,6 +249,7 @@ const PluginSettingsPage: React.FC<{ className?: string }> = ({ className }) => 
               <div>
                 <div className={styles.capabilityName}>{item.name || item.id}</div>
                 {item.description && <div className={styles.capabilityDesc}>{item.description}</div>}
+                {item.entry && <div className={styles.capabilityDesc}>{item.entry}</div>}
               </div>
               <Tag bordered={false}>{tag}</Tag>
             </div>

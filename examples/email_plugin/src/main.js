@@ -1,26 +1,19 @@
 const fs = require('fs');
 const path = require('path');
-const readline = require('readline');
 const { ImapFlow } = require('imapflow');
 const { simpleParser } = require('mailparser');
 const nodemailer = require('nodemailer');
+const { definePlugin } = require('../dist/sdk/runtime');
 
-const protocolVersion = '1.0';
-let pluginId = process.env.LEMONTEA_PLUGIN_ID || 'com.lemontea.examples.email';
-let dataDir = process.env.LEMONTEA_PLUGIN_DATA_DIR || path.join(__dirname, '..', 'data');
-let pendingHostCalls = new Map();
-let nextHostCallId = 1;
+let pluginContext = null;
+let configStore = null;
+let sentMailStore = null;
 
 function ensureDataDir() {
-  fs.mkdirSync(dataDir, { recursive: true });
-}
-
-function configPath() {
-  return path.join(dataDir, 'email-config.json');
-}
-
-function sentPath() {
-  return path.join(dataDir, 'sent-mail.json');
+  const dir = pluginContext && pluginContext.dataDir
+    ? pluginContext.dataDir
+    : path.join(__dirname, '..', 'data');
+  fs.mkdirSync(dir, { recursive: true });
 }
 
 function defaultConfig() {
@@ -65,17 +58,14 @@ function mergeConfig(stored) {
 }
 
 function loadStoredConfig() {
-  ensureDataDir();
-  try {
-    return mergeConfig(JSON.parse(fs.readFileSync(configPath(), 'utf8')));
-  } catch {
-    return defaultConfig();
-  }
+  return mergeConfig(configStore ? configStore.read() : defaultConfig());
 }
 
 function persistConfig(config) {
   ensureDataDir();
-  fs.writeFileSync(configPath(), JSON.stringify(config, null, 2));
+  if (configStore) {
+    configStore.write(config);
+  }
 }
 
 async function loadConfig() {
@@ -186,16 +176,10 @@ function credentialScope(config, protocol) {
 }
 
 async function callHost(method, params) {
-  const id = `host-${nextHostCallId++}`;
-  return new Promise((resolve, reject) => {
-    pendingHostCalls.set(id, { resolve, reject });
-    write({
-      id,
-      protocolVersion,
-      method,
-      params,
-    });
-  });
+  if (!pluginContext) {
+    throw new Error('Plugin runtime is not initialized.');
+  }
+  return pluginContext.host.call(method, params);
 }
 
 async function getCredential(config, protocol) {
@@ -254,10 +238,7 @@ async function applyCredentialChanges(config, protocol, incoming, storedConfig) 
   }
 
   const hasStoredPassword = await credentialExists(storedConfig || nextConfig, protocol);
-  if (!hasStoredPassword) {
-    throw new Error(`${protocol}.password is required before saving settings`);
-  }
-  nextConfig[protocol].passwordSet = true;
+  nextConfig[protocol].passwordSet = hasStoredPassword;
   return nextConfig;
 }
 
@@ -481,18 +462,15 @@ async function saveConfig(rawConfig) {
 }
 
 function loadSentMail() {
-  ensureDataDir();
-  try {
-    return JSON.parse(fs.readFileSync(sentPath(), 'utf8'));
-  } catch {
-    return [];
-  }
+  return Array.isArray(sentMailStore && sentMailStore.read()) ? sentMailStore.read() : [];
 }
 
 function appendSentMailLog(entry) {
-  const history = loadSentMail();
-  history.unshift(entry);
-  fs.writeFileSync(sentPath(), JSON.stringify(history.slice(0, 200), null, 2));
+  sentMailStore.update((history) => {
+    const nextHistory = Array.isArray(history) ? history.slice() : [];
+    nextHistory.unshift(entry);
+    return nextHistory.slice(0, 200);
+  });
 }
 
 async function updateTestStatus(protocol, status) {
@@ -588,6 +566,7 @@ async function getMail(rawArgs) {
   const args = parseArgs(rawArgs);
   const mailbox = stringValue(args.mailbox) || 'INBOX';
   const uid = numberValue(args.uid, 0);
+  const markAsRead = args.markAsRead !== false;
   if (!uid) {
     throw new Error('uid is required');
   }
@@ -602,42 +581,48 @@ async function getMail(rawArgs) {
       if (!Array.isArray(matches) || !matches.includes(uid)) {
         throw new Error(`Message ${uid} is no longer available in ${mailbox}. It may have been moved, deleted, or the mailbox has changed.`);
       }
-      for await (const item of client.fetch(String(uid), {
+      const item = await client.fetchOne(String(uid), {
         uid: true,
         envelope: true,
         flags: true,
         internalDate: true,
         source: true,
-      }, { uid: true })) {
-        const parsed = await simpleParser(item.source);
-        const message = normalizeMessage({
-          uid: item.uid,
-          from: parsed.from?.value || item.envelope?.from || [],
-          to: parsed.to?.value || item.envelope?.to || [],
-          cc: parsed.cc?.value || item.envelope?.cc || [],
-          subject: parsed.subject || item.envelope?.subject || '',
-          text: parsed.text || '',
-          html: parsed.html || '',
-          receivedAt: (item.internalDate || parsed.date || new Date()).toISOString(),
-          seen: item.flags?.has('\\Seen') || false,
-          mailbox,
-          attachments: parsed.attachments || [],
-          headers: {
-            messageId: stringValue(parsed.messageId),
-            inReplyTo: stringValue(parsed.inReplyTo),
-            references: toArray(parsed.references),
-          },
-        }, {
-          includeBody: true,
-          includeHtml: true,
-        });
-        return {
-          account: config.account.email,
-          mailbox,
-          message,
-        };
+      }, { uid: true });
+      if (!item) {
+        throw new Error(`Message ${uid} is no longer available in ${mailbox}. It may have been moved, deleted, or the mailbox has changed.`);
       }
-      throw new Error(`Message ${uid} is no longer available in ${mailbox}. It may have been moved, deleted, or the mailbox has changed.`);
+      let seen = item.flags?.has('\\Seen') || false;
+      if (markAsRead && !seen) {
+        await client.messageFlagsAdd(String(uid), ['\\Seen'], { uid: true, silent: true });
+        seen = true;
+      }
+      const parsed = await simpleParser(item.source);
+      const message = normalizeMessage({
+        uid: item.uid,
+        from: parsed.from?.value || item.envelope?.from || [],
+        to: parsed.to?.value || item.envelope?.to || [],
+        cc: parsed.cc?.value || item.envelope?.cc || [],
+        subject: parsed.subject || item.envelope?.subject || '',
+        text: parsed.text || '',
+        html: parsed.html || '',
+        receivedAt: (item.internalDate || parsed.date || new Date()).toISOString(),
+        seen,
+        mailbox,
+        attachments: parsed.attachments || [],
+        headers: {
+          messageId: stringValue(parsed.messageId),
+          inReplyTo: stringValue(parsed.inReplyTo),
+          references: toArray(parsed.references),
+        },
+      }, {
+        includeBody: true,
+        includeHtml: true,
+      });
+      return {
+        account: config.account.email,
+        mailbox,
+        message,
+      };
     } finally {
       lock.release();
     }
@@ -656,7 +641,6 @@ async function searchMail(rawArgs) {
   const limit = Math.max(1, Math.min(numberValue(args.limit, 10), 50));
   const cursor = decodeCursor(args.cursor);
   const afterUidExclusive = Number(cursor && cursor.afterUidExclusive ? cursor.afterUidExclusive : 0);
-  const scanWindow = Math.max(limit * 6, 40);
   const filters = {
     query: stringValue(args.query).toLowerCase(),
     from: stringValue(args.from).toLowerCase(),
@@ -667,6 +651,7 @@ async function searchMail(rawArgs) {
   };
   const client = new ImapFlow(imapClientOptions(config));
   const messages = [];
+  let candidateUids = [];
 
   try {
     await client.connect();
@@ -686,35 +671,51 @@ async function searchMail(rawArgs) {
         };
       }
 
-      const start = Math.max(exists - scanWindow + 1, 1);
-      const range = `${start}:${exists}`;
-      for await (const item of client.fetch(range, {
-        uid: true,
-        envelope: true,
-        flags: true,
-        internalDate: true,
-        source: true,
-      })) {
-        if (afterUidExclusive > 0 && item.uid >= afterUidExclusive) {
-          continue;
+      const allUids = await client.search({}, { uid: true });
+      candidateUids = (Array.isArray(allUids) ? allUids : [])
+        .filter(item => Number.isFinite(Number(item)))
+        .map(item => Number(item))
+        .filter(item => (afterUidExclusive > 0 ? item < afterUidExclusive : true))
+        .sort((a, b) => b - a);
+
+      const batchSize = Math.max(limit * 3, 30);
+      for (let index = 0; index < candidateUids.length && messages.length < limit; index += batchSize) {
+        const batchUids = candidateUids.slice(index, index + batchSize);
+        if (batchUids.length === 0) {
+          break;
         }
-        const parsed = await simpleParser(item.source);
-        messages.push(normalizeMessage({
-          uid: item.uid,
-          from: parsed.from?.value || item.envelope?.from || [],
-          to: parsed.to?.value || item.envelope?.to || [],
-          cc: parsed.cc?.value || item.envelope?.cc || [],
-          subject: parsed.subject || item.envelope?.subject || '',
-          text: parsed.text || '',
-          html: parsed.html || '',
-          receivedAt: (item.internalDate || parsed.date || new Date()).toISOString(),
-          seen: item.flags?.has('\\Seen') || false,
-          mailbox,
-          attachments: parsed.attachments || [],
-        }, {
-          includeBody,
-          includeHtml,
-        }));
+        for await (const item of client.fetch(batchUids, {
+          uid: true,
+          envelope: true,
+          flags: true,
+          internalDate: true,
+          source: true,
+        }, { uid: true })) {
+          const parsed = await simpleParser(item.source);
+          const message = normalizeMessage({
+            uid: item.uid,
+            from: parsed.from?.value || item.envelope?.from || [],
+            to: parsed.to?.value || item.envelope?.to || [],
+            cc: parsed.cc?.value || item.envelope?.cc || [],
+            subject: parsed.subject || item.envelope?.subject || '',
+            text: parsed.text || '',
+            html: parsed.html || '',
+            receivedAt: (item.internalDate || parsed.date || new Date()).toISOString(),
+            seen: item.flags?.has('\\Seen') || false,
+            mailbox,
+            attachments: parsed.attachments || [],
+          }, {
+            includeBody,
+            includeHtml,
+          });
+          if ((!unreadOnly || message.unread) && matchesQuery(message, filters)) {
+            messages.push(message);
+          }
+        }
+        messages.sort((a, b) => Number(b.uid) - Number(a.uid));
+        if (messages.length > limit) {
+          messages.length = limit;
+        }
       }
     } finally {
       lock.release();
@@ -723,14 +724,16 @@ async function searchMail(rawArgs) {
     await client.logout().catch(() => {});
   }
 
-  const filtered = messages
-    .filter(message => (!unreadOnly || message.unread) && matchesQuery(message, filters))
+  const selected = messages
+    .slice(0, limit)
     .sort((a, b) => Number(b.uid) - Number(a.uid));
-
-  const selected = filtered.slice(0, limit);
-  const nextCursor = filtered.length > limit
+  const nextCursor = selected.length > 0
     ? encodeCursor({ afterUidExclusive: selected[selected.length - 1].uid })
     : '';
+  const oldestSelectedUid = selected.length > 0 ? Number(selected[selected.length - 1].uid || 0) : 0;
+  const hasMore = oldestSelectedUid > 0
+    ? candidateUids.some(item => item < oldestSelectedUid)
+    : false;
 
   return {
     count: selected.length,
@@ -738,7 +741,7 @@ async function searchMail(rawArgs) {
     mailbox,
     folder: mailbox,
     nextCursor,
-    hasMore: Boolean(nextCursor),
+    hasMore,
     messages: selected,
   };
 }
@@ -835,97 +838,33 @@ async function showMailList(rawArgs) {
   };
 }
 
-async function handle(method, params) {
-  switch (method) {
-    case 'initialize':
-      pluginId = params.pluginId || pluginId;
-      dataDir = params.dataDir || dataDir;
-      ensureDataDir();
-      return {
-        capabilities: {
-          useTools: params.manifest?.capabilities?.useTools || [],
-          viewTools: params.manifest?.capabilities?.viewTools || [],
-          views: params.manifest?.views || [],
-          hooks: params.manifest?.capabilities?.hooks || [],
-        },
-      };
-    case 'call_use_tool':
-      if (params.toolId === 'search_mail') return { content: await searchMail(params.args) };
-      if (params.toolId === 'send_mail') return { content: await sendMail(params.args) };
-      if (params.toolId === 'list_folders') return { content: await listFolders() };
-      if (params.toolId === 'get_mail') return { content: await getMail(params.args) };
-      throw new Error(`Unknown use tool: ${params.toolId}`);
-    case 'call_view_tool':
-      if (params.toolId === 'show_mail_list') return { content: await showMailList(params.args) };
-      throw new Error(`Unknown view tool: ${params.toolId}`);
-    case 'get_settings':
-      return { config: await loadConfig() };
-    case 'save_settings':
-      return { config: await saveConfig(params.config) };
-    case 'test_connection':
-      return { result: await testConnection(stringValue(params.protocol), params.config) };
-    case 'before_llm_send':
-      return { messages: params.messages || [] };
-    case 'after_llm_send':
-      return { ok: true };
-    case 'shutdown':
-      process.exitCode = 0;
-      setTimeout(() => process.exit(0), 10);
-      return { ok: true };
-    default:
-      throw new Error(`Unknown method: ${method}`);
-  }
-}
-
-function write(message) {
-  process.stdout.write(`${JSON.stringify(message)}\n`);
-}
-
-function rpcError(error) {
-  return {
-    code: 'PLUGIN_ERROR',
-    message: error instanceof Error ? error.message : String(error),
-  };
-}
-
-async function dispatchRequest(request) {
-  try {
-    const result = await handle(request.method, request.params || {});
-    write({ id: request.id, protocolVersion, result });
-  } catch (error) {
-    write({ id: request.id, protocolVersion, error: rpcError(error) });
-  }
-}
-
-const rl = readline.createInterface({
-  input: process.stdin,
-  crlfDelay: Infinity,
+const plugin = definePlugin({
+  onInitialize(ctx) {
+    pluginContext = ctx;
+    ensureDataDir();
+    configStore = ctx.storage.jsonStore('email-config.json', defaultConfig);
+    sentMailStore = ctx.storage.jsonStore('sent-mail.json', []);
+  },
+  useTools: {
+    search_mail: (args) => searchMail(args),
+    send_mail: (args) => sendMail(args),
+    list_folders: () => listFolders(),
+    get_mail: (args) => getMail(args),
+  },
+  viewTools: {
+    show_mail_list: (args) => showMailList(args),
+  },
+  settings: {
+    get: () => loadConfig(),
+    save: (config) => saveConfig(config),
+    testConnection: (protocol, config) => testConnection(stringValue(protocol), config),
+  },
+  hooks: {
+    beforeLLMSend: (messages) => messages || [],
+    afterLLMSend: async () => ({ ok: true }),
+  },
 });
 
-rl.on('line', async (line) => {
-  if (!line.trim()) return;
-  let message;
-  try {
-    message = JSON.parse(line);
-  } catch (error) {
-    write({ protocolVersion, error: rpcError(error) });
-    return;
-  }
-
-  if (message.method) {
-    await dispatchRequest(message);
-    return;
-  }
-
-  if (message.id && pendingHostCalls.has(message.id)) {
-    const pending = pendingHostCalls.get(message.id);
-    pendingHostCalls.delete(message.id);
-    if (message.error) {
-      pending.reject(new Error(message.error.message || 'Host RPC failed'));
-      return;
-    }
-    pending.resolve(message.result || {});
-  }
-});
+plugin.start();
 
 process.on('SIGTERM', () => process.exit(0));

@@ -2,6 +2,7 @@
   "id": "com.lemontea.examples.email",
   "name": "Email",
   "version": "1.1.0",
+  "plugin_api_version": 1,
   "description": "Configurable IMAP and SMTP email plugin with secure host-managed credentials, mailbox search, folder browsing, message detail retrieval, mail sending, and side-panel rendering.",
   "type": "general_plugin",
   "main": "dist/main.js",
@@ -20,12 +21,17 @@
       "id": "mail_list",
       "name": "Mail List",
       "entry": "dist/views/mail-list.html"
+    },
+    {
+      "id": "mail_detail",
+      "name": "Mail Detail",
+      "entry": "dist/views/mail-detail.html"
     }
   ],
   "settingsView": {
     "id": "settings",
     "name": "Email Settings",
-    "entry": "/?entry=form_plugin_email"
+    "entry": "dist/views/settings.html"
   },
   "capabilities": {
     "useTools": [

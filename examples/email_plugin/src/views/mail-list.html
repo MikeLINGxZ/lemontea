@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Email Mail List</title>
+    <script defer src="./sdk.js"></script>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f5f7fb;
+        --panel: #ffffff;
+        --border: #d8e0ec;
+        --text: #1d2736;
+        --muted: #6b7688;
+        --accent: #1b7f6b;
+        --accent-soft: #e6f5f1;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "SF Pro Text", "PingFang SC", "Microsoft YaHei", sans-serif;
+        background: linear-gradient(180deg, #fbfcfe 0%, var(--bg) 100%);
+        color: var(--text);
+      }
+      .wrap { padding: 14px; }
+      .toolbar, .empty, .card { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; }
+      .toolbar {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+        padding: 14px 16px;
+        margin-bottom: 12px;
+        box-shadow: 0 12px 28px rgba(18, 34, 62, 0.05);
+      }
+      .summary { display: flex; flex-direction: column; gap: 4px; }
+      .summary strong { font-size: 14px; }
+      .summary span { color: var(--muted); font-size: 12px; }
+      .actions { display: flex; gap: 8px; }
+      button {
+        border: 0;
+        border-radius: 999px;
+        padding: 9px 14px;
+        font-size: 12px;
+        cursor: pointer;
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+      button.secondary { background: #eef2f8; color: var(--text); }
+      button:disabled { opacity: 0.5; cursor: default; }
+      .list { display: flex; flex-direction: column; gap: 10px; }
+      .card {
+        width: 100%;
+        text-align: left;
+        padding: 14px 16px;
+        box-shadow: 0 12px 24px rgba(31, 45, 74, 0.05);
+      }
+      .row { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+      .subject { font-size: 14px; font-weight: 600; }
+      .time { color: var(--muted); font-size: 11px; white-space: nowrap; }
+      .meta { margin-top: 6px; color: var(--muted); font-size: 12px; }
+      .snippet { margin-top: 10px; color: #435066; font-size: 12px; line-height: 1.5; }
+      .badge {
+        display: inline-flex;
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: #2f9f85;
+        margin-right: 8px;
+      }
+      .footer { margin-top: 12px; display: flex; justify-content: center; }
+      .empty {
+        padding: 28px 18px;
+        text-align: center;
+        color: var(--muted);
+      }
+      .error {
+        margin-bottom: 12px;
+        padding: 12px 14px;
+        border-radius: 14px;
+        background: #fff1f0;
+        color: #c5352b;
+        border: 1px solid #ffc9c2;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div id="error" class="error" hidden></div>
+      <div class="toolbar">
+        <div class="summary">
+          <strong id="folder">INBOX</strong>
+          <span id="summary">0 messages</span>
+        </div>
+        <div class="actions">
+          <button id="refresh">Refresh</button>
+          <button id="load-more" class="secondary">Load more</button>
+        </div>
+      </div>
+      <div id="list" class="list"></div>
+      <div id="empty" class="empty" hidden>No messages yet.</div>
+      <div class="footer">
+        <button id="load-more-bottom" class="secondary">Load more</button>
+      </div>
+    </div>
+
+    <script>
+      const sdk = window.LemonTeaPluginView;
+      const state = {
+        context: null,
+        payload: null,
+        running: '',
+      };
+
+      const provider = {
+        gmail: {
+          imap: { host: 'imap.gmail.com', port: 993, security: 'tls' },
+          smtp: { host: 'smtp.gmail.com', port: 465, security: 'tls' },
+        },
+      };
+
+      function showError(message) {
+        const el = document.getElementById('error');
+        el.hidden = !message;
+        el.textContent = message || '';
+      }
+
+      function formatDate(value) {
+        const date = new Date(value || '');
+        if (Number.isNaN(date.getTime())) return value || '';
+        return date.toLocaleString();
+      }
+
+      function normalizeText(value) {
+        return String(value || '').replace(/\s+/g, ' ').trim();
+      }
+
+      function parseArgs(raw) {
+        try {
+          return JSON.parse(raw || '{}');
+        } catch {
+          return {};
+        }
+      }
+
+      function buildSearchArgs(mode) {
+        const sourceArgs = parseArgs(state.context.sidePanelContext && state.context.sidePanelContext.args);
+        const result = (state.payload && state.payload.data && state.payload.data.result) || {};
+        const nextArgs = {
+          mailbox: sourceArgs.mailbox || sourceArgs.folder || result.mailbox || result.folder || 'INBOX',
+          query: sourceArgs.query || '',
+          from: sourceArgs.from || '',
+          to: sourceArgs.to || '',
+          subject: sourceArgs.subject || '',
+          since: sourceArgs.since || '',
+          before: sourceArgs.before || '',
+          unreadOnly: sourceArgs.unreadOnly === true,
+          includeBody: sourceArgs.includeBody === true,
+          includeHtml: sourceArgs.includeHtml === true,
+          limit: Math.max(10, Math.min(Number(sourceArgs.limit || result.messages && result.messages.length || 20), 50)),
+        };
+        if (mode === 'load_more' && result.nextCursor) {
+          nextArgs.cursor = result.nextCursor;
+        }
+        return nextArgs;
+      }
+
+      async function runSearch(mode) {
+        if (state.running) return;
+        state.running = mode;
+        updateButtons();
+        showError('');
+        try {
+          const result = await sdk.callTool('use_tool', 'search_mail', buildSearchArgs(mode));
+          const previous = mode === 'load_more'
+            ? (((state.payload || {}).data || {}).result || {}).messages || []
+            : [];
+          const incoming = Array.isArray(result.messages) ? result.messages : [];
+          const merged = previous.concat(
+            incoming.filter((item) => !previous.some((prev) => Number(prev.uid || 0) === Number(item.uid || 0)))
+          );
+          const nextPayload = {
+            viewId: 'mail_list',
+            region: 'chat_side_panel',
+            title: (state.payload && state.payload.title) || `Mail · ${result.folder || result.mailbox || 'INBOX'}`,
+            data: {
+              result: Object.assign({}, result, {
+                messages: mode === 'load_more' ? merged : incoming,
+                count: mode === 'load_more' ? merged.length : incoming.length,
+              }),
+            },
+          };
+          state.payload = nextPayload;
+          await sdk.updateView(nextPayload);
+          render();
+        } catch (error) {
+          showError(error.message || 'Failed to refresh mail.');
+        } finally {
+          state.running = '';
+          updateButtons();
+        }
+      }
+
+      async function openDetail(message) {
+        showError('');
+        try {
+          const mailbox = message.mailbox || (((state.payload || {}).data || {}).result || {}).mailbox || 'INBOX';
+          const result = await sdk.callTool('use_tool', 'get_mail', {
+            mailbox,
+            uid: Number(message.uid || 0),
+            markAsRead: true,
+          });
+          await sdk.openView({
+            viewId: 'mail_detail',
+            region: 'chat_side_panel',
+            title: result.message && result.message.subject ? result.message.subject : 'Mail Detail',
+            data: { result },
+          });
+
+          const current = (((state.payload || {}).data || {}).result || {});
+          const nextMessages = (current.messages || []).map((item) => (
+            Number(item.uid || 0) === Number(message.uid || 0) ? Object.assign({}, item, { unread: false }) : item
+          ));
+          state.payload = Object.assign({}, state.payload, {
+            data: {
+              result: Object.assign({}, current, { messages: nextMessages }),
+            },
+          });
+          await sdk.updateView(state.payload);
+          render();
+        } catch (error) {
+          showError(error.message || 'Failed to load mail detail.');
+        }
+      }
+
+      function updateButtons() {
+        const result = (((state.payload || {}).data || {}).result || {});
+        const refreshing = state.running === 'refresh';
+        const loadingMore = state.running === 'load_more';
+        document.getElementById('refresh').disabled = !!state.running;
+        document.getElementById('refresh').textContent = refreshing ? 'Refreshing...' : 'Refresh';
+        const loadMoreButtons = [document.getElementById('load-more'), document.getElementById('load-more-bottom')];
+        loadMoreButtons.forEach((button) => {
+          button.disabled = !result.hasMore || !!state.running;
+          button.textContent = loadingMore ? 'Loading more...' : (result.hasMore ? 'Load more' : 'No more mail');
+        });
+      }
+
+      function render() {
+        const result = (((state.payload || {}).data || {}).result || {});
+        const messages = Array.isArray(result.messages) ? result.messages : [];
+        document.getElementById('folder').textContent = result.folder || result.mailbox || 'INBOX';
+        document.getElementById('summary').textContent =
+          `${messages.length}${result.hasMore ? '+' : ''} messages loaded`;
+
+        const list = document.getElementById('list');
+        list.innerHTML = '';
+        document.getElementById('empty').hidden = messages.length > 0;
+
+        messages.forEach((message) => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'card';
+          button.addEventListener('click', () => void openDetail(message));
+          button.innerHTML = `
+            <div class="row">
+              <div class="subject">${message.unread ? '<span class="badge"></span>' : ''}${message.subject || '(No subject)'}</div>
+              <div class="time">${formatDate(message.receivedAt)}</div>
+            </div>
+            <div class="meta">${normalizeText(message.from || 'Unknown sender')}</div>
+            <div class="snippet">${normalizeText(message.snippet || message.body || '') || 'No preview available.'}</div>
+          `;
+          list.appendChild(button);
+        });
+
+        updateButtons();
+      }
+
+      document.getElementById('refresh').addEventListener('click', () => void runSearch('refresh'));
+      document.getElementById('load-more').addEventListener('click', () => void runSearch('load_more'));
+      document.getElementById('load-more-bottom').addEventListener('click', () => void runSearch('load_more'));
+
+      sdk.whenReady().then((context) => {
+        state.context = context;
+        state.payload = context.payload || {
+          viewId: 'mail_list',
+          region: 'chat_side_panel',
+          title: 'Mail',
+          data: { result: { messages: [] } },
+        };
+        render();
+      }).catch((error) => {
+        showError(error.message || 'Failed to initialize mail view.');
+      });
+    </script>
+  </body>
+</html>

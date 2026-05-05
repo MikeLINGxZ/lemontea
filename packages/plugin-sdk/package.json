@@ -1,0 +1,18 @@
+{
+  "name": "@lemontea/plugin-sdk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "main": "runtime.js",
+  "exports": {
+    ".": "./runtime.js",
+    "./runtime": "./runtime.js",
+    "./browser": "./browser.js"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

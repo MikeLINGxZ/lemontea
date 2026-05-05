@@ -6,6 +6,8 @@ const (
 	TypeAgent   = "agent_plugin"
 	TypeGeneral = "general_plugin"
 
+	CurrentPluginAPIVersion = 1
+
 	StatusDisabled = "disabled"
 	StatusEnabled  = "enabled"
 	StatusError    = "error"
@@ -14,19 +16,20 @@ const (
 )
 
 type Manifest struct {
-	ID             string          `json:"id"`
-	Name           string          `json:"name"`
-	Version        string          `json:"version"`
-	Description    string          `json:"description"`
-	Type           string          `json:"type"`
-	Main           string          `json:"main"`
-	MinHostVersion string          `json:"minHostVersion"`
-	Author         string          `json:"author"`
-	Permissions    []string        `json:"permissions"`
-	Views          []PluginView    `json:"views"`
-	SettingsView   *PluginView     `json:"settingsView"`
-	Capabilities   *Capabilities   `json:"capabilities"`
-	Raw            json.RawMessage `json:"-"`
+	ID               string          `json:"id"`
+	Name             string          `json:"name"`
+	Version          string          `json:"version"`
+	PluginAPIVersion int             `json:"plugin_api_version"`
+	Description      string          `json:"description"`
+	Type             string          `json:"type"`
+	Main             string          `json:"main"`
+	MinHostVersion   string          `json:"minHostVersion"`
+	Author           string          `json:"author"`
+	Permissions      []string        `json:"permissions"`
+	Views            []PluginView    `json:"views"`
+	SettingsView     *PluginView     `json:"settingsView"`
+	Capabilities     *Capabilities   `json:"capabilities"`
+	Raw              json.RawMessage `json:"-"`
 }
 
 type Capabilities struct {
@@ -74,22 +77,23 @@ type PluginRecord struct {
 }
 
 type Summary struct {
-	ID          string        `json:"id"`
-	Name        string        `json:"name"`
-	Version     string        `json:"version"`
-	Description string        `json:"description"`
-	Type        string        `json:"type"`
-	Author      string        `json:"author"`
-	Enabled     bool          `json:"enabled"`
-	Status      string        `json:"status"`
-	LastError   string        `json:"last_error"`
-	HasSettings bool          `json:"has_settings"`
-	Permissions []string      `json:"permissions"`
-	UseTools    []PluginTool  `json:"use_tools"`
-	ViewTools   []PluginTool  `json:"view_tools"`
-	Agents      []PluginAgent `json:"agents"`
-	Views       []PluginView  `json:"views"`
-	Hooks       []string      `json:"hooks"`
+	ID               string        `json:"id"`
+	Name             string        `json:"name"`
+	Version          string        `json:"version"`
+	PluginAPIVersion int           `json:"plugin_api_version"`
+	Description      string        `json:"description"`
+	Type             string        `json:"type"`
+	Author           string        `json:"author"`
+	Enabled          bool          `json:"enabled"`
+	Status           string        `json:"status"`
+	LastError        string        `json:"last_error"`
+	HasSettings      bool          `json:"has_settings"`
+	Permissions      []string      `json:"permissions"`
+	UseTools         []PluginTool  `json:"use_tools"`
+	ViewTools        []PluginTool  `json:"view_tools"`
+	Agents           []PluginAgent `json:"agents"`
+	Views            []PluginView  `json:"views"`
+	Hooks            []string      `json:"hooks"`
 }
 
 type RuntimeStatus struct {

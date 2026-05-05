@@ -1,0 +1,61 @@
+{
+  "id": "com.lemontea.examples.hello_sdk",
+  "name": "Hello SDK",
+  "version": "0.1.0",
+  "plugin_api_version": 1,
+  "description": "Minimal plugin template built with the Lemon Tea plugin SDK.",
+  "type": "general_plugin",
+  "main": "dist/main.js",
+  "minHostVersion": "1.0.0",
+  "author": "Lemon Tea",
+  "permissions": [
+    "filesystem.plugin_data"
+  ],
+  "views": [
+    {
+      "id": "hello_view",
+      "name": "Hello View",
+      "entry": "dist/views/index.html"
+    }
+  ],
+  "settingsView": {
+    "id": "settings",
+    "name": "Hello Settings",
+    "entry": "dist/views/index.html"
+  },
+  "capabilities": {
+    "useTools": [
+      {
+        "id": "hello_world",
+        "name": "Hello World",
+        "description": "Return a greeting message from the SDK template plugin.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Optional name to greet."
+            }
+          }
+        }
+      }
+    ],
+    "viewTools": [
+      {
+        "id": "show_hello",
+        "name": "Show Hello View",
+        "description": "Render the hello message in the chat side panel.",
+        "viewId": "hello_view",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "message": {
+              "type": "string",
+              "description": "Message to display in the view."
+            }
+          }
+        }
+      }
+    ]
+  }
+}

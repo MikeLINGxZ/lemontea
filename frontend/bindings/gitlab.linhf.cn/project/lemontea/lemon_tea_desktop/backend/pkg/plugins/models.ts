@@ -173,6 +173,7 @@ export class Summary {
     "id": string;
     "name": string;
     "version": string;
+    "plugin_api_version": number;
     "description": string;
     "type": string;
     "author": string;
@@ -197,6 +198,9 @@ export class Summary {
         }
         if (!("version" in $$source)) {
             this["version"] = "";
+        }
+        if (!("plugin_api_version" in $$source)) {
+            this["plugin_api_version"] = 0;
         }
         if (!("description" in $$source)) {
             this["description"] = "";
@@ -245,30 +249,30 @@ export class Summary {
      * Creates a new Summary instance from a string or object.
      */
     static createFrom($$source: any = {}): Summary {
-        const $$createField10_0 = $$createType1;
-        const $$createField11_0 = $$createType3;
+        const $$createField11_0 = $$createType1;
         const $$createField12_0 = $$createType3;
-        const $$createField13_0 = $$createType5;
-        const $$createField14_0 = $$createType7;
-        const $$createField15_0 = $$createType1;
+        const $$createField13_0 = $$createType3;
+        const $$createField14_0 = $$createType5;
+        const $$createField15_0 = $$createType7;
+        const $$createField16_0 = $$createType1;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("permissions" in $$parsedSource) {
-            $$parsedSource["permissions"] = $$createField10_0($$parsedSource["permissions"]);
+            $$parsedSource["permissions"] = $$createField11_0($$parsedSource["permissions"]);
         }
         if ("use_tools" in $$parsedSource) {
-            $$parsedSource["use_tools"] = $$createField11_0($$parsedSource["use_tools"]);
+            $$parsedSource["use_tools"] = $$createField12_0($$parsedSource["use_tools"]);
         }
         if ("view_tools" in $$parsedSource) {
-            $$parsedSource["view_tools"] = $$createField12_0($$parsedSource["view_tools"]);
+            $$parsedSource["view_tools"] = $$createField13_0($$parsedSource["view_tools"]);
         }
         if ("agents" in $$parsedSource) {
-            $$parsedSource["agents"] = $$createField13_0($$parsedSource["agents"]);
+            $$parsedSource["agents"] = $$createField14_0($$parsedSource["agents"]);
         }
         if ("views" in $$parsedSource) {
-            $$parsedSource["views"] = $$createField14_0($$parsedSource["views"]);
+            $$parsedSource["views"] = $$createField15_0($$parsedSource["views"]);
         }
         if ("hooks" in $$parsedSource) {
-            $$parsedSource["hooks"] = $$createField15_0($$parsedSource["hooks"]);
+            $$parsedSource["hooks"] = $$createField16_0($$parsedSource["hooks"]);
         }
         return new Summary($$parsedSource as Partial<Summary>);
     }
