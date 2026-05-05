@@ -25,11 +25,11 @@
 .listCard,
 .detailCard {
   height: 100%;
-  border-radius: 16px;
   border: none;
+  border-radius: 16px;
   background: var(--background-color);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
   overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
   transition: all var(--transition-normal);
 
   &:hover {
@@ -51,34 +51,27 @@
   }
 }
 
-.listCard {
-  :global(.ant-card-body) {
-    padding: 0;
-    height: calc(100% - 72px);
-    overflow: hidden;
-  }
+.listCard :global(.ant-card-body) {
+  padding: 0;
+  height: calc(100% - 72px);
+  overflow: hidden;
 }
 
-.detailCard {
-  :global(.ant-card-body) {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-lg);
-    padding: var(--spacing-xl);
-    height: 100%;
-    min-height: 0;
-    overflow-y: auto;
-  }
+.detailCard :global(.ant-card-body) {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  height: 100%;
+  min-height: 0;
+  padding: var(--spacing-xl);
+  overflow-y: auto;
 }
 
-.listLoading,
-.detailLoading,
-.emptyState {
-  min-height: 320px;
+.listTitleRow {
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: var(--spacing-xl);
+  justify-content: space-between;
+  min-width: 0;
 }
 
 .pluginList {
@@ -90,10 +83,13 @@
 
 .pluginItem {
   display: grid;
-  grid-template-rows: auto auto;
+  grid-template-rows: auto auto auto;
   align-content: start;
   row-gap: 4px;
   width: 100%;
+  min-height: 92px;
+  box-sizing: border-box;
+  overflow: hidden;
   text-align: left;
   background: transparent;
   border: none;
@@ -102,9 +98,6 @@
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
-  min-height: 72px;
-  box-sizing: border-box;
-  overflow: hidden;
 
   &:first-child {
     border-top: none;
@@ -139,64 +132,197 @@
   }
 }
 
-.pluginItemHeader {
+.pluginItemHeader,
+.detailHeader,
+.detailTitleRow,
+.actionRow,
+.capabilityRow {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: var(--spacing-sm);
-  min-width: 0;
 }
 
-.pluginItemTitle {
+.pluginItemHeader,
+.detailHeader {
+  justify-content: space-between;
+}
+
+.detailHeader {
+  align-items: flex-start;
+}
+
+.pluginName {
+  min-width: 0;
   color: var(--text-color);
   font-weight: 600;
   font-size: var(--font-size);
   letter-spacing: -0.01em;
   line-height: 1.4;
   flex: 1;
-  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.pluginItemHeader :global(.ant-tag) {
-  flex-shrink: 0;
-  margin-inline-end: 0;
+.pluginMeta,
+.description,
+.emptyText {
+  color: var(--text-color-secondary);
 }
 
-.pluginItemName {
-  color: var(--text-color-secondary);
+.pluginMeta {
   font-size: 12px;
-  line-height: 1.4;
+  line-height: 1.45;
   font-family: 'SFMono-Regular', 'Consolas', 'Monaco', monospace;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.pluginItemTags {
+.detailContent {
   display: flex;
-  gap: 4px;
-  flex-shrink: 0;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  min-height: 0;
+}
 
-  :global(.ant-tag) {
-    margin-inline-end: 0;
+.actionRow {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.segmentSwitch {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border-color-light);
+  border-radius: 999px;
+  background: var(--background-color-light);
+  transition: opacity var(--transition-fast);
+}
+
+.segmentSwitchLoading {
+  opacity: 0.62;
+  pointer-events: none;
+}
+
+.segmentOption {
+  min-width: 52px;
+  height: 26px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-color-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
+
+  &:not(:disabled):hover {
+    color: var(--brand-teal-hover);
+    background: rgba(20, 184, 166, 0.08);
+  }
+
+  &:disabled {
+    cursor: default;
   }
 }
 
-.detailHeader {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
+.segmentOptionActive {
+  color: #fff;
+  background: var(--brand-teal);
+  box-shadow: 0 4px 10px rgba(20, 184, 166, 0.24);
 }
 
-.detailTitleRow {
+.actionButton {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  min-width: auto !important;
+  height: 24px !important;
+  padding: 0 7px !important;
+  border-radius: 6px !important;
+  font-size: 12px !important;
+  line-height: 1 !important;
+}
+
+.settingsIconButton {
+  border-color: var(--border-color-light) !important;
+  background: var(--background-color-light) !important;
+  color: var(--text-color-secondary) !important;
+  box-shadow: none !important;
+
+  &:hover {
+    border-color: var(--brand-border-soft) !important;
+    background: var(--brand-soft-teal) !important;
+    color: var(--brand-teal-hover) !important;
+  }
+}
+
+.section {
+  display: grid;
+  gap: var(--spacing-sm);
+}
+
+.capabilityList {
+  display: grid;
+  gap: 8px;
+}
+
+.capabilityRow {
+  justify-content: space-between;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color-light);
+  border-radius: 8px;
+  background: var(--background-color-light);
+}
+
+.capabilityName {
+  color: var(--text-color);
+  font-weight: 500;
+}
+
+.capabilityDesc {
+  color: var(--text-color-secondary);
+  font-size: 12px;
+}
+
+.loading,
+.emptyState {
+  min-height: 320px;
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-xs);
+  justify-content: center;
+  padding: var(--spacing-xl);
+}
+
+.runtimeCard {
+  height: 100%;
+  border: none;
+  border-radius: 16px;
+  background: var(--background-color);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+
+  :global(.ant-card-body) {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-xl);
+  }
+}
+
+.runtimePrompt {
+  width: min(560px, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+  text-align: center;
 
   h4 {
     margin: 0 !important;
@@ -205,126 +331,23 @@
   }
 }
 
-.detailDescription {
-  margin-bottom: 0 !important;
-  color: var(--text-color-secondary);
-}
-
-.pluginId {
-  display: inline-block;
-  margin-bottom: var(--spacing-sm);
-  color: var(--text-color-secondary);
-  font-family: 'SFMono-Regular', 'Consolas', 'Monaco', monospace;
-}
-
-.detailSection {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-
-  .sectionTitle {
-    font-weight: 500;
-    color: var(--text-color);
-    font-size: var(--font-size-sm);
-  }
-}
-
-.contribSections {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-lg);
-}
-
-.contribList {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.detailActions {
+.runtimeIcon {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-md);
-  flex-wrap: wrap;
-  padding-top: var(--spacing-lg);
-  border-top: 1px solid var(--border-color-light);
-  margin-top: auto;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  color: var(--brand-teal-hover);
+  background: var(--brand-soft-teal);
+  font-size: 26px;
 }
 
-.actionRow {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-}
-
-.listTitleRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.runtimeProgress {
   width: 100%;
-}
-
-.addButton {
-  color: var(--text-color-secondary);
-
-  &:hover {
-    color: var(--brand-teal);
-  }
-}
-
-.mobileDetail {
+  max-width: 420px;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
-}
-
-.mobileBackButton {
-  align-self: flex-start;
-  padding-left: 0;
-  color: var(--brand-teal);
-  font-weight: 600;
-}
-
-@include respond-below(md) {
-  .pluginSettings {
-    height: auto;
-  }
-
-  .desktopLayout {
-    height: auto;
-  }
-
-  .detailCard {
-    min-height: auto;
-    height: auto;
-
-    :global(.ant-card-body) {
-      padding: var(--spacing-lg);
-      height: auto;
-      overflow: visible;
-    }
-  }
-
-  .listCard {
-    height: auto;
-
-    :global(.ant-card-body) {
-      height: auto;
-      overflow: visible;
-    }
-  }
-
-  .listCard,
-  .detailCard {
-    border-radius: 16px;
-  }
-
-  .pluginItem {
-    padding: var(--spacing-md);
-  }
-
-  .detailActions {
-    align-items: stretch;
-  }
+  gap: 4px;
+  text-align: left;
 }

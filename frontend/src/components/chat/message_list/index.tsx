@@ -20,6 +20,9 @@ interface MessageListProps {
     useInstantScrollOnFirstLoad?: boolean;
     onApprovalDecision?: (approvalId: string, decision: 'allow' | 'reject') => void;
     onSendApprovalComment?: (approvalId: string, comment: string) => Promise<void> | void;
+    onReopenPluginView?: (callId: string) => void;
+    openPluginViewCallIds?: string[];
+    activePluginViewCallId?: string;
 }
 
 export interface MessageListRef {
@@ -37,6 +40,9 @@ const MessageList: React.ForwardRefRenderFunction<MessageListRef, MessageListPro
     useInstantScrollOnFirstLoad = false,
     onApprovalDecision,
     onSendApprovalComment,
+    onReopenPluginView,
+    openPluginViewCallIds = [],
+    activePluginViewCallId = '',
 }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const contentRef = useRef<HTMLDivElement>(null);
@@ -483,6 +489,9 @@ const MessageList: React.ForwardRefRenderFunction<MessageListRef, MessageListPro
                                     isLoading={isGenerating && index === messages.length - 1 && message.role !== 'user'}
                                     onApprovalDecision={onApprovalDecision}
                                     onSendApprovalComment={onSendApprovalComment}
+                                    onReopenPluginView={onReopenPluginView}
+                                    openPluginViewCallIds={openPluginViewCallIds}
+                                    activePluginViewCallId={activePluginViewCallId}
                                 />
                             </div>
                         ))

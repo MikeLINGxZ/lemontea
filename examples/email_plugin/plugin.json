@@ -1,0 +1,194 @@
+{
+  "id": "com.lemontea.examples.email",
+  "name": "Email",
+  "version": "1.1.0",
+  "description": "Configurable IMAP and SMTP email plugin with secure host-managed credentials, mailbox search, folder browsing, message detail retrieval, mail sending, and side-panel rendering.",
+  "type": "general_plugin",
+  "main": "dist/main.js",
+  "minHostVersion": "1.0.0",
+  "author": "Lemon Tea",
+  "permissions": [
+    "filesystem.plugin_data",
+    "network.imap",
+    "network.smtp",
+    "credential.mail_account",
+    "hook.llm.before_send",
+    "hook.llm.after_send"
+  ],
+  "views": [
+    {
+      "id": "mail_list",
+      "name": "Mail List",
+      "entry": "dist/views/mail-list.html"
+    }
+  ],
+  "settingsView": {
+    "id": "settings",
+    "name": "Email Settings",
+    "entry": "/?entry=form_plugin_email"
+  },
+  "capabilities": {
+    "useTools": [
+      {
+        "id": "list_folders",
+        "name": "List Mail Folders",
+        "description": "List accessible mail folders and unread counts for the configured IMAP account.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "id": "search_mail",
+        "name": "Search Mail",
+        "description": "Search recent email messages from the configured mailbox with folder, sender, subject, unread, date range, and cursor controls.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "mailbox": {
+              "type": "string",
+              "description": "Mailbox folder to search, for example INBOX."
+            },
+            "query": {
+              "type": "string",
+              "description": "Keyword to search in sender, subject, or body."
+            },
+            "from": {
+              "type": "string",
+              "description": "Filter by sender."
+            },
+            "to": {
+              "type": "string",
+              "description": "Filter by recipient."
+            },
+            "subject": {
+              "type": "string",
+              "description": "Filter by subject."
+            },
+            "since": {
+              "type": "string",
+              "description": "Only include messages received on or after this ISO datetime."
+            },
+            "before": {
+              "type": "string",
+              "description": "Only include messages received on or before this ISO datetime."
+            },
+            "unreadOnly": {
+              "type": "boolean",
+              "description": "When true, only unread mail is returned."
+            },
+            "includeBody": {
+              "type": "boolean",
+              "description": "When true, include the plain-text body in each returned message."
+            },
+            "includeHtml": {
+              "type": "boolean",
+              "description": "When true, include HTML content in each returned message."
+            },
+            "cursor": {
+              "type": "string",
+              "description": "Cursor returned by a previous search_mail call for pagination."
+            },
+            "limit": {
+              "type": "integer",
+              "description": "Maximum number of messages to return."
+            }
+          }
+        }
+      },
+      {
+        "id": "get_mail",
+        "name": "Get Mail Detail",
+        "description": "Fetch one email message in detail, including plain text, HTML, headers, and attachment metadata.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "mailbox": {
+              "type": "string",
+              "description": "Mailbox folder containing the message, for example INBOX."
+            },
+            "uid": {
+              "type": "integer",
+              "description": "IMAP UID of the message to retrieve."
+            }
+          },
+          "required": ["uid"]
+        }
+      },
+      {
+        "id": "send_mail",
+        "name": "Send Mail",
+        "description": "Send a real email message through the configured SMTP account with plain text, HTML, multi-recipient fields, and reply headers.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "to": {
+              "type": "array",
+              "description": "Recipient email addresses.",
+              "items": {
+                "type": "string"
+              }
+            },
+            "cc": {
+              "type": "array",
+              "description": "CC recipient addresses.",
+              "items": {
+                "type": "string"
+              }
+            },
+            "bcc": {
+              "type": "array",
+              "description": "BCC recipient addresses.",
+              "items": {
+                "type": "string"
+              }
+            },
+            "subject": {
+              "type": "string",
+              "description": "Email subject."
+            },
+            "bodyText": {
+              "type": "string",
+              "description": "Plain-text email body."
+            },
+            "bodyHtml": {
+              "type": "string",
+              "description": "HTML email body."
+            },
+            "replyToMessageId": {
+              "type": "string",
+              "description": "Optional Message-ID to reference in reply headers."
+            }
+          },
+          "required": ["to", "subject"]
+        },
+        "requireConfirmation": true
+      }
+    ],
+    "viewTools": [
+      {
+        "id": "show_mail_list",
+        "name": "Show Mail List",
+        "description": "Render mail search results in the chat side panel.",
+        "viewId": "mail_list",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "description": "Panel title."
+            },
+            "result": {
+              "type": "object",
+              "description": "Standard paginated search_mail result payload."
+            }
+          }
+        }
+      }
+    ],
+    "hooks": [
+      "before_llm_send",
+      "after_llm_send"
+    ]
+  }
+}

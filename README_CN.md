@@ -91,14 +91,6 @@ Lemon Tea Desktop 是一个基于 Wails v3、Go、React 和 TypeScript 构建的
 - 模型提示词多语言适配。
 - 支持动态切换语言。
 
-### 插件系统
-
-- 基于 TypeScript 的扩展宿主，在独立进程中运行插件。
-- Hook 链机制，可拦截聊天和消息操作。
-- Agent 桥接：插件可定义自带工具的 Agent。
-- 工具桥接：插件可向主 Agent 系统暴露工具。
-- 基于 RPC 的应用与插件间通信。
-
 ### 设置
 
 - 供应商配置：API Key、接口地址、启用/禁用。
@@ -177,12 +169,10 @@ wails3 dev
 │   ├── agents/       记忆系统（编码、检索、生命周期）
 │   ├── models/       数据模型、视图模型、包装模型
 │   ├── pkg/          LLM 供应商、Agent、工具、技能、国际化、任务执行
-│   ├── plugin/       插件管理、Hook 链、Agent/工具桥接、RPC
 │   ├── service/      核心服务层（聊天、编排、MCP、记忆）
 │   ├── storage/      GORM/SQLite 持久化
 │   └── utils/        事件系统、错误处理
 ├── frontend/         React 界面、聊天页、设置页、通用组件
-├── extension-host/   TypeScript 插件执行环境
 ├── build/            Wails 构建与打包配置
 ├── docs/             README 资源文件
 └── main.go           桌面应用入口

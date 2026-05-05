@@ -185,7 +185,7 @@ LLM 供应商抽象层，封装：
 > `backend/pkg/llm_provider/agents/common.go`
 
 ```
-AgentType:  system | custom | plugin
+AgentType:  system | custom
 AgentRole:  main | workflow | planner | worker | reviewer | synthesizer
 ```
 

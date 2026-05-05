@@ -1,5 +1,6 @@
 import React, {useEffect, useLayoutEffect, useMemo, useRef, useState} from "react";
 import { createPortal } from "react-dom";
+import { EyeOutlined } from "@ant-design/icons";
 import { useTranslation } from 'react-i18next';
 import styles from "./index.module.scss";
 import ReasoningContent from "@/components/chat/reasoning_message";
@@ -11,12 +12,16 @@ import {RoleType} from "@bindings/github.com/cloudwego/eino/schema/models";
 import MarkdownRenderer from "@/components/markdown_renderer";
 import { isDirectMode, buildInterleavedSegments } from "./interleave_utils";
 import InterleavedContent from "./interleaved_content";
+import { extractMessagePluginSidePanelContexts } from "@/components/chat/plugin_side_panel/utils";
 
 interface ChatMessageProps {
     message: Message
     isLoading?: boolean
     onApprovalDecision?: (approvalId: string, decision: 'allow' | 'reject') => void
     onSendApprovalComment?: (approvalId: string, comment: string) => Promise<void> | void
+    onReopenPluginView?: (callId: string) => void
+    openPluginViewCallIds?: string[]
+    activePluginViewCallId?: string
 }
 
 let cachedToolsPromise: Promise<ViewTool[]> | null = null;
@@ -461,6 +466,9 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
     isLoading = false,
     onApprovalDecision,
     onSendApprovalComment,
+    onReopenPluginView,
+    openPluginViewCallIds = [],
+    activePluginViewCallId = '',
 }: ChatMessageProps) => {
     const { t } = useTranslation();
     const [toolDefinitions, setToolDefinitions] = useState<Map<string, ViewTool>>(new Map());
@@ -482,6 +490,10 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
         });
         return map;
     }, [toolUses]);
+    const pluginViewContexts = useMemo(
+        () => extractMessagePluginSidePanelContexts(message),
+        [message]
+    );
 
     useEffect(() => {
         let active = true;
@@ -649,7 +661,38 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
                                     {toolUses.length > 0 && traceSteps.length === 0 && (
                                         <ToolUsesSection toolUses={toolUses} toolDefinitions={toolDefinitions} />
                                     )}
+
                                 </>
+                            )}
+
+                            {pluginViewContexts.length > 0 && (
+                                <div className={styles.pluginViewActions}>
+                                    {pluginViewContexts.map((context) => {
+                                        const isOpen = openPluginViewCallIds.includes(context.callId);
+                                        const isActive = activePluginViewCallId === context.callId;
+
+                                        return (
+                                            <button
+                                                key={context.callId}
+                                                type="button"
+                                                className={`${styles.pluginViewActionButton} ${isOpen ? styles.pluginViewActionButtonOpen : ''} ${isActive ? styles.pluginViewActionButtonActive : ''}`}
+                                                onClick={() => onReopenPluginView?.(context.callId)}
+                                                title={t('chat.message.reopenPluginView', {
+                                                    title: context.payload.title || context.payload.viewId,
+                                                }) + `\n${context.pluginName} · 插件`}
+                                            >
+                                                <span className={`${styles.pluginViewActionIcon} ${isOpen ? styles.pluginViewActionIconOpen : ''}`}>
+                                                    <EyeOutlined />
+                                                </span>
+                                                <span className={styles.pluginViewActionContent}>
+                                                    <span className={styles.pluginViewActionTitle}>
+                                                        {context.payload.title || context.payload.viewId}
+                                                    </span>
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
                             )}
 
                             {!messageContent && finishReason === 'error' && friendlyFinishError && (

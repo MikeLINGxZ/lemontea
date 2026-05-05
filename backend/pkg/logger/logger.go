@@ -73,12 +73,12 @@ func (l *Logger) Errorf(content string, any ...any) {
 
 func (l *Logger) Debugf(content string, any ...any) {
 	debugInfo := l.callerInfo(runtime.Caller(1))
-	l.logger(l.errorLogger, "ERROR", debugInfo, content, any...)
+	l.logger(l.debugLogger, "DEBUG", debugInfo, content, any...)
 }
 
 func (l *Logger) Panicf(content string, any ...any) {
 	debugInfo := l.callerInfo(runtime.Caller(1))
-	l.logger(l.errorLogger, "PANIC", debugInfo, content, any...)
+	l.logger(l.panicLogger, "PANIC", debugInfo, content, any...)
 	panic(content)
 }
 
@@ -99,7 +99,7 @@ func (l *Logger) Error(any ...any) {
 
 func (l *Logger) Debug(any ...any) {
 	debugInfo := l.callerInfo(runtime.Caller(1))
-	l.logger(l.errorLogger, "ERROR", debugInfo, "", any...)
+	l.logger(l.debugLogger, "DEBUG", debugInfo, "", any...)
 }
 
 func (l *Logger) Panic(any ...any) {

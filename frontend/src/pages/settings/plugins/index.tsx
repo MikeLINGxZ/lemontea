@@ -1,315 +1,394 @@
-import React, { useEffect, useState } from 'react';
-import {
-  Alert,
-  Button,
-  Card,
-  Empty,
-  Popconfirm,
-  Skeleton,
-  Switch,
-  Tag,
-  Typography,
-  message,
-} from 'antd';
-import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
-import { isMobileDevice } from '@/hooks/useViewportHeight';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Alert, Button, Card, Empty, Modal, Progress, Skeleton, Space, Tag, Typography, message } from 'antd';
+import { CloudDownloadOutlined, DeleteOutlined, PlusOutlined, ReloadOutlined, SettingOutlined } from '@ant-design/icons';
+import { Events } from '@wailsio/runtime';
 import { useTranslation } from 'react-i18next';
-import { Service } from '@bindings/gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/service';
-import { PluginSummary } from '@bindings/gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/models/view_models';
+import {
+  addPluginFromFolder,
+  deletePlugin,
+  downloadPluginRuntime,
+  getPluginRuntimeStatus,
+  listPlugins,
+  openPluginSettingsWindow,
+  selectPluginFolder,
+  setPluginEnabled,
+} from '@/services/pluginService';
+import type { PluginSummary, RuntimeStatus } from '@/services/pluginService';
 import styles from './index.module.scss';
 
 const { Paragraph, Text, Title } = Typography;
 
-interface PluginSettingsPageProps {
-  className?: string;
-}
+const typeColor: Record<string, string> = {
+  general_plugin: 'blue',
+  agent_plugin: 'purple',
+};
 
-const PluginSettingsPage: React.FC<PluginSettingsPageProps> = ({ className }) => {
+const statusColor: Record<string, string> = {
+  enabled: 'green',
+  disabled: 'default',
+  error: 'red',
+};
+
+const PluginSettingsPage: React.FC<{ className?: string }> = ({ className }) => {
   const { t } = useTranslation();
   const [plugins, setPlugins] = useState<PluginSummary[]>([]);
-  const [selectedPluginId, setSelectedPluginId] = useState<string>('');
+  const [activeID, setActiveID] = useState('');
   const [loading, setLoading] = useState(false);
-  const [listError, setListError] = useState('');
-  const [isMobile, setIsMobile] = useState(() => isMobileDevice());
-  const [showDetailOnMobile, setShowDetailOnMobile] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [pendingPluginID, setPendingPluginID] = useState('');
+  const [deletingPluginID, setDeletingPluginID] = useState('');
+  const [downloadingRuntime, setDownloadingRuntime] = useState(false);
+  const [runtimeStatus, setRuntimeStatus] = useState<RuntimeStatus | null>(null);
+  const [error, setError] = useState('');
 
-  useEffect(() => {
-    const handleResize = () => setIsMobile(isMobileDevice());
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  const active = useMemo(
+    () => plugins.find((plugin) => plugin.id === activeID) || plugins[0] || null,
+    [plugins, activeID],
+  );
 
-  const selectedPlugin = plugins.find(p => p.id === selectedPluginId) || null;
-
-  const loadPlugins = async () => {
-    setLoading(true);
-    setListError('');
+  const refresh = async (options?: { silent?: boolean }) => {
+    if (!options?.silent) {
+      setLoading(true);
+    }
+    setError('');
     try {
-      const result = await Service.GetInstalledPlugins();
-      const list = result || [];
-      setPlugins(list);
-      if (!selectedPluginId && list.length > 0) {
-        setSelectedPluginId(list[0].id);
+      const runtime = await getPluginRuntimeStatus();
+      setRuntimeStatus(runtime);
+      if (!runtime.available) {
+        setPlugins([]);
+        return;
       }
-    } catch (error) {
-      console.error('Failed to load plugins:', error);
-      setListError(t('settings.plugins.loadFailed', 'Failed to load plugins'));
+      const result = await listPlugins();
+      setPlugins(result);
+      if (!activeID && result.length > 0) {
+        setActiveID(result[0].id);
+      }
+    } catch (e) {
+      console.error(e);
+      setError(t('settings.plugins.loadFailed'));
     } finally {
-      setLoading(false);
+      if (!options?.silent) {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleDownloadRuntime = async () => {
+    setDownloadingRuntime(true);
+    setError('');
+    setRuntimeStatus((current) => current ? { ...current, downloading: true, progress: 0, phase: 'preparing' } : current);
+    const timer = window.setInterval(async () => {
+      try {
+        const status = await getPluginRuntimeStatus();
+        setRuntimeStatus(status);
+      } catch (e) {
+        console.error(e);
+      }
+    }, 500);
+    try {
+      const status = await downloadPluginRuntime();
+      if (status) setRuntimeStatus(status);
+      if (!status?.available) {
+        setError(t('settings.plugins.runtimeDownloadFailed'));
+        return;
+      }
+      message.success(t('settings.plugins.runtimeDownloadSuccess'));
+      await refresh();
+    } catch (e: any) {
+      console.error(e);
+      setError(t('settings.plugins.runtimeDownloadFailed'));
+    } finally {
+      window.clearInterval(timer);
+      setDownloadingRuntime(false);
     }
   };
 
   useEffect(() => {
-    void loadPlugins();
+    void refresh();
   }, []);
 
-  const handleInstall = async () => {
+  useEffect(() => {
+    const cancel = Events.On('settings:plugins:changed', () => void refresh({ silent: true }));
+    return () => {
+      cancel?.();
+      Events.Off('settings:plugins:changed');
+    };
+  }, []);
+
+  const handleAdd = async () => {
+    setAdding(true);
     try {
-      await Service.InstallPlugin();
-      message.success(t('settings.plugins.installSuccess'));
-      await loadPlugins();
-    } catch (error) {
-      console.error('Failed to install plugin:', error);
-      message.error(t('settings.plugins.installFailed'));
+      const folder = await selectPluginFolder();
+      if (!folder) return;
+      const created = await addPluginFromFolder(folder);
+      await refresh({ silent: true });
+      if (created?.id) setActiveID(created.id);
+      message.success(t('settings.plugins.addSuccess'));
+    } catch (e: any) {
+      console.error(e);
+      message.error(e?.message || t('settings.plugins.addFailed'));
+    } finally {
+      setAdding(false);
     }
   };
 
-  const handleToggle = async (plugin: PluginSummary, enabled: boolean) => {
+  const handleToggle = async (plugin: PluginSummary) => {
+    const nextEnabled = !plugin.enabled;
+    setPendingPluginID(plugin.id);
+    setPlugins((current) => current.map((item) => (
+      item.id === plugin.id
+        ? {
+          ...item,
+          enabled: nextEnabled,
+          status: nextEnabled ? 'enabled' : 'disabled',
+        }
+        : item
+    )));
     try {
-      if (enabled) {
-        await Service.EnablePlugin(plugin.id);
-      } else {
-        await Service.DisablePlugin(plugin.id);
-      }
-      await loadPlugins();
-    } catch (error) {
-      console.error('Failed to toggle plugin:', error);
+      await setPluginEnabled(plugin.id, nextEnabled);
+      await refresh({ silent: true });
+      message.success(plugin.enabled ? t('settings.plugins.disableSuccess') : t('settings.plugins.enableSuccess'));
+    } catch (e: any) {
+      console.error(e);
+      message.error(e?.message || t('settings.plugins.updateFailed'));
+      await refresh({ silent: true });
+    } finally {
+      setPendingPluginID('');
     }
   };
 
-  const handleDelete = async (pluginId: string) => {
-    try {
-      await Service.UninstallPlugin(pluginId);
-      message.success(t('settings.plugins.deleteSuccess'));
-      if (selectedPluginId === pluginId) {
-        setSelectedPluginId('');
-      }
-      await loadPlugins();
-    } catch (error) {
-      console.error('Failed to delete plugin:', error);
-    }
+  const handleDelete = (plugin: PluginSummary) => {
+    Modal.confirm({
+      title: t('settings.plugins.deleteConfirmTitle'),
+      content: t('settings.plugins.deleteConfirmContent', { name: plugin.name }),
+      okText: t('settings.plugins.actions.delete'),
+      cancelText: t('common.cancel'),
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        setDeletingPluginID(plugin.id);
+        try {
+          await deletePlugin(plugin.id);
+          await refresh({ silent: true });
+          message.success(t('settings.plugins.deleteSuccess'));
+        } catch (e: any) {
+          console.error(e);
+          message.error(e?.message || t('settings.plugins.deleteFailed'));
+        } finally {
+          setDeletingPluginID('');
+        }
+      },
+    });
   };
 
-  const handleSelectPlugin = (id: string) => {
-    setSelectedPluginId(id);
-    if (isMobile) setShowDetailOnMobile(true);
-  };
-
-  const getStateTag = (state: string) => {
-    switch (state) {
-      case 'active':
-        return <Tag color="success" bordered={false}>{t('settings.plugins.state.active')}</Tag>;
-      case 'error':
-        return <Tag color="error" bordered={false}>{t('settings.plugins.state.error')}</Tag>;
-      case 'installed':
-      default:
-        return <Tag color="default" bordered={false}>{t('settings.plugins.state.installed')}</Tag>;
-    }
-  };
-
-  const renderPluginList = () => (
+  const renderList = () => (
     <Card
       className={styles.listCard}
       title={
         <div className={styles.listTitleRow}>
-          <span>{t('settings.plugins.title')}</span>
-          <Button
-            type="text"
-            size="small"
-            icon={<PlusOutlined />}
-            onClick={() => void handleInstall()}
-            className={styles.addButton}
-          />
+          <span>{t('settings.plugins.listTitle')}</span>
+          <Space size={4}>
+            <Button
+              type="text"
+              size="small"
+              icon={<ReloadOutlined />}
+              title={t('common.retry')}
+              onClick={() => void refresh()}
+            />
+            <Button
+              type="text"
+              size="small"
+              icon={<PlusOutlined />}
+              title={t('settings.plugins.actions.add')}
+              loading={adding}
+              onClick={() => void handleAdd()}
+            />
+          </Space>
         </div>
       }
     >
       {loading ? (
-        <div className={styles.listLoading}>
-          <Skeleton active paragraph={{ rows: 6 }} />
-        </div>
-      ) : listError ? (
-        <Alert
-          type="error"
-          showIcon
-          message={t('settings.plugins.loadFailed', 'Load failed')}
-          description={listError}
-          action={
-            <Button size="small" onClick={() => void loadPlugins()}>
-              {t('common.retry', 'Retry')}
-            </Button>
-          }
-        />
+        <div className={styles.loading}><Skeleton active paragraph={{ rows: 6 }} /></div>
       ) : plugins.length === 0 ? (
-        <div className={styles.emptyState}>
-          <Empty description={t('settings.plugins.empty')}>
-            <Text type="secondary">{t('settings.plugins.emptyDesc')}</Text>
-          </Empty>
-        </div>
+        <div className={styles.emptyState}><Empty description={t('settings.plugins.empty')} /></div>
       ) : (
         <div className={styles.pluginList}>
-          {plugins.map(plugin => {
-            const selected = plugin.id === selectedPluginId;
-            return (
-              <button
-                key={plugin.id}
-                type="button"
-                className={`${styles.pluginItem} ${selected ? styles.selected : ''}`}
-                onClick={() => handleSelectPlugin(plugin.id)}
-              >
-                <div className={styles.pluginItemHeader}>
-                  <span className={styles.pluginItemTitle}>
-                    {plugin.display_name}
-                  </span>
-                  <div className={styles.pluginItemTags}>
-                    <Tag bordered={false}>{plugin.version}</Tag>
-                    {getStateTag(plugin.state)}
-                  </div>
-                </div>
-                <div className={styles.pluginItemName}>{plugin.id}</div>
-              </button>
-            );
-          })}
+          {plugins.map(plugin => (
+            <button
+              key={plugin.id}
+              className={`${styles.pluginItem} ${active?.id === plugin.id ? styles.selected : ''}`}
+              type="button"
+              onClick={() => setActiveID(plugin.id)}
+            >
+              <div className={styles.pluginItemHeader}>
+                <span className={styles.pluginName}>{plugin.name}</span>
+                <Tag color={statusColor[plugin.status] || 'default'} bordered={false}>
+                  {t(`settings.plugins.status.${plugin.status}`, plugin.status)}
+                </Tag>
+              </div>
+              <div className={styles.pluginMeta}>{plugin.version} · {plugin.id}</div>
+            </button>
+          ))}
         </div>
       )}
     </Card>
   );
 
-  const renderDetailBody = () => {
-    if (!selectedPlugin) {
-      return (
-        <div className={styles.emptyState}>
-          <Empty description={t('settings.plugins.selectPlugin', 'Select a plugin to view details')} />
-        </div>
-      );
-    }
-
-    return (
-      <>
-        <div className={styles.detailHeader}>
-          <div className={styles.detailTitleRow}>
-            <Title level={4}>{selectedPlugin.display_name}</Title>
-            <Tag bordered={false}>{selectedPlugin.version}</Tag>
-            {getStateTag(selectedPlugin.state)}
-          </div>
-          <Text className={styles.pluginId}>{selectedPlugin.id}</Text>
-          {selectedPlugin.description && (
-            <Paragraph className={styles.detailDescription}>
-              {selectedPlugin.description}
-            </Paragraph>
-          )}
-        </div>
-
-        <div className={styles.contribSections}>
-          {selectedPlugin.tools && selectedPlugin.tools.length > 0 && (
-            <div className={styles.detailSection}>
-              <Text className={styles.sectionTitle}>
-                {t('settings.plugins.tools')} ({selectedPlugin.tools.length})
-              </Text>
-              <div className={styles.contribList}>
-                {selectedPlugin.tools.map(tool => (
-                  <Tag key={tool.id} bordered={false} color="blue">{tool.name || tool.id}</Tag>
-                ))}
+  const renderCapabilitySection = (title: string, items: { id: string; name: string; description: string }[], tag: string) => (
+    <div className={styles.section}>
+      <Text strong>{title}</Text>
+      {items.length === 0 ? (
+        <Text className={styles.emptyText}>{t('settings.plugins.noCapabilities')}</Text>
+      ) : (
+        <div className={styles.capabilityList}>
+          {items.map(item => (
+            <div key={`${tag}-${item.id}`} className={styles.capabilityRow}>
+              <div>
+                <div className={styles.capabilityName}>{item.name || item.id}</div>
+                {item.description && <div className={styles.capabilityDesc}>{item.description}</div>}
               </div>
+              <Tag bordered={false}>{tag}</Tag>
             </div>
-          )}
-
-          {selectedPlugin.agents && selectedPlugin.agents.length > 0 && (
-            <div className={styles.detailSection}>
-              <Text className={styles.sectionTitle}>
-                {t('settings.plugins.agents')} ({selectedPlugin.agents.length})
-              </Text>
-              <div className={styles.contribList}>
-                {selectedPlugin.agents.map(agent => (
-                  <Tag key={agent.id} bordered={false} color="green">{agent.name || agent.id}</Tag>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {selectedPlugin.hooks && selectedPlugin.hooks.length > 0 && (
-            <div className={styles.detailSection}>
-              <Text className={styles.sectionTitle}>
-                {t('settings.plugins.hooks')} ({selectedPlugin.hooks.length})
-              </Text>
-              <div className={styles.contribList}>
-                {selectedPlugin.hooks.map(hook => (
-                  <Tag key={hook} bordered={false} color="orange">{hook}</Tag>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {selectedPlugin.view_count > 0 && (
-            <div className={styles.detailSection}>
-              <Text className={styles.sectionTitle}>
-                {t('settings.plugins.views')} ({selectedPlugin.view_count})
-              </Text>
-            </div>
-          )}
+          ))}
         </div>
-
-        <div className={styles.detailActions}>
-          <div className={styles.actionRow}>
-            <Text>{t('settings.plugins.enabled', 'Enabled')}</Text>
-            <Switch
-              checked={selectedPlugin.enabled}
-              onChange={(checked) => void handleToggle(selectedPlugin, checked)}
-            />
-          </div>
-          <Popconfirm
-            title={t('settings.plugins.confirmDelete')}
-            onConfirm={() => void handleDelete(selectedPlugin.id)}
-            okButtonProps={{ danger: true }}
-          >
-            <Button
-              danger
-              icon={<DeleteOutlined />}
-            >
-              {t('common.delete', 'Delete')}
-            </Button>
-          </Popconfirm>
-        </div>
-      </>
-    );
-  };
+      )}
+    </div>
+  );
 
   const renderDetail = () => (
     <Card className={styles.detailCard}>
-      {renderDetailBody()}
+      {!active ? (
+        <div className={styles.emptyState}><Empty description={t('settings.plugins.empty')} /></div>
+      ) : (
+        <div className={styles.detailContent}>
+          <div className={styles.detailHeader}>
+            <div>
+              <div className={styles.detailTitleRow}>
+                <Title level={4} style={{ margin: 0 }}>{active.name}</Title>
+                <Tag color={typeColor[active.type] || 'default'} bordered={false}>{active.type}</Tag>
+                <Tag color={statusColor[active.status] || 'default'} bordered={false}>
+                  {t(`settings.plugins.status.${active.status}`, active.status)}
+                </Tag>
+              </div>
+              <Text className={styles.pluginMeta}>{active.id} · {active.version}</Text>
+            </div>
+            <div className={styles.actionRow}>
+              <div className={`${styles.segmentSwitch} ${pendingPluginID === active.id ? styles.segmentSwitchLoading : ''}`}>
+                <button
+                  type="button"
+                  className={`${styles.segmentOption} ${active.enabled ? styles.segmentOptionActive : ''}`}
+                  disabled={active.enabled || pendingPluginID === active.id}
+                  onClick={() => void handleToggle(active)}
+                >
+                  {t('settings.plugins.actions.enable')}
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.segmentOption} ${!active.enabled ? styles.segmentOptionActive : ''}`}
+                  disabled={!active.enabled || pendingPluginID === active.id}
+                  onClick={() => void handleToggle(active)}
+                >
+                  {t('settings.plugins.actions.disable')}
+                </button>
+              </div>
+              {active.has_settings && (
+                <Button
+                  size="small"
+                  className={`${styles.actionButton} ${styles.settingsIconButton}`}
+                  icon={<SettingOutlined />}
+                  children={t('settings.plugins.actions.settings')}
+                  aria-label={t('settings.plugins.actions.settings')}
+                  title={t('settings.plugins.actions.settings')}
+                  onClick={() => void openPluginSettingsWindow(active.id)}
+                />
+              )}
+              <Button
+                size="small"
+                danger
+                className={styles.actionButton}
+                icon={<DeleteOutlined />}
+                loading={deletingPluginID === active.id}
+                onClick={() => handleDelete(active)}
+              >
+                {t('settings.plugins.actions.delete')}
+              </Button>
+            </div>
+          </div>
+
+          {active.last_error && <Alert type="error" showIcon message={active.last_error} />}
+          {active.description && <Paragraph className={styles.description}>{active.description}</Paragraph>}
+
+          <div className={styles.section}>
+            <Text strong>{t('settings.plugins.permissions')}</Text>
+            <Space wrap>
+              {(active.permissions || []).length === 0 ? (
+                <Text className={styles.emptyText}>{t('settings.plugins.noPermissions')}</Text>
+              ) : active.permissions.map(permission => (
+                <Tag key={permission}>{permission}</Tag>
+              ))}
+            </Space>
+          </div>
+
+          {renderCapabilitySection(t('settings.plugins.useTools'), active.use_tools || [], 'use_tool')}
+          {renderCapabilitySection(t('settings.plugins.viewTools'), active.view_tools || [], 'view_tool')}
+          {renderCapabilitySection(t('settings.plugins.agents'), active.agents || [], 'agent')}
+          {renderCapabilitySection(t('settings.plugins.views'), active.views || [], 'view')}
+        </div>
+      )}
     </Card>
   );
 
-  return (
-    <div className={`${styles.pluginSettings} ${className || ''}`}>
-      {isMobile ? (
-        <>
-          {!showDetailOnMobile && renderPluginList()}
-          {showDetailOnMobile && (
-            <div className={styles.mobileDetail}>
-              <Button
-                type="text"
-                className={styles.mobileBackButton}
-                onClick={() => setShowDetailOnMobile(false)}
-              >
-                {t('settings.plugins.backToList', 'Back to list')}
-              </Button>
-              {renderDetail()}
+  const runtimePhaseText = () => {
+    const phase = runtimeStatus?.phase;
+    if (phase === 'extracting') return t('settings.plugins.runtimeExtracting');
+    if (phase === 'installing') return t('settings.plugins.runtimeInstalling');
+    if (phase === 'ready') return t('settings.plugins.runtimeReady');
+    if (downloadingRuntime || runtimeStatus?.downloading || phase === 'downloading') {
+      return t('settings.plugins.runtimeDownloading');
+    }
+    return t('settings.plugins.runtimePreparing');
+  };
+
+  const renderRuntimeMissing = () => {
+    const showProgress = downloadingRuntime || Boolean(runtimeStatus?.downloading);
+    const percent = Math.max(0, Math.min(100, runtimeStatus?.progress || 0));
+    return (
+      <Card className={styles.runtimeCard}>
+        <div className={styles.runtimePrompt}>
+          <div className={styles.runtimeIcon}><CloudDownloadOutlined /></div>
+          <Title level={4}>{t('settings.plugins.runtimeMissingTitle')}</Title>
+          <Paragraph className={styles.description}>
+            {t('settings.plugins.runtimeMissingDescription')}
+          </Paragraph>
+          {showProgress && (
+            <div className={styles.runtimeProgress}>
+              <Progress percent={percent} status="active" />
+              <Text type="secondary">{runtimePhaseText()}</Text>
             </div>
           )}
-        </>
-      ) : (
+          <Space>
+            <Button
+              type="primary"
+              icon={<CloudDownloadOutlined />}
+              loading={downloadingRuntime}
+              onClick={() => void handleDownloadRuntime()}
+            >
+              {downloadingRuntime ? t('settings.plugins.actions.downloadingRuntime') : t('settings.plugins.actions.downloadRuntime')}
+            </Button>
+            <Button icon={<ReloadOutlined />} disabled={downloadingRuntime} onClick={() => void refresh()}>
+              {t('common.retry')}
+            </Button>
+          </Space>
+        </div>
+      </Card>
+    );
+  };
+
+  return (
+    <div className={`${styles.pluginSettings} ${className || ''}`}>
+      {error && <Alert type="error" showIcon message={error} style={{ marginBottom: 12 }} />}
+      {runtimeStatus && !runtimeStatus.available ? renderRuntimeMissing() : (
         <div className={styles.desktopLayout}>
-          <div className={styles.listColumn}>{renderPluginList()}</div>
+          <div className={styles.listColumn}>{renderList()}</div>
           <div className={styles.detailColumn}>{renderDetail()}</div>
         </div>
       )}

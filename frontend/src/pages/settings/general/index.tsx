@@ -293,7 +293,6 @@ const LanguageRegionSettings: React.FC = () => {
 const LabSettings: React.FC = () => {
   const { t } = useTranslation();
   const {
-    pluginSystemEnabled, setPluginSystemEnabled,
     memorySystemEnabled, setMemorySystemEnabled,
     vectorSearchEnabled, setVectorSearchEnabled,
     embeddingConfig, setEmbeddingConfig,
@@ -419,25 +418,6 @@ const LabSettings: React.FC = () => {
       </div>
 
       <div className={styles.formSection}>
-        {/* 插件系统 */}
-        <div className={styles.labCard}>
-          <div className={styles.labCardHeader}>
-            <div className={styles.labItemInfo}>
-              <div className={styles.formLabelIcon}>
-                <ExperimentOutlined />
-                <Text strong>{t('settings.general.labPluginSystem')}</Text>
-              </div>
-              <Text type="secondary" className={styles.labItemDesc}>
-                {t('settings.general.labPluginSystemDesc')}
-              </Text>
-            </div>
-            <Switch
-              checked={pluginSystemEnabled}
-              onChange={setPluginSystemEnabled}
-            />
-          </div>
-        </div>
-
         {/* 记忆系统 */}
         <div className={styles.labCard}>
           <div className={styles.labCardHeader}>

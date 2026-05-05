@@ -13,7 +13,7 @@ import (
 type Message struct {
 	OrmModel
 	ChatUuid                     string                 `gorm:"index" json:"chat_uuid"`
-	MessageUuid                  string                 `grom:"unique;index" json:"message_uuid"`
+	MessageUuid                  string                 `gorm:"unique;index" json:"message_uuid"`
 	Role                         schema.RoleType        `gorm:"index" json:"role"`
 	Content                      string                 `gorm:"type:text" json:"content"`
 	ReasoningContent             string                 `gorm:"type:text" json:"reasoning_content"`

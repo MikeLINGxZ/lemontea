@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	rdebug "runtime/debug"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -21,9 +22,9 @@ import (
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/llm_provider"
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/llm_provider/tools"
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/logger"
+	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/plugins"
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/prompts"
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/tool_approval"
-	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/plugin"
 )
 
 // =============================================================================
@@ -1166,6 +1167,15 @@ func (r *completionRunner) finalizeTaskTerminal(finishReason, finishError string
 		logger.Error("finalizeTaskTerminal persist error: ", persistErr)
 	}
 	r.svc.emitTaskEvent(finalTaskSnapshot, finalAssistantSnapshot, nil)
+	if r.svc.plugins != nil {
+		go r.svc.plugins.RunAfterLLMSend(context.Background(), plugins.AfterLLMSendPayload{
+			ChatUUID:      r.chatUuid,
+			MessageUUID:   r.assistantMessageUuid,
+			FinishReason:  finishReason,
+			FinishError:   finishError,
+			AssistantText: finalAssistantSnapshot.Content,
+		})
+	}
 
 	_ = r.fsm.TransitionToTerminal(StateCompleted, finishReason, finishError)
 	if r.eventBus != nil {
@@ -1715,22 +1725,13 @@ func (r *completionRunner) run(userStop <-chan struct{}) {
 	// FSM: preparing → running
 	_ = r.fsm.Transition(StateRunning, "task running", "")
 
-	// Plugin before-chat hooks
-	if r.svc.pluginManager != nil && r.svc.pluginManager.HookChain() != nil {
-		hookCtx := &plugin.ChatContext{
-			Messages: schemaMessagesToHookMessages(r.schemaMessages),
-			AgentID:  "",
-		}
-		if r.inputMessage.UserMessageExtra != nil && len(r.inputMessage.UserMessageExtra.Agents) > 0 {
-			hookCtx.AgentID = r.inputMessage.UserMessageExtra.Agents[0]
-		}
-		if modified, hookErr := r.svc.pluginManager.HookChain().RunBeforeChat(hookCtx); hookErr == nil && modified != nil {
-			r.schemaMessages = hookMessagesToSchemaMessages(modified.Messages)
-		}
-	}
-
 	// defer 兜底：确保任务一定会发射终结事件（即使发生 panic 恢复后）
 	defer func() {
+		if rec := recover(); rec != nil {
+			stack := rdebug.Stack()
+			logger.Error("completionRunner panic recovered:", rec, "\nstack:", string(stack))
+			r.fsm.TransitionToTerminal(StateFailed, "panic", fmt.Sprintf("%v", rec))
+		}
 		if r.cleanupTools != nil {
 			r.cleanupTools()
 		}
@@ -1811,17 +1812,6 @@ func (r *completionRunner) run(userStop <-chan struct{}) {
 				return
 			}
 		}
-	}
-
-	// Plugin after-chat hooks
-	if r.svc.pluginManager != nil && r.svc.pluginManager.HookChain() != nil {
-		r.mu.Lock()
-		content := r.assistantMessage.Content
-		r.mu.Unlock()
-		hookCtx := &plugin.ChatContext{
-			Response: content,
-		}
-		r.svc.pluginManager.HookChain().RunAfterChat(hookCtx)
 	}
 
 	// ---- 记忆系统：异步策展（工作流路径不触发） ----

@@ -8,8 +8,8 @@ import {
   FileTextOutlined,
   RobotOutlined,
   ThunderboltOutlined,
-  AppstoreOutlined,
   BulbOutlined,
+  AppstoreAddOutlined,
 } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
@@ -19,8 +19,8 @@ import GeneralSettingsPage from './general';
 import PromptSettingsPage from './prompt';
 import AgentSettingsPage from './agents';
 import SkillSettingsPage from './skills';
-import PluginSettingsPage from './plugins';
 import MemorySettingsPage from './memory';
+import PluginSettingsPage from './plugins';
 import { useViewportHeight } from '@/hooks/useViewportHeight';
 import { initializeFontSize } from '@/stores/fontSizeStore';
 import { useLabStore } from '@/stores/labStore';
@@ -43,7 +43,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ className }) => {
   const [selectedKey, setSelectedKey] = useState(initialTab);
   const [showContent, setShowContent] = useState(false); // 控制移动端内容显示
   const { isMobile } = useViewportHeight(); // 使用移动端检测
-  const pluginSystemEnabled = useLabStore(state => state.pluginSystemEnabled);
   const memorySystemEnabled = useLabStore(state => state.memorySystemEnabled);
 
   // 监听设备切换，处理从桌面端切换到移动端的情况
@@ -91,6 +90,11 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ className }) => {
         label: t('settings.menu.skills'),
       },
       {
+        key: 'plugins',
+        icon: <AppstoreAddOutlined />,
+        label: t('settings.menu.plugins'),
+      },
+      {
         key: 'prompt',
         icon: <FileTextOutlined />,
         label: t('settings.menu.prompt'),
@@ -113,20 +117,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ className }) => {
         </span>,
       });
     }
-    if (pluginSystemEnabled) {
-      // Insert plugins before prompt
-      const promptIdx = items.findIndex(i => i.key === 'prompt');
-      items.splice(promptIdx, 0, {
-        key: 'plugins',
-        icon: <AppstoreOutlined />,
-        label: <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flex: 1 }}>
-          {t('settings.menu.plugins')}
-          <span style={{ fontSize: 10, padding: '0 4px', lineHeight: '16px', borderRadius: 4, background: 'rgba(250, 173, 20, 0.15)', color: '#faad14' }}>Lab</span>
-        </span>,
-      });
-    }
     return items;
-  }, [t, pluginSystemEnabled, memorySystemEnabled]);
+  }, [t, memorySystemEnabled]);
 
   const handleMenuClick = ({ key }: { key: string }) => {
     setSelectedKey(key);
@@ -244,7 +236,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ className }) => {
             />
           </Sider>
           <Layout className={styles.settingsContent}>
-            <Content className={`${styles.contentArea} ${(selectedKey === 'prompt' || selectedKey === 'provider' || selectedKey === 'agents' || selectedKey === 'skills' || selectedKey === 'plugins' || selectedKey === 'general' || selectedKey === 'about') ? styles.contentAreaLocked : ''}`}>
+            <Content className={`${styles.contentArea} ${(selectedKey === 'prompt' || selectedKey === 'provider' || selectedKey === 'agents' || selectedKey === 'skills' || selectedKey === 'general' || selectedKey === 'about') ? styles.contentAreaLocked : ''}`}>
               {renderContent()}
             </Content>
           </Layout>

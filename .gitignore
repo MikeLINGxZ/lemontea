@@ -9,3 +9,5 @@ build/windows/nsis/MicrosoftEdgeWebview2Setup.exe
 .claude
 .vscode
 .workspace
+/examples/email_plugin/node_modules/
+/examples/email_plugin/dist/

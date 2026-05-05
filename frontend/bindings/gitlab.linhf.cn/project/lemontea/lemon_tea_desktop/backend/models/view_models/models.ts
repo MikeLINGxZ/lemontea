@@ -10,6 +10,9 @@ import { Create as $Create } from "@wailsio/runtime";
 import * as data_models$0 from "../data_models/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as plugins$0 from "../../pkg/plugins/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as gorm$0 from "../../../../../../../gorm.io/gorm/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -978,112 +981,6 @@ export class OPCPersonView {
     }
 }
 
-export class PluginContribItem {
-    "id": string;
-    "name": string;
-
-    /** Creates a new PluginContribItem instance. */
-    constructor($$source: Partial<PluginContribItem> = {}) {
-        if (!("id" in $$source)) {
-            this["id"] = "";
-        }
-        if (!("name" in $$source)) {
-            this["name"] = "";
-        }
-
-        Object.assign(this, $$source);
-    }
-
-    /**
-     * Creates a new PluginContribItem instance from a string or object.
-     */
-    static createFrom($$source: any = {}): PluginContribItem {
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        return new PluginContribItem($$parsedSource as Partial<PluginContribItem>);
-    }
-}
-
-export class PluginSummary {
-    "id": string;
-    "display_name": string;
-    "version": string;
-    "description": string;
-    "enabled": boolean;
-    "state": string;
-    "tool_count": number;
-    "view_count": number;
-    "hook_count": number;
-    "agent_count": number;
-    "tools": PluginContribItem[];
-    "agents": PluginContribItem[];
-    "hooks": string[];
-
-    /** Creates a new PluginSummary instance. */
-    constructor($$source: Partial<PluginSummary> = {}) {
-        if (!("id" in $$source)) {
-            this["id"] = "";
-        }
-        if (!("display_name" in $$source)) {
-            this["display_name"] = "";
-        }
-        if (!("version" in $$source)) {
-            this["version"] = "";
-        }
-        if (!("description" in $$source)) {
-            this["description"] = "";
-        }
-        if (!("enabled" in $$source)) {
-            this["enabled"] = false;
-        }
-        if (!("state" in $$source)) {
-            this["state"] = "";
-        }
-        if (!("tool_count" in $$source)) {
-            this["tool_count"] = 0;
-        }
-        if (!("view_count" in $$source)) {
-            this["view_count"] = 0;
-        }
-        if (!("hook_count" in $$source)) {
-            this["hook_count"] = 0;
-        }
-        if (!("agent_count" in $$source)) {
-            this["agent_count"] = 0;
-        }
-        if (!("tools" in $$source)) {
-            this["tools"] = [];
-        }
-        if (!("agents" in $$source)) {
-            this["agents"] = [];
-        }
-        if (!("hooks" in $$source)) {
-            this["hooks"] = [];
-        }
-
-        Object.assign(this, $$source);
-    }
-
-    /**
-     * Creates a new PluginSummary instance from a string or object.
-     */
-    static createFrom($$source: any = {}): PluginSummary {
-        const $$createField10_0 = $$createType12;
-        const $$createField11_0 = $$createType12;
-        const $$createField12_0 = $$createType0;
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        if ("tools" in $$parsedSource) {
-            $$parsedSource["tools"] = $$createField10_0($$parsedSource["tools"]);
-        }
-        if ("agents" in $$parsedSource) {
-            $$parsedSource["agents"] = $$createField11_0($$parsedSource["agents"]);
-        }
-        if ("hooks" in $$parsedSource) {
-            $$parsedSource["hooks"] = $$createField12_0($$parsedSource["hooks"]);
-        }
-        return new PluginSummary($$parsedSource as Partial<PluginSummary>);
-    }
-}
-
 export class PromptFileDetail {
     "name": string;
     "title": string;
@@ -1254,8 +1151,8 @@ export class Provider {
      * Creates a new Provider instance from a string or object.
      */
     static createFrom($$source: any = {}): Provider {
-        const $$createField11_0 = $$createType14;
-        const $$createField12_0 = $$createType16;
+        const $$createField11_0 = $$createType12;
+        const $$createField12_0 = $$createType14;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("models" in $$parsedSource) {
             $$parsedSource["models"] = $$createField11_0($$parsedSource["models"]);
@@ -1413,7 +1310,7 @@ export class TaskList {
      * Creates a new TaskList instance from a string or object.
      */
     static createFrom($$source: any = {}): TaskList {
-        const $$createField0_0 = $$createType18;
+        const $$createField0_0 = $$createType16;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("tasks" in $$parsedSource) {
             $$parsedSource["tasks"] = $$createField0_0($$parsedSource["tasks"]);
@@ -1429,7 +1326,10 @@ export class Tool {
     "source_type": string;
     "enabled": boolean;
     "is_deletable": boolean;
-    "plugin_name"?: string;
+    "plugin_type"?: string;
+    "use_tools"?: plugins$0.PluginTool[];
+    "view_tools"?: plugins$0.PluginTool[];
+    "agents"?: plugins$0.PluginAgent[];
 
     /** Creates a new Tool instance. */
     constructor($$source: Partial<Tool> = {}) {
@@ -1459,7 +1359,19 @@ export class Tool {
      * Creates a new Tool instance from a string or object.
      */
     static createFrom($$source: any = {}): Tool {
+        const $$createField7_0 = $$createType18;
+        const $$createField8_0 = $$createType18;
+        const $$createField9_0 = $$createType20;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("use_tools" in $$parsedSource) {
+            $$parsedSource["use_tools"] = $$createField7_0($$parsedSource["use_tools"]);
+        }
+        if ("view_tools" in $$parsedSource) {
+            $$parsedSource["view_tools"] = $$createField8_0($$parsedSource["view_tools"]);
+        }
+        if ("agents" in $$parsedSource) {
+            $$parsedSource["agents"] = $$createField9_0($$parsedSource["agents"]);
+        }
         return new Tool($$parsedSource as Partial<Tool>);
     }
 }
@@ -1476,11 +1388,13 @@ const $$createType7 = data_models$0.Message.createFrom;
 const $$createType8 = $Create.Array($$createType7);
 const $$createType9 = OPCPersonView.createFrom;
 const $$createType10 = $Create.Array($$createType9);
-const $$createType11 = PluginContribItem.createFrom;
+const $$createType11 = Model.createFrom;
 const $$createType12 = $Create.Array($$createType11);
-const $$createType13 = Model.createFrom;
+const $$createType13 = data_models$0.Model.createFrom;
 const $$createType14 = $Create.Array($$createType13);
-const $$createType15 = data_models$0.Model.createFrom;
+const $$createType15 = data_models$0.Task.createFrom;
 const $$createType16 = $Create.Array($$createType15);
-const $$createType17 = data_models$0.Task.createFrom;
+const $$createType17 = plugins$0.PluginTool.createFrom;
 const $$createType18 = $Create.Array($$createType17);
+const $$createType19 = plugins$0.PluginAgent.createFrom;
+const $$createType20 = $Create.Array($$createType19);

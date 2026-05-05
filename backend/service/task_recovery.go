@@ -199,12 +199,6 @@ func (s *Service) ServiceShutdown() error {
 			continue
 		}
 	}
-
-	// Shutdown plugin system
-	if s.pluginManager != nil {
-		s.pluginManager.Shutdown()
-	}
-
 	err := errors.Join(shutdownErrs...)
 	if err != nil {
 		logger.Error("service shutdown reconcile task error", err)

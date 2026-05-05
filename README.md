@@ -91,14 +91,6 @@ Lemon Tea Desktop is a cross-platform AI desktop client built with Wails v3, Go,
 - Language-specific model prompts.
 - Dynamic language switching.
 
-### Plugin System
-
-- TypeScript-based extension host for running plugins in a separate process.
-- Hook chain for intercepting chat and message operations.
-- Agent bridge: plugins can define agents with custom tools.
-- Tool bridge: plugins can expose tools to the main agent system.
-- RPC-based communication between the app and plugins.
-
 ### Settings
 
 - Provider configuration: API keys, base URLs, enable/disable.
@@ -177,12 +169,10 @@ wails3 dev
 │   ├── agents/       Memory system (encoding, search, lifecycle)
 │   ├── models/       Data models, view models, wrapper models
 │   ├── pkg/          LLM providers, agents, tools, skills, i18n, task execution
-│   ├── plugin/       Plugin manager, hook chain, agent/tool bridge, RPC
 │   ├── service/      Core service layer (chat, orchestration, MCP, memory)
 │   ├── storage/      GORM/SQLite persistence
 │   └── utils/        Event system, error handling
 ├── frontend/         React UI, chat pages, settings pages, components
-├── extension-host/   TypeScript plugin execution environment
 ├── build/            Wails build and packaging configuration
 ├── docs/             README assets
 └── main.go           Desktop app entry

@@ -98,6 +98,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
     const [showAddMenu, setShowAddMenu] = useState(false);
     const [showModelMenu, setShowModelMenu] = useState(false);
     const [showToolMenu, setShowToolMenu] = useState(false);
+    const [expandedPluginToolIds, setExpandedPluginToolIds] = useState<string[]>([]);
     const [inputValue, setInputValue] = useState(initialValue);
     const [modelSearchValue, setModelSearchValue] = useState('');
     const [isAddingMCPTool, setIsAddingMCPTool] = useState(false);
@@ -181,8 +182,20 @@ const ChatInput: React.FC<ChatInputProps> = ({
 
     // Tool 选择框点击事件
     const handleToolClick = useCallback(() => {
-        setShowToolMenu(!showToolMenu);
+        const next = !showToolMenu;
+        setShowToolMenu(next);
+        if (!next) {
+            setExpandedPluginToolIds([]);
+        }
     }, [showToolMenu]);
+
+    const togglePluginExpanded = useCallback((toolId: string) => {
+        setExpandedPluginToolIds((current) => (
+            current.includes(toolId)
+                ? current.filter((item) => item !== toolId)
+                : [...current, toolId]
+        ));
+    }, []);
 
     // Tool 开关切换
     const handleToolToggle = useCallback((toolId: string, enabled: boolean) => {
@@ -192,6 +205,24 @@ const ChatInput: React.FC<ChatInputProps> = ({
             onSelectedToolsChange(selectedToolIds.filter(id => id !== toolId));
         }
     }, [selectedToolIds, onSelectedToolsChange]);
+
+    const buildPluginSummary = useCallback((tool: Tool) => {
+        const useToolNames = (((tool as any).use_tools || []) as Array<{ name: string; id: string }>).map(item => item.name || item.id);
+        const viewToolNames = (((tool as any).view_tools || []) as Array<{ name: string; id: string }>).map(item => item.name || item.id);
+        const agentNames = (((tool as any).agents || []) as Array<{ name: string; id: string }>).map(item => item.name || item.id);
+        const capabilityNames = (
+            tool.plugin_type === 'agent_plugin'
+                ? [...agentNames, ...viewToolNames]
+                : [...useToolNames, ...viewToolNames, ...agentNames]
+        ).filter(Boolean);
+        if (capabilityNames.length === 0) {
+            return t('chat.input.noPluginCapabilities');
+        }
+        const preview = capabilityNames.slice(0, 3).join('、');
+        return capabilityNames.length > 3
+            ? t('chat.input.pluginSummaryMore', { summary: preview, count: capabilityNames.length })
+            : preview;
+    }, [t]);
 
     const handleCustomToolToggle = useCallback(async (tool: Tool, enabled: boolean) => {
         try {
@@ -421,6 +452,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
             }
             if (toolMenuRef.current && !toolMenuRef.current.contains(event.target as Node)) {
                 setShowToolMenu(false);
+                setExpandedPluginToolIds([]);
             }
         };
 
@@ -567,10 +599,20 @@ const ChatInput: React.FC<ChatInputProps> = ({
                                                 const isCustomMCP = tool.source_type === 'mcp_custom';
                                                 const isPlugin = tool.source_type === 'plugin';
                                                 const isEnabled = isCustomMCP ? tool.enabled : selectedToolIds.includes(tool.id);
+                                                const isExpanded = expandedPluginToolIds.includes(tool.id);
+                                                const pluginUseTools = ((tool as any).use_tools || []) as Array<{ id: string; name: string; description: string }>;
+                                                const pluginViewTools = ((tool as any).view_tools || []) as Array<{ id: string; name: string; description: string }>;
+                                                const pluginAgents = ((tool as any).agents || []) as Array<{ id: string; name: string; description: string }>;
+                                                const pluginSummary = isPlugin ? buildPluginSummary(tool) : '';
                                                 return (
                                                     <div
                                                         key={tool.id}
-                                                        className={styles.toolItem}
+                                                        className={`${styles.toolItem} ${isPlugin ? styles.pluginToolItem : ''} ${isPlugin && isExpanded ? styles.pluginToolItemExpanded : ''} ${isPlugin && isEnabled ? styles.pluginToolItemSelected : ''}`}
+                                                        onClick={() => {
+                                                            if (isPlugin) {
+                                                                handleToolToggle(tool.id, !isEnabled);
+                                                            }
+                                                        }}
                                                     >
                                                         <div className={styles.toolItemInfo}>
                                                             <div className={styles.toolItemHeader}>
@@ -579,9 +621,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                                                                     <span className={styles.toolSourceTag}>MCP</span>
                                                                 )}
                                                                 {isPlugin && (
-                                                                    <span className={styles.toolSourceTag} title={tool.plugin_name || tool.id}>
-                                                                        {t('chat.input.pluginTag', '插件')}
-                                                                    </span>
+                                                                    <span className={styles.toolSourceTag}>{t('chat.input.pluginTag')}</span>
                                                                 )}
                                                             </div>
                                                             {tool.description && (
@@ -592,14 +632,88 @@ const ChatInput: React.FC<ChatInputProps> = ({
                                                                     {tool.description}
                                                                 </span>
                                                             )}
+                                                            {isPlugin && (
+                                                                <span className={styles.pluginSummary}>{pluginSummary}</span>
+                                                            )}
+                                                            {isPlugin && (
+                                                                <div className={`${styles.pluginCapabilityPanel} ${isExpanded ? styles.pluginCapabilityPanelExpanded : ''}`}>
+                                                                    {pluginUseTools.length > 0 && (
+                                                                        <div className={styles.pluginCapabilityGroup}>
+                                                                            <div className={styles.pluginCapabilityGroupTitle}>use_tool</div>
+                                                                            {pluginUseTools.map(item => (
+                                                                                <div key={`use-${item.id}`} className={styles.pluginCapabilityItem}>
+                                                                                    <div className={styles.pluginCapabilityText}>
+                                                                                        <span>{item.name || item.id}</span>
+                                                                                        {item.description && <small>{item.description}</small>}
+                                                                                    </div>
+                                                                                    <em>use_tool</em>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    )}
+                                                                    {pluginViewTools.length > 0 && (
+                                                                        <div className={styles.pluginCapabilityGroup}>
+                                                                            <div className={styles.pluginCapabilityGroupTitle}>view_tool</div>
+                                                                            {pluginViewTools.map(item => (
+                                                                                <div key={`view-${item.id}`} className={styles.pluginCapabilityItem}>
+                                                                                    <div className={styles.pluginCapabilityText}>
+                                                                                        <span>{item.name || item.id}</span>
+                                                                                        {item.description && <small>{item.description}</small>}
+                                                                                    </div>
+                                                                                    <em>view_tool</em>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    )}
+                                                                    {pluginAgents.length > 0 && (
+                                                                        <div className={styles.pluginCapabilityGroup}>
+                                                                            <div className={styles.pluginCapabilityGroupTitle}>agent</div>
+                                                                            {pluginAgents.map(item => (
+                                                                                <div key={`agent-${item.id}`} className={styles.pluginCapabilityItem}>
+                                                                                    <div className={styles.pluginCapabilityText}>
+                                                                                        <span>{item.name || item.id}</span>
+                                                                                        {item.description && <small>{item.description}</small>}
+                                                                                    </div>
+                                                                                    <em>agent</em>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    )}
+                                                                    {pluginUseTools.length + pluginViewTools.length + pluginAgents.length === 0 && (
+                                                                        <div className={styles.pluginCapabilityEmpty}>{t('chat.input.noPluginCapabilities')}</div>
+                                                                    )}
+                                                                </div>
+                                                            )}
                                                         </div>
                                                         <div className={styles.toolItemActions}>
+                                                            {isPlugin && (
+                                                                <button
+                                                                    className={styles.expandPluginButton}
+                                                                    type="button"
+                                                                    title={isExpanded ? t('chat.message.collapse') : t('chat.message.expand')}
+                                                                    onClick={(event) => {
+                                                                        event.stopPropagation();
+                                                                        togglePluginExpanded(tool.id);
+                                                                    }}
+                                                                >
+                                                                    <svg
+                                                                        className={`${styles.expandPluginIcon} ${isExpanded ? styles.expandPluginIconExpanded : ''}`}
+                                                                        width="12"
+                                                                        height="12"
+                                                                        viewBox="0 0 24 24"
+                                                                        fill="currentColor"
+                                                                    >
+                                                                        <path d="M7 10l5 5 5-5z"/>
+                                                                    </svg>
+                                                                </button>
+                                                            )}
                                                             {tool.is_deletable && (
                                                                     <button
                                                                         className={styles.deleteToolButton}
                                                                         type="button"
                                                                         title={t('chat.input.deleteTool', { name: tool.name })}
-                                                                        onClick={() => {
+                                                                        onClick={(event) => {
+                                                                            event.stopPropagation();
                                                                             void handleDeleteMCPTool(tool);
                                                                         }}
                                                                 >
@@ -608,11 +722,13 @@ const ChatInput: React.FC<ChatInputProps> = ({
                                                                     </svg>
                                                                 </button>
                                                             )}
-                                                            <label className={styles.toggleSwitch}>
+                                                            <label className={styles.toggleSwitch} onClick={(e) => e.stopPropagation()}>
                                                                 <input
                                                                     type="checkbox"
                                                                     checked={isEnabled}
+                                                                    onClick={(e) => e.stopPropagation()}
                                                                     onChange={(e) => {
+                                                                        e.stopPropagation();
                                                                         if (isCustomMCP) {
                                                                             void handleCustomToolToggle(tool, e.target.checked);
                                                                             return;

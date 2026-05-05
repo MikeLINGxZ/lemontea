@@ -19,10 +19,6 @@ func (s *Service) ListAgents() ([]view_models.AgentSummary, error) {
 	allAgents := agents.AllAgents()
 	result := make([]view_models.AgentSummary, 0, len(allAgents))
 	for _, a := range allAgents {
-		// Skip plugin agents - they are managed in plugin settings
-		if a.Type() == agents.AgentTypePlugin {
-			continue
-		}
 		promptNames := a.PromptNames()
 		if promptNames == nil {
 			promptNames = []string{}

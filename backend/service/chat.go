@@ -17,6 +17,7 @@ import (
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/llm_provider/agents"
 	llmtools "gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/llm_provider/tools"
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/logger"
+	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/plugins"
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/skills"
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/tasker"
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/utils/event"
@@ -247,6 +248,16 @@ func (s *Service) Completions(ctx context.Context, inputMessage view_models.Mess
 			continue
 		}
 		schemaMessages = append(schemaMessages, *schemaMessage)
+	}
+	if s.plugins != nil {
+		hookPayload := plugins.BeforeLLMSendPayload{
+			ChatUUID: chatUuid,
+			Messages: schemaMessagesToHookMessages(schemaMessages),
+		}
+		hookPayload = s.plugins.RunBeforeLLMSend(ctx, hookPayload)
+		if len(hookPayload.Messages) > 0 {
+			schemaMessages = hookMessagesToSchemaMessages(hookPayload.Messages)
+		}
 	}
 
 	// 创建助手消息

@@ -10,8 +10,6 @@ export interface EmbeddingConfig {
 }
 
 interface LabState {
-  pluginSystemEnabled: boolean;
-  setPluginSystemEnabled: (enabled: boolean) => void;
   memorySystemEnabled: boolean;
   setMemorySystemEnabled: (enabled: boolean) => void;
   vectorSearchEnabled: boolean;
@@ -26,8 +24,6 @@ interface LabState {
 export const useLabStore = create<LabState>()(
   persist(
     (set) => ({
-      pluginSystemEnabled: false,
-      setPluginSystemEnabled: (enabled: boolean) => set({ pluginSystemEnabled: enabled }),
       memorySystemEnabled: false,
       setMemorySystemEnabled: (enabled: boolean) => set({ memorySystemEnabled: enabled }),
       vectorSearchEnabled: false,

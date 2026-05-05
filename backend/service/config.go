@@ -7,7 +7,7 @@ import (
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/models/data_models"
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/models/view_models"
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/i18n"
-	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/llm_provider/tools"
+	llmtools "gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/llm_provider/tools"
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/utils"
 )
 
@@ -55,7 +55,7 @@ func (s *Service) GetSupportProviders() ([]view_models.SupportProvider, error) {
 
 func (s *Service) GetTools() []view_models.Tool {
 	var res []view_models.Tool
-	toolsInfo := tools.ToolRouter.GetBuiltinToolsInfo()
+	toolsInfo := llmtools.ToolRouter.GetBuiltinToolsInfo()
 	for _, item := range toolsInfo {
 		res = append(res, view_models.Tool{
 			Id:          item.Id(),
@@ -77,18 +77,22 @@ func (s *Service) GetTools() []view_models.Tool {
 		}
 		res = append(res, s.customServerToViewTool(server))
 	}
-
-	// Plugin tools
-	if s.pluginManager != nil {
-		for _, pt := range s.pluginManager.GetPluginTools() {
+	if s.plugins != nil {
+		for _, plugin := range s.plugins.List() {
+			if !plugin.Enabled {
+				continue
+			}
 			res = append(res, view_models.Tool{
-				Id:          pt.Id(),
-				Name:        pt.Name(),
-				Description: pt.Description(),
-				SourceType:  "plugin",
+				Id:          llmtools.PluginAggregateID(plugin.ID),
+				Name:        plugin.Name,
+				Description: plugin.Description,
+				SourceType:  toolSourcePlugin,
 				Enabled:     true,
 				IsDeletable: false,
-				PluginName:  pt.PluginDisplayName(),
+				PluginType:  plugin.Type,
+				UseTools:    plugin.UseTools,
+				ViewTools:   plugin.ViewTools,
+				Agents:      plugin.Agents,
 			})
 		}
 	}

@@ -6,7 +6,6 @@ type AgentType string
 const (
 	AgentTypeSystem AgentType = "system" // 系统内置 Agent
 	AgentTypeCustom AgentType = "custom" // 用户自定义 Agent（未来扩展）
-	AgentTypePlugin AgentType = "plugin"
 )
 
 // AgentRole 表示 Agent 在工作流中的功能角色

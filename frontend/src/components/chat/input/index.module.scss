@@ -596,6 +596,7 @@
 .toolList {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   max-height: 280px;
 
   &::-webkit-scrollbar {
@@ -618,7 +619,7 @@
 
 .toolItem {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: var(--spacing-sm);
   padding: var(--spacing-sm) var(--spacing-md);
@@ -632,6 +633,19 @@
   &:hover {
     background: var(--background-color-light);
   }
+}
+
+.pluginToolItem {
+  position: relative;
+  cursor: pointer;
+}
+
+.pluginToolItemSelected {
+  background: var(--background-color-light);
+}
+
+.pluginToolItemExpanded {
+  background: var(--background-color-light);
 }
 
 .toolItemInfo {
@@ -674,6 +688,128 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.pluginSummary {
+  font-size: var(--font-size-xs);
+  color: var(--text-color-secondary);
+  line-height: 1.4;
+}
+
+.pluginCapabilityPanel {
+  width: 100%;
+  max-height: 0;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.03);
+  opacity: 1;
+  pointer-events: auto;
+  transform: none;
+  transition: max-height var(--transition-fast), padding var(--transition-fast), margin-top var(--transition-fast);
+  z-index: 1;
+}
+
+.pluginCapabilityPanelExpanded {
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 8px;
+  margin-top: 8px;
+  border: 1px solid var(--border-color-light);
+}
+
+.pluginCapabilityGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  & + & {
+    margin-top: 8px;
+  }
+}
+
+.pluginCapabilityGroupTitle {
+  font-size: 10px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-color-secondary);
+  text-transform: uppercase;
+}
+
+.pluginCapabilityItem {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  color: var(--text-color);
+  font-size: var(--font-size-xs);
+
+  &:hover {
+    background: var(--background-color-light);
+  }
+
+  em {
+    flex-shrink: 0;
+    color: var(--text-color-secondary);
+    font-style: normal;
+    font-size: 10px;
+  }
+}
+
+.pluginCapabilityText {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  small {
+    color: var(--text-color-secondary);
+    font-size: 11px;
+    line-height: 1.4;
+    white-space: normal;
+  }
+}
+
+.pluginCapabilityEmpty {
+  padding: 8px;
+  color: var(--text-color-secondary);
+  font-size: var(--font-size-xs);
+}
+
+.expandPluginButton {
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--border-color-light);
+  border-radius: 8px;
+  background: var(--background-color);
+  color: var(--text-color-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+
+  &:hover {
+    background: var(--background-color-light);
+    color: var(--text-color);
+  }
+}
+
+.expandPluginIcon {
+  transition: transform var(--transition-fast);
+}
+
+.expandPluginIconExpanded {
+  transform: rotate(180deg);
 }
 
 .toolItemActions {

@@ -21,12 +21,14 @@ import (
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/models/view_models"
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/i18n"
 	llmtools "gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/llm_provider/tools"
+	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/plugins"
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/utils/ierror"
 )
 
 const (
 	toolSourceBuiltin   = "builtin"
 	toolSourceMCPCustom = "mcp_custom"
+	toolSourcePlugin    = "plugin"
 )
 
 var invalidToolNameChars = regexp.MustCompile(`[^a-zA-Z0-9_-]+`)
@@ -208,6 +210,27 @@ func (s *Service) resolveSelectedTools(ctx context.Context, toolIDs []string) ([
 	}
 
 	for _, toolID := range toolIDs {
+		if strings.HasPrefix(toolID, "plugin:") && !strings.Contains(strings.TrimPrefix(toolID, "plugin:"), ":") {
+			if s.plugins == nil {
+				continue
+			}
+			pluginID := strings.TrimPrefix(toolID, "plugin:")
+			summary, ok := s.plugins.Get(pluginID)
+			if !ok || !summary.Enabled {
+				continue
+			}
+			caps := pluginsSummaryToCapabilities(*summary)
+			for _, pluginTool := range llmtools.NewPluginTools(pluginID, summary.Name, caps, s.plugins) {
+				result = append(result, pluginTool.Tool())
+				metaMap[pluginTool.Id()] = toolMeta{
+					ID:          pluginTool.Id(),
+					Name:        pluginTool.Name(),
+					Description: pluginTool.Description(),
+				}
+			}
+			continue
+		}
+
 		if builtinTool, ok := llmtools.ToolRouter.GetToolByID(toolID); ok {
 			result = append(result, builtinTool.Tool())
 			metaMap[toolID] = toolMeta{
@@ -252,6 +275,16 @@ func (s *Service) resolveSelectedTools(ctx context.Context, toolIDs []string) ([
 	}
 
 	return result, metaMap, cleanup, nil
+}
+
+func pluginsSummaryToCapabilities(summary plugins.Summary) plugins.Capabilities {
+	return plugins.Capabilities{
+		UseTools:  summary.UseTools,
+		ViewTools: summary.ViewTools,
+		Agents:    summary.Agents,
+		Views:     summary.Views,
+		Hooks:     summary.Hooks,
+	}
 }
 
 func (s *Service) loadMCPServerTools(ctx context.Context, server data_models.CustomMCPServer, configOverride *mcpServerConfig) ([]einotool.BaseTool, map[string]toolMeta, func(), error) {

@@ -10,8 +10,8 @@ import (
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/i18n"
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/llm_provider/agents"
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/logger"
+	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/plugins"
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/prompts"
-	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/plugin"
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/storage"
 )
 
@@ -36,11 +36,11 @@ type Service struct {
 	storage         *storage.Storage
 	app             *application.App
 	prompts         prompts.PromptSet
-	pluginManager   *plugin.Manager
 	memoryStorage   *memory_storage.Storage
 	memoryCache     *memoryPrefetchCache
 	memoryLifecycle *lifecycle.Manager
 	memorySearcher  *search.HybridSearcher
+	plugins         *plugins.Manager
 }
 
 func NewService() *Service {
@@ -56,6 +56,11 @@ func (s *Service) ServiceStartup(ctx context.Context, options application.Servic
 
 	s.storage = istorage
 	s.app = application.Get()
+	if pluginManager, pluginErr := plugins.NewManager(); pluginErr != nil {
+		logger.Warm("plugin manager init failed:", pluginErr)
+	} else {
+		s.plugins = pluginManager
+	}
 
 	// 初始化记忆系统存储（复用主数据库连接）
 	memStorage, memErr := memory_storage.NewStorage(istorage.DB())
@@ -104,15 +109,8 @@ func (s *Service) ServiceStartup(ctx context.Context, options application.Servic
 	if err := s.syncCustomMCPTools(ctx); err != nil {
 		return err
 	}
-
-	pluginMgr, pluginErr := plugin.NewManager(s.app)
-	if pluginErr != nil {
-		logger.Warm("plugin manager creation failed:", pluginErr)
-	} else {
-		s.pluginManager = pluginMgr
-		if initErr := pluginMgr.Init(); initErr != nil {
-			logger.Warm("plugin system init failed:", initErr)
-		}
+	if s.plugins != nil {
+		s.plugins.StartEnabled(ctx)
 	}
 
 	if err := s.recoverStaleRunningTasks(ctx); err != nil {

@@ -25,8 +25,6 @@ export {
     OPCGroupView,
     OPCPersonInput,
     OPCPersonView,
-    PluginContribItem,
-    PluginSummary,
     PromptFileDetail,
     PromptFileSummary,
     Provider,

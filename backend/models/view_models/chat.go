@@ -1,6 +1,9 @@
 package view_models
 
-import "gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/models/data_models"
+import (
+	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/models/data_models"
+	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/plugins"
+)
 
 type ChatList struct {
 	Lists []Chat `json:"lists"`
@@ -22,11 +25,14 @@ type Completions struct {
 }
 
 type Tool struct {
-	Id          string `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	SourceType  string `json:"source_type"`
-	Enabled     bool   `json:"enabled"`
-	IsDeletable bool   `json:"is_deletable"`
-	PluginName  string `json:"plugin_name,omitempty"`
+	Id          string                `json:"id"`
+	Name        string                `json:"name"`
+	Description string                `json:"description"`
+	SourceType  string                `json:"source_type"`
+	Enabled     bool                  `json:"enabled"`
+	IsDeletable bool                  `json:"is_deletable"`
+	PluginType  string                `json:"plugin_type,omitempty"`
+	UseTools    []plugins.PluginTool  `json:"use_tools,omitempty"`
+	ViewTools   []plugins.PluginTool  `json:"view_tools,omitempty"`
+	Agents      []plugins.PluginAgent `json:"agents,omitempty"`
 }
