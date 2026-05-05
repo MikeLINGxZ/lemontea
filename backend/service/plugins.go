@@ -34,8 +34,15 @@ func (s *Service) AddPluginFromFolder(path string) (*plugins.Summary, error) {
 	if err != nil {
 		return nil, ierror.NewError(err)
 	}
-	s.emitPluginsChanged()
-	return summary, nil
+	defer s.emitPluginsChanged()
+	if err := s.plugins.Enable(context.Background(), summary.ID); err != nil {
+		return nil, ierror.NewError(err)
+	}
+	updated, ok := s.plugins.Get(summary.ID)
+	if !ok {
+		return nil, ierror.NewError(fmt.Errorf("plugin %s not found after install", summary.ID))
+	}
+	return updated, nil
 }
 
 func (s *Service) ListPlugins() []plugins.Summary {
@@ -120,7 +127,7 @@ func (s *Service) OpenPluginSettingsWindow(id string) error {
 
 	name := "window_plugin_settings_" + id
 	title := summary.Name + " " + i18n.TCurrent("app.window.plugin_settings_title", nil)
-	url := s.pluginSettingsURL(id)
+	url := fmt.Sprintf("/?entry=plugin_view&id=%s&view=settings", id)
 	if existing, ok := s.app.Window.GetByName(name); ok {
 		existing.SetURL(url)
 		existing.Focus()
@@ -146,6 +153,28 @@ func (s *Service) OpenPluginSettingsWindow(id string) error {
 	s.centerWindowOnHomeScreen(window)
 	window.Show()
 	return nil
+}
+
+func (s *Service) GetPluginViewURL(id string, viewID string) (string, error) {
+	if s.plugins == nil {
+		return "", ierror.NewError(fmt.Errorf("plugin manager is not available"))
+	}
+	url, err := s.plugins.ViewURL(id, viewID)
+	if err != nil {
+		return "", ierror.NewError(err)
+	}
+	return url, nil
+}
+
+func (s *Service) GetPluginViewDocument(id string, viewID string) (string, error) {
+	if s.plugins == nil {
+		return "", ierror.NewError(fmt.Errorf("plugin manager is not available"))
+	}
+	content, err := s.plugins.ViewDocument(id, viewID)
+	if err != nil {
+		return "", ierror.NewError(err)
+	}
+	return content, nil
 }
 
 func (s *Service) GetPluginSettings(ctx context.Context, id string) (map[string]interface{}, error) {
@@ -230,17 +259,6 @@ func (s *Service) CallPluginToolDirect(ctx context.Context, pluginID string, kin
 		return result, nil
 	}
 	return "", ierror.NewError(fmt.Errorf("plugin %s is not enabled or not found", pluginID))
-}
-
-func (s *Service) pluginSettingsURL(id string) string {
-	if s.plugins == nil {
-		return "about:blank"
-	}
-	url, err := s.plugins.SettingsURL(id)
-	if err != nil {
-		return "about:blank"
-	}
-	return url
 }
 
 func (s *Service) emitPluginsChanged() {

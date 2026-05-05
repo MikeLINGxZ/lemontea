@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Email Settings</title>
+    <script defer src="./sdk.js"></script>
+    <style>
+      :root {
+        --bg: #f3f6fb;
+        --card: #ffffff;
+        --border: #d8e0ec;
+        --text: #1d2736;
+        --muted: #6b7688;
+        --accent: #1b7f6b;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "SF Pro Text", "PingFang SC", "Microsoft YaHei", sans-serif;
+        background: linear-gradient(180deg, #ffffff 0%, var(--bg) 100%);
+        color: var(--text);
+      }
+      .page {
+        max-width: 940px;
+        margin: 0 auto;
+        padding: 28px;
+        display: grid;
+        gap: 18px;
+      }
+      .hero, .section {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        box-shadow: 0 20px 36px rgba(23, 39, 65, 0.06);
+      }
+      .hero {
+        padding: 24px;
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        align-items: flex-start;
+      }
+      h1 { margin: 0 0 8px; font-size: 30px; }
+      .hero p { margin: 0; color: var(--muted); line-height: 1.6; max-width: 620px; }
+      .pill {
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: #e9f6f2;
+        color: var(--accent);
+        font-size: 12px;
+        white-space: nowrap;
+      }
+      .section { padding: 22px; }
+      .section h2 {
+        margin: 0 0 16px;
+        font-size: 18px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 14px;
+      }
+      label {
+        display: grid;
+        gap: 8px;
+        font-size: 13px;
+      }
+      .field-label {
+        font-weight: 600;
+      }
+      input, select {
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 12px 14px;
+        font-size: 14px;
+        background: #fbfcfe;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      button {
+        border: 0;
+        border-radius: 999px;
+        padding: 12px 18px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .primary { background: var(--accent); color: #fff; }
+      .secondary { background: #eef3f9; color: var(--text); }
+      .status {
+        padding: 12px 14px;
+        border-radius: 14px;
+        font-size: 13px;
+      }
+      .status.error {
+        background: #fff1f0;
+        color: #c5352b;
+        border: 1px solid #ffc9c2;
+      }
+      .status.success {
+        background: #ecf8f4;
+        color: #176b59;
+        border: 1px solid #b9e7da;
+      }
+      .hint { color: var(--muted); font-size: 12px; }
+      @media (max-width: 720px) {
+        .page { padding: 16px; }
+        .hero { padding: 18px; flex-direction: column; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <section class="hero">
+        <div>
+          <h1>Email Plugin</h1>
+          <p>Configure the IMAP and SMTP account used by the plugin. Passwords stay in the host credential store, while account metadata and connection preferences remain in the plugin data directory.</p>
+        </div>
+        <div id="updated-at" class="pill">Not saved yet</div>
+      </section>
+
+      <div id="status" class="status" hidden></div>
+
+      <section class="section">
+        <h2>Account</h2>
+        <div class="grid">
+          <label>
+            <span class="field-label">Provider preset</span>
+            <select id="preset">
+              <option value="gmail">Gmail</option>
+              <option value="outlook">Outlook</option>
+              <option value="qq">QQ Mail</option>
+              <option value="163">163 Mail</option>
+              <option value="custom">Custom</option>
+            </select>
+          </label>
+          <label>
+            <span class="field-label">Email address</span>
+            <input id="account-email" type="email" />
+          </label>
+          <label>
+            <span class="field-label">Display name</span>
+            <input id="display-name" type="text" />
+          </label>
+          <label>
+            <span class="field-label">Reply-to address</span>
+            <input id="reply-to" type="email" />
+          </label>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>IMAP</h2>
+        <div class="grid">
+          <label><span class="field-label">Host</span><input id="imap-host" type="text" /></label>
+          <label><span class="field-label">Port</span><input id="imap-port" type="number" min="1" /></label>
+          <label>
+            <span class="field-label">Security</span>
+            <select id="imap-security">
+              <option value="tls">TLS</option>
+              <option value="starttls">STARTTLS</option>
+              <option value="none">None</option>
+            </select>
+          </label>
+          <label><span class="field-label">Username</span><input id="imap-username" type="text" /></label>
+          <label>
+            <span class="field-label">Password action</span>
+            <select id="imap-password-action">
+              <option value="keep">Keep existing password</option>
+              <option value="set">Replace password</option>
+              <option value="delete">Delete password</option>
+            </select>
+          </label>
+          <label>
+            <span class="field-label">Password</span>
+            <input id="imap-password" type="password" placeholder="Only needed when replacing password" />
+            <span id="imap-password-hint" class="hint"></span>
+          </label>
+        </div>
+        <div class="actions" style="margin-top:16px">
+          <button id="test-imap" class="secondary" type="button">Test IMAP</button>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>SMTP</h2>
+        <div class="grid">
+          <label><span class="field-label">Host</span><input id="smtp-host" type="text" /></label>
+          <label><span class="field-label">Port</span><input id="smtp-port" type="number" min="1" /></label>
+          <label>
+            <span class="field-label">Security</span>
+            <select id="smtp-security">
+              <option value="tls">TLS</option>
+              <option value="starttls">STARTTLS</option>
+              <option value="none">None</option>
+            </select>
+          </label>
+          <label><span class="field-label">Username</span><input id="smtp-username" type="text" /></label>
+          <label>
+            <span class="field-label">Password action</span>
+            <select id="smtp-password-action">
+              <option value="keep">Keep existing password</option>
+              <option value="set">Replace password</option>
+              <option value="delete">Delete password</option>
+            </select>
+          </label>
+          <label>
+            <span class="field-label">Password</span>
+            <input id="smtp-password" type="password" placeholder="Only needed when replacing password" />
+            <span id="smtp-password-hint" class="hint"></span>
+          </label>
+        </div>
+        <div class="actions" style="margin-top:16px">
+          <button id="test-smtp" class="secondary" type="button">Test SMTP</button>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="actions">
+          <button id="save" class="primary" type="button">Save settings</button>
+          <button id="save-and-test" class="secondary" type="button">Save, then test IMAP and SMTP</button>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      const sdk = window.LemonTeaPluginView;
+      const presets = {
+        gmail: {
+          imap: { host: 'imap.gmail.com', port: 993, security: 'tls' },
+          smtp: { host: 'smtp.gmail.com', port: 465, security: 'tls' },
+        },
+        outlook: {
+          imap: { host: 'outlook.office365.com', port: 993, security: 'tls' },
+          smtp: { host: 'smtp.office365.com', port: 587, security: 'starttls' },
+        },
+        qq: {
+          imap: { host: 'imap.qq.com', port: 993, security: 'tls' },
+          smtp: { host: 'smtp.qq.com', port: 465, security: 'tls' },
+        },
+        '163': {
+          imap: { host: 'imap.163.com', port: 993, security: 'tls' },
+          smtp: { host: 'smtp.163.com', port: 465, security: 'tls' },
+        },
+        custom: {
+          imap: { host: '', port: 993, security: 'tls' },
+          smtp: { host: '', port: 465, security: 'tls' },
+        },
+      };
+
+      const state = {
+        config: null,
+        busy: false,
+      };
+
+      function $(id) {
+        return document.getElementById(id);
+      }
+
+      function setStatus(type, text) {
+        const el = $('status');
+        el.hidden = !text;
+        el.className = `status ${type || ''}`.trim();
+        el.textContent = text || '';
+      }
+
+      function formatDate(value) {
+        const date = new Date(value || '');
+        if (Number.isNaN(date.getTime())) return 'Not saved yet';
+        return `Updated ${date.toLocaleString()}`;
+      }
+
+      function applyPreset(preset) {
+        const next = presets[preset] || presets.custom;
+        $('imap-host').value = next.imap.host;
+        $('imap-port').value = next.imap.port;
+        $('imap-security').value = next.imap.security;
+        $('smtp-host').value = next.smtp.host;
+        $('smtp-port').value = next.smtp.port;
+        $('smtp-security').value = next.smtp.security;
+      }
+
+      function applyConfig(config) {
+        state.config = config || {};
+        $('preset').value = config.account && config.account.preset || 'custom';
+        $('account-email').value = config.account && config.account.email || '';
+        $('display-name').value = config.account && config.account.displayName || '';
+        $('reply-to').value = config.account && config.account.replyTo || '';
+        $('imap-host').value = config.imap && config.imap.host || '';
+        $('imap-port').value = config.imap && config.imap.port || 993;
+        $('imap-security').value = config.imap && config.imap.security || 'tls';
+        $('imap-username').value = config.imap && config.imap.username || '';
+        $('imap-password').value = '';
+        $('imap-password-action').value = 'keep';
+        $('imap-password-hint').textContent = config.imap && config.imap.passwordSet ? 'Password stored in host credential vault.' : 'No password stored yet.';
+        $('smtp-host').value = config.smtp && config.smtp.host || '';
+        $('smtp-port').value = config.smtp && config.smtp.port || 465;
+        $('smtp-security').value = config.smtp && config.smtp.security || 'tls';
+        $('smtp-username').value = config.smtp && config.smtp.username || '';
+        $('smtp-password').value = '';
+        $('smtp-password-action').value = 'keep';
+        $('smtp-password-hint').textContent = config.smtp && config.smtp.passwordSet ? 'Password stored in host credential vault.' : 'No password stored yet.';
+        $('updated-at').textContent = formatDate(config.updatedAt);
+      }
+
+      function buildPayload() {
+        return {
+          account: {
+            email: $('account-email').value.trim(),
+            displayName: $('display-name').value.trim(),
+            replyTo: $('reply-to').value.trim(),
+            preset: $('preset').value,
+          },
+          imap: {
+            host: $('imap-host').value.trim(),
+            port: Number($('imap-port').value || 993),
+            security: $('imap-security').value,
+            username: $('imap-username').value.trim(),
+            password: $('imap-password').value,
+            passwordAction: $('imap-password').value ? 'set' : $('imap-password-action').value,
+          },
+          smtp: {
+            host: $('smtp-host').value.trim(),
+            port: Number($('smtp-port').value || 465),
+            security: $('smtp-security').value,
+            username: $('smtp-username').value.trim(),
+            password: $('smtp-password').value,
+            passwordAction: $('smtp-password').value ? 'set' : $('smtp-password-action').value,
+          },
+        };
+      }
+
+      async function withBusy(task) {
+        if (state.busy) return;
+        state.busy = true;
+        Array.from(document.querySelectorAll('button')).forEach((button) => { button.disabled = true; });
+        try {
+          await task();
+        } finally {
+          state.busy = false;
+          Array.from(document.querySelectorAll('button')).forEach((button) => { button.disabled = false; });
+        }
+      }
+
+      async function saveSettings() {
+        const saved = await sdk.saveSettings(buildPayload());
+        applyConfig(saved);
+        setStatus('success', 'Settings saved.');
+        return saved;
+      }
+
+      async function testConnection(protocol) {
+        const result = await sdk.testConnection(protocol, buildPayload());
+        setStatus(result.ok ? 'success' : 'error', result.message || `${protocol.toUpperCase()} test finished.`);
+        const config = await sdk.getSettings();
+        applyConfig(config);
+        return result;
+      }
+
+      $('preset').addEventListener('change', (event) => {
+        applyPreset(event.target.value);
+      });
+
+      $('save').addEventListener('click', () => withBusy(async () => {
+        setStatus('', '');
+        await saveSettings();
+      }));
+
+      $('test-imap').addEventListener('click', () => withBusy(async () => {
+        setStatus('', '');
+        await testConnection('imap');
+      }));
+
+      $('test-smtp').addEventListener('click', () => withBusy(async () => {
+        setStatus('', '');
+        await testConnection('smtp');
+      }));
+
+      $('save-and-test').addEventListener('click', () => withBusy(async () => {
+        setStatus('', '');
+        await saveSettings();
+        const imap = await testConnection('imap');
+        if (imap.ok) {
+          await testConnection('smtp');
+        }
+      }));
+
+      sdk.whenReady().then(async () => {
+        const config = await sdk.getSettings();
+        applyConfig(config);
+      }).catch((error) => {
+        setStatus('error', error.message || 'Failed to load settings.');
+      });
+    </script>
+  </body>
+</html>

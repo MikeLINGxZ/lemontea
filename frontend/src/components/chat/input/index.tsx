@@ -10,6 +10,7 @@ import RichMarkdownEditor from "@/components/chat/input/rich_markdown_editor";
 import {
     clearDefaultModelConfig,
     getDefaultModelConfig,
+    resolvePreferredModel,
     setDefaultModelConfig,
 } from "@/utils/defaultModel";
 
@@ -310,13 +311,10 @@ const ChatInput: React.FC<ChatInputProps> = ({
     // 初始化时自动选中默认模型
     useEffect(() => {
         if (selectedModelId > 0 || availableModels.length === 0) return;
-        const config = getDefaultModelConfig();
-        if (!config) return;
-        const exists = availableModels.some(m => m.id === config.modelId);
-        if (exists) {
-            onSelectModelChange(config.modelId, config.modelName);
-        }
-    }, [availableModels]);
+        const preferredModel = resolvePreferredModel(availableModels);
+        if (!preferredModel) return;
+        onSelectModelChange(preferredModel.id, preferredModel.model);
+    }, [availableModels, onSelectModelChange, selectedModelId]);
 
     // 模型选择事件
     const handleModelSelect = useCallback((modelId: number, modelName: string) => {

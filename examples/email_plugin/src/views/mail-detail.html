@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Email Mail Detail</title>
+    <script defer src="./sdk.js"></script>
+    <style>
+      :root {
+        --bg: #f4f7fb;
+        --card: #ffffff;
+        --border: #d5dfeb;
+        --text: #1c2737;
+        --muted: #697587;
+        --accent: #1b7f6b;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "SF Pro Text", "PingFang SC", "Microsoft YaHei", sans-serif;
+        background: radial-gradient(circle at top, #ffffff 0%, var(--bg) 72%);
+        color: var(--text);
+      }
+      .wrap { padding: 14px; display: grid; gap: 12px; }
+      .hero, .section, .body {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        box-shadow: 0 16px 30px rgba(19, 36, 60, 0.05);
+      }
+      .hero { padding: 16px; }
+      .hero-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 14px;
+      }
+      .eyebrow {
+        color: var(--muted);
+        font-size: 12px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      h1 {
+        margin: 0 0 14px;
+        font-size: 20px;
+        line-height: 1.25;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 10px;
+      }
+      .meta {
+        padding: 12px;
+        border-radius: 14px;
+        background: #f8fafc;
+      }
+      .label {
+        color: var(--muted);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .value {
+        display: block;
+        margin-top: 6px;
+        font-size: 13px;
+        line-height: 1.45;
+        word-break: break-word;
+      }
+      .reply {
+        border: 0;
+        border-radius: 999px;
+        padding: 10px 16px;
+        background: #e7f6f2;
+        color: var(--accent);
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .section, .body { padding: 16px; }
+      .section h2 {
+        margin: 0 0 12px;
+        font-size: 14px;
+      }
+      .attachments { display: grid; gap: 8px; }
+      .attachment {
+        padding: 12px;
+        border-radius: 14px;
+        background: #f8fafc;
+      }
+      .attachment small { color: var(--muted); }
+      .body-content {
+        font-size: 14px;
+        line-height: 1.65;
+        color: #2d394c;
+        overflow-wrap: anywhere;
+      }
+      .body-content img {
+        max-width: 100%;
+        height: auto;
+      }
+      .plain {
+        white-space: pre-wrap;
+      }
+      .error {
+        padding: 12px 14px;
+        border-radius: 14px;
+        background: #fff1f0;
+        color: #c5352b;
+        border: 1px solid #ffc9c2;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div id="error" class="error" hidden></div>
+      <section class="hero">
+        <div class="hero-top">
+          <div class="eyebrow">
+            <span id="mailbox">INBOX</span>
+            <span id="received-at"></span>
+          </div>
+          <button id="reply" class="reply" type="button">Reply</button>
+        </div>
+        <h1 id="subject">(No subject)</h1>
+        <div id="meta-grid" class="grid"></div>
+      </section>
+      <section id="attachments-section" class="section" hidden>
+        <h2>Attachments</h2>
+        <div id="attachments" class="attachments"></div>
+      </section>
+      <section class="body">
+        <div id="body-content" class="body-content"></div>
+      </section>
+    </div>
+
+    <script>
+      const sdk = window.LemonTeaPluginView;
+      const state = { payload: null };
+
+      function showError(message) {
+        const el = document.getElementById('error');
+        el.hidden = !message;
+        el.textContent = message || '';
+      }
+
+      function formatDate(value) {
+        const date = new Date(value || '');
+        if (Number.isNaN(date.getTime())) return value || '';
+        return date.toLocaleString();
+      }
+
+      function sanitizeHtml(input) {
+        const template = document.createElement('template');
+        template.innerHTML = String(input || '');
+        const blocked = template.content.querySelectorAll('script,style,iframe,object,embed');
+        blocked.forEach((node) => node.remove());
+        template.content.querySelectorAll('*').forEach((element) => {
+          Array.from(element.attributes).forEach((attribute) => {
+            const name = attribute.name.toLowerCase();
+            const value = String(attribute.value || '');
+            if (name.startsWith('on')) {
+              element.removeAttribute(attribute.name);
+            }
+            if ((name === 'href' || name === 'src') && /^javascript:/i.test(value)) {
+              element.removeAttribute(attribute.name);
+            }
+          });
+        });
+        return template.innerHTML;
+      }
+
+      function buildReplyInstruction(payload) {
+        const result = (payload && payload.result) || {};
+        const message = result.message || {};
+        const headers = message.headers || {};
+        const originalSummary = String(message.snippet || message.body || '')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .slice(0, 220);
+        const lines = [
+          '请帮我回复这封邮件。',
+          '等我继续补充回复内容后，再整理为邮件并调用 Email 插件的 `send_mail` 发送。',
+          '',
+          `收件人: ${String(message.from || '').trim() || '(请根据原邮件发件人补全)'}`,
+          `主题: ${/^re\\s*:/i.test(String(message.subject || '').trim()) ? String(message.subject || '').trim() : `Re: ${String(message.subject || '').trim() || '(No subject)'}`}`,
+        ];
+        if (headers.messageId) {
+          lines.push(`replyToMessageId: ${String(headers.messageId).trim()}`);
+        }
+        if (originalSummary) {
+          lines.push(`原邮件摘要: ${originalSummary}`);
+        }
+        lines.push('', '我的回复内容：');
+        return lines.join('\n');
+      }
+
+      function renderMeta(message, attachments) {
+        const grid = document.getElementById('meta-grid');
+        const items = [
+          ['From', message.from],
+          ['To', message.to],
+          ['Cc', message.cc],
+          ['Attachments', attachments.length ? String(attachments.length) : ''],
+        ].filter((item) => item[1]);
+        grid.innerHTML = '';
+        items.forEach(([label, value]) => {
+          const div = document.createElement('div');
+          div.className = 'meta';
+          div.innerHTML = `<span class="label">${label}</span><span class="value">${value}</span>`;
+          grid.appendChild(div);
+        });
+      }
+
+      function render() {
+        const result = (((state.payload || {}).data || {}).result || {});
+        const message = result.message || {};
+        const attachments = Array.isArray(message.attachments) ? message.attachments : [];
+        document.getElementById('mailbox').textContent = result.mailbox || 'INBOX';
+        document.getElementById('received-at').textContent = formatDate(message.receivedAt);
+        document.getElementById('subject').textContent = message.subject || '(No subject)';
+        renderMeta(message, attachments);
+
+        const section = document.getElementById('attachments-section');
+        const list = document.getElementById('attachments');
+        list.innerHTML = '';
+        section.hidden = attachments.length === 0;
+        attachments.forEach((attachment, index) => {
+          const div = document.createElement('div');
+          div.className = 'attachment';
+          div.innerHTML = `
+            <div>${attachment.filename || `Attachment ${index + 1}`}</div>
+            <small>${attachment.contentType || 'unknown type'}${attachment.size ? ` · ${Math.max(1, Math.round(Number(attachment.size) / 1024))} KB` : ''}</small>
+          `;
+          list.appendChild(div);
+        });
+
+        const body = document.getElementById('body-content');
+        const html = String(message.html || '').trim();
+        if (html) {
+          body.className = 'body-content';
+          body.innerHTML = sanitizeHtml(html);
+        } else {
+          body.className = 'body-content plain';
+          body.textContent = String(message.body || message.snippet || '');
+        }
+      }
+
+      document.getElementById('reply').addEventListener('click', async () => {
+        try {
+          const payload = (((state.payload || {}).data) || {});
+          await sdk.composeMessage(buildReplyInstruction(payload));
+        } catch (error) {
+          showError(error.message || 'Failed to prepare reply draft.');
+        }
+      });
+
+      sdk.whenReady().then((context) => {
+        state.payload = context.payload || {
+          viewId: 'mail_detail',
+          region: 'chat_side_panel',
+          data: { result: { message: {} } },
+        };
+        render();
+      }).catch((error) => {
+        showError(error.message || 'Failed to initialize mail detail.');
+      });
+    </script>
+  </body>
+</html>

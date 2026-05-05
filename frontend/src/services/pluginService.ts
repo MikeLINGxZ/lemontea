@@ -39,3 +39,11 @@ export function deletePlugin(id: string): Promise<void> {
 export function openPluginSettingsWindow(id: string): Promise<void> {
   return Service.OpenPluginSettingsWindow(id);
 }
+
+export function getPluginViewURL(id: string, viewId: string): Promise<string> {
+  return Service.GetPluginViewURL(id, viewId);
+}
+
+export function getPluginViewDocument(id: string, viewId: string): Promise<string> {
+  return Service.GetPluginViewDocument(id, viewId);
+}

@@ -4,8 +4,8 @@ const path = require('path');
 const distDir = path.join(__dirname, '..', 'dist');
 const srcViewsDir = path.join(__dirname, '..', 'src', 'views');
 const distViewsDir = path.join(distDir, 'views');
-const sdkDir = path.join(__dirname, '..', '..', '..', 'packages', 'plugin-sdk');
 const distSDKDir = path.join(distDir, 'sdk');
+const sdkDir = path.join(__dirname, '..', '..', '..', 'packages', 'plugin-sdk');
 
 function copyDir(src, dest) {
   fs.mkdirSync(dest, { recursive: true });

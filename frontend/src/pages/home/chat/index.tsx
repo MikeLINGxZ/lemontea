@@ -18,6 +18,7 @@ import {
   buildPluginSidePanelPayloadFromResult,
   extractAllPluginSidePanelContexts,
   type PluginSidePanelContext,
+  type PluginSidePanelPayload,
 } from '@/components/chat/plugin_side_panel/utils';
 import {
   type Chat as ChatType,
@@ -44,7 +45,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { notify } from '@/utils/notification.ts';
 import { useTranslation } from 'react-i18next';
-import { getDefaultModelConfig } from '@/utils/defaultModel';
+import { resolvePreferredModel } from '@/utils/defaultModel';
 
 function readStoredSelectedToolIds(): {
   ids: string[];
@@ -225,6 +226,7 @@ const SIDE_PANEL_MIN_WIDTH = 280;
 const CHAT_MAIN_MIN_WIDTH = 580;
 const SIDE_PANEL_RESIZE_HANDLE_WIDTH = 6;
 type SidePanelStatus = 'loading' | 'ready' | 'empty' | 'error' | 'stale';
+type MailListActionMode = '' | 'refresh' | 'load_more';
 
 function getPluginSidePanelMessageCount(context: PluginSidePanelContext | null): number {
   if (!context) {
@@ -250,12 +252,6 @@ function getPluginSidePanelAutoStatus(
     currentStatus === 'stale'
   ) {
     return currentStatus;
-  }
-  if (context.payload.viewId === 'mail_list') {
-    return getPluginSidePanelMessageCount(context) === 0 ? 'empty' : 'ready';
-  }
-  if (context.payload.viewId === 'mail_detail') {
-    return context.payload.data?.result?.message ? 'ready' : 'empty';
   }
   return 'ready';
 }
@@ -300,6 +296,87 @@ function getPluginToolResultError(raw: string): string {
     // The normal plugin result is not guaranteed to be an object with ok/error.
   }
   return '';
+}
+
+function parsePluginContextArgs(args: string): Record<string, any> {
+  try {
+    const parsed = JSON.parse(args || '{}');
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function buildReplyMailSubject(subject: string): string {
+  const normalized = String(subject || '').trim() || '(No subject)';
+  return /^re\s*:/i.test(normalized) ? normalized : `Re: ${normalized}`;
+}
+
+function buildReplyInstruction(payload: Record<string, any>): string {
+  const message = payload?.result?.message || {};
+  const headers = message?.headers || {};
+  const originalSummary = String(message?.snippet || message?.body || '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 220);
+  const lines = [
+    '请帮我回复这封邮件。',
+    '等我继续补充回复内容后，再整理为邮件并调用 Email 插件的 `send_mail` 发送。',
+    '',
+    `收件人: ${String(message?.from || '').trim() || '(请根据原邮件发件人补全)'}`,
+    `主题: ${buildReplyMailSubject(String(message?.subject || ''))}`,
+  ];
+  if (headers?.messageId) {
+    lines.push(`replyToMessageId: ${String(headers.messageId).trim()}`);
+  }
+  if (originalSummary) {
+    lines.push(`原邮件摘要: ${originalSummary}`);
+  }
+  lines.push('', '我的回复内容：');
+  return lines.join('\n');
+}
+
+function buildPluginViewCallId(
+  sourceContext: PluginSidePanelContext,
+  payload: PluginSidePanelPayload
+): string {
+  const title = String(payload.title || payload.viewId || 'view')
+    .trim()
+    .replace(/[^a-zA-Z0-9_-]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  return `${sourceContext.callId}::${payload.viewId}::${title || 'view'}::${Date.now()}`;
+}
+
+function buildMailListSearchArgs(
+  context: PluginSidePanelContext,
+  mode: MailListActionMode
+): Record<string, any> {
+  const args = parsePluginContextArgs(context.args);
+  const result = context.payload.data?.result || {};
+  const limit = Math.max(
+    10,
+    Math.min(
+      Number(args.limit || result?.messages?.length || 20),
+      50
+    )
+  );
+  const nextArgs: Record<string, any> = {
+    mailbox: String(args.mailbox || args.folder || result.mailbox || result.folder || 'INBOX'),
+    query: args.query || '',
+    from: args.from || '',
+    to: args.to || '',
+    subject: args.subject || '',
+    since: args.since || '',
+    before: args.before || '',
+    unreadOnly: args.unreadOnly === true,
+    includeBody: args.includeBody === true,
+    includeHtml: args.includeHtml === true,
+    limit,
+  };
+  if (mode === 'load_more' && result?.nextCursor) {
+    nextArgs.cursor = result.nextCursor;
+  }
+  return nextArgs;
 }
 
 function readStoredClosedSidePanelViews(): Record<string, string[]> {
@@ -406,6 +483,9 @@ const Chat: React.FC<ChatProps> = ({
   >({});
   const [sidePanelErrorByCallId, setSidePanelErrorByCallId] = useState<
     Record<string, string>
+  >({});
+  const [mailListActionModeByCallId, setMailListActionModeByCallId] = useState<
+    Record<string, MailListActionMode>
   >({});
   const [sidePanelOverridesByCallId, setSidePanelOverridesByCallId] = useState<
     Record<string, PluginSidePanelContext>
@@ -630,6 +710,204 @@ const Chat: React.FC<ChatProps> = ({
     setActiveSidePanelCallId(callId);
   }, []);
 
+  const handleComposePluginMessage = useCallback((text: string) => {
+    const nextText = String(text || '').trim();
+    if (!nextText) {
+      return;
+    }
+    setPendingInitialInput(nextText);
+    setInputMessage(nextText);
+    setInputResetKey(prev => prev + 1);
+  }, []);
+
+  const handleUpdatePluginView = useCallback((
+    sourceContext: PluginSidePanelContext,
+    nextPayload: PluginSidePanelPayload,
+  ) => {
+    setSidePanelOverridesByCallId(current => ({
+      ...current,
+      [sourceContext.callId]: {
+        ...sourceContext,
+        payload: {
+          ...nextPayload,
+          title: nextPayload.title || sourceContext.payload.title,
+        },
+      },
+    }));
+    setSidePanelErrorByCallId(current => ({ ...current, [sourceContext.callId]: '' }));
+    setSidePanelStatusByCallId(current => ({ ...current, [sourceContext.callId]: 'ready' }));
+  }, []);
+
+  const handleOpenPluginView = useCallback((
+    sourceContext: PluginSidePanelContext,
+    nextPayload: PluginSidePanelPayload,
+  ) => {
+    const nextCallId = buildPluginViewCallId(sourceContext, nextPayload);
+    setSidePanelExtraContextsByCallId(current => ({
+      ...current,
+      [nextCallId]: {
+        ...sourceContext,
+        callId: nextCallId,
+        payload: nextPayload,
+        sourceKind: 'view_tool',
+      },
+    }));
+    setSidePanelErrorByCallId(current => ({ ...current, [nextCallId]: '' }));
+    setSidePanelStatusByCallId(current => ({ ...current, [nextCallId]: 'ready' }));
+    setActiveSidePanelCallId(nextCallId);
+
+    if (!propUuid) {
+      return;
+    }
+    setClosedSidePanelByChat(current => {
+      const currentClosedCallIds = current[propUuid] || [];
+      if (!currentClosedCallIds.includes(nextCallId)) {
+        return current;
+      }
+      const next = { ...current };
+      const remainingClosedCallIds = currentClosedCallIds.filter(item => item !== nextCallId);
+      if (remainingClosedCallIds.length === 0) {
+        delete next[propUuid];
+      } else {
+        next[propUuid] = remainingClosedCallIds;
+      }
+      writeStoredClosedSidePanelViews(next);
+      return next;
+    });
+  }, [propUuid]);
+
+  const applyMailListPayload = useCallback((
+    sourceContext: PluginSidePanelContext,
+    payload: PluginSidePanelPayload,
+  ) => {
+    setSidePanelOverridesByCallId(current => ({
+      ...current,
+      [sourceContext.callId]: {
+        ...sourceContext,
+        payload: {
+          ...payload,
+          title: payload.title || sourceContext.payload.title,
+        },
+      },
+    }));
+  }, []);
+
+  const handleMailListQuery = useCallback(async (
+    sourceContext: PluginSidePanelContext,
+    mode: MailListActionMode,
+  ) => {
+    const pluginID = resolvePluginIDForContext(sourceContext, availableTools);
+    if (!pluginID) {
+      setSidePanelStatusByCallId(current => ({
+        ...current,
+        [sourceContext.callId]: 'error',
+      }));
+      setSidePanelErrorByCallId(current => ({
+        ...current,
+        [sourceContext.callId]: 'Could not resolve the email plugin runtime.',
+      }));
+      return;
+    }
+
+    const requestArgs = buildMailListSearchArgs(sourceContext, mode);
+    setMailListActionModeByCallId(current => ({
+      ...current,
+      [sourceContext.callId]: mode,
+    }));
+    setSidePanelErrorByCallId(current => ({
+      ...current,
+      [sourceContext.callId]: '',
+    }));
+
+    try {
+      const raw = await Service.CallPluginToolDirect(
+        pluginID,
+        'use_tool',
+        'search_mail',
+        JSON.stringify(requestArgs)
+      );
+      const pluginError = getPluginToolResultError(raw);
+      if (pluginError) {
+        throw new Error(pluginError);
+      }
+      const payload = buildPluginSidePanelPayloadFromResult(raw, {
+        tool_id: `${pluginID}:search_mail`,
+        tool_name: `${sourceContext.pluginName} / Search Mail`,
+      });
+      if (!payload) {
+        throw new Error('The mail list response could not be rendered.');
+      }
+      if (mode === 'load_more') {
+        const previousMessages = Array.isArray(sourceContext.payload.data?.result?.messages)
+          ? sourceContext.payload.data?.result?.messages
+          : [];
+        const nextMessages = Array.isArray(payload.data?.result?.messages)
+          ? payload.data?.result?.messages
+          : [];
+        const mergedMessages = [
+          ...previousMessages,
+          ...nextMessages.filter((message: Record<string, any>) => (
+            !previousMessages.some((item: Record<string, any>) => (
+              Number(item?.uid || 0) === Number(message?.uid || 0) &&
+              String(item?.mailbox || '') === String(message?.mailbox || '')
+            ))
+          )),
+        ];
+        applyMailListPayload(sourceContext, {
+          ...payload,
+          data: {
+            ...(payload.data || {}),
+            result: {
+              ...(payload.data?.result || {}),
+              messages: mergedMessages,
+              count: mergedMessages.length,
+            },
+          },
+        });
+      } else {
+        applyMailListPayload(sourceContext, payload);
+      }
+      setSidePanelStatusByCallId(current => ({
+        ...current,
+        [sourceContext.callId]:
+          mode === 'refresh'
+            ? getPluginSidePanelAutoStatus(
+                {
+                  ...sourceContext,
+                  payload,
+                },
+                undefined
+              )
+            : 'ready',
+      }));
+    } catch (error) {
+      setSidePanelStatusByCallId(current => ({
+        ...current,
+        [sourceContext.callId]: 'error',
+      }));
+      setSidePanelErrorByCallId(current => ({
+        ...current,
+        [sourceContext.callId]: getErrorMessage(
+          error,
+          'Unable to refresh the mail list.'
+        ),
+      }));
+    } finally {
+      setMailListActionModeByCallId(current => ({
+        ...current,
+        [sourceContext.callId]: '',
+      }));
+    }
+  }, [applyMailListPayload, availableTools]);
+
+  const handleRefreshMailList = useCallback((context: PluginSidePanelContext) => {
+    void handleMailListQuery(context, 'refresh');
+  }, [handleMailListQuery]);
+
+  const handleLoadMoreMailList = useCallback((context: PluginSidePanelContext) => {
+    void handleMailListQuery(context, 'load_more');
+  }, [handleMailListQuery]);
+
   const handleOpenMailDetail = useCallback(
     async (
       sourceContext: PluginSidePanelContext,
@@ -651,6 +929,39 @@ const Chat: React.FC<ChatProps> = ({
       const detailCallId = `${sourceContext.callId}::mail_detail::${mailbox}::${uid}`;
       const pluginID = resolvePluginIDForContext(sourceContext, availableTools);
       const detailTitle = String(message?.subject || `Mail ${uid}`);
+
+      if (message?.unread) {
+        setSidePanelOverridesByCallId(current => {
+          const sourceResult = sourceContext.payload.data?.result || {};
+          const sourceMessages = Array.isArray(sourceResult?.messages)
+            ? sourceResult.messages
+            : [];
+          if (sourceMessages.length === 0) {
+            return current;
+          }
+          const nextMessages = sourceMessages.map((item: Record<string, any>) => (
+            Number(item?.uid || 0) === uid && String(item?.mailbox || mailbox) === mailbox
+              ? { ...item, unread: false }
+              : item
+          ));
+          return {
+            ...current,
+            [sourceContext.callId]: {
+              ...sourceContext,
+              payload: {
+                ...sourceContext.payload,
+                data: {
+                  ...(sourceContext.payload.data || {}),
+                  result: {
+                    ...sourceResult,
+                    messages: nextMessages,
+                  },
+                },
+              },
+            },
+          };
+        });
+      }
 
       setActiveSidePanelCallId(detailCallId);
       if (propUuid) {
@@ -687,7 +998,10 @@ const Chat: React.FC<ChatProps> = ({
             data: {
               result: {
                 mailbox,
-                message,
+                message: {
+                  ...message,
+                  unread: false,
+                },
               },
             },
           },
@@ -711,7 +1025,7 @@ const Chat: React.FC<ChatProps> = ({
           pluginID,
           'use_tool',
           'get_mail',
-          JSON.stringify({ mailbox, uid })
+          JSON.stringify({ mailbox, uid, markAsRead: true })
         );
         const pluginError = getPluginToolResultError(raw);
         if (pluginError) {
@@ -760,6 +1074,16 @@ const Chat: React.FC<ChatProps> = ({
     },
     [availableTools, propUuid]
   );
+
+  const handleReplyToMail = useCallback((
+    _context: PluginSidePanelContext,
+    payload: PluginSidePanelPayload,
+  ) => {
+    const replyInstruction = buildReplyInstruction(payload.data || {});
+    setPendingInitialInput(replyInstruction);
+    setInputMessage(replyInstruction);
+    setInputResetKey(prev => prev + 1);
+  }, []);
 
   const handleCloseSidePanelTab = useCallback(
     (callId: string) => {
@@ -826,6 +1150,7 @@ const Chat: React.FC<ChatProps> = ({
 
   useEffect(() => {
     setActiveSidePanelCallId('');
+    setMailListActionModeByCallId({});
     setSidePanelExtraContextsByCallId({});
     setSidePanelOverridesByCallId({});
     setSidePanelErrorByCallId({});
@@ -863,16 +1188,12 @@ const Chat: React.FC<ChatProps> = ({
   }, [closedSidePanelCallIds, latestSidePanelContext]);
 
   const applyDefaultModel = useCallback((models: Model[]) => {
-    const config = getDefaultModelConfig();
-    if (!config) {
+    const preferredModel = resolvePreferredModel(models);
+    if (!preferredModel) {
       return false;
     }
-    const defaultModel = models.find(model => model.id === config.modelId);
-    if (!defaultModel) {
-      return false;
-    }
-    setSelectModelId(defaultModel.id);
-    setSelectModelName(defaultModel.model);
+    setSelectModelId(preferredModel.id);
+    setSelectModelName(preferredModel.model);
     return true;
   }, []);
 
@@ -1379,6 +1700,7 @@ const Chat: React.FC<ChatProps> = ({
         user_message_extra_content: '',
         assistant_message_extra: null,
         assistant_message_extra_content: '',
+        sender_person_uuid: '',
       };
       const assistantMessage: Message = {
         id: 0,
@@ -1406,8 +1728,10 @@ const Chat: React.FC<ChatProps> = ({
           finish_error: '',
           tool_uses: [],
           pending_approvals: [],
+          sub_agent_tasks: [],
         },
         assistant_message_extra_content: '',
+        sender_person_uuid: ''
       };
 
       setMessages(prev => [...prev, userMessage, assistantMessage]);
@@ -1637,6 +1961,10 @@ const Chat: React.FC<ChatProps> = ({
               aria-orientation="vertical"
             />
                         <PluginSidePanel
+                            pluginId={resolvePluginIDForContext(
+                              activeSidePanelContext,
+                              availableTools
+                            )}
                             tabs={openSidePanelContexts.map(context => ({
                               callId: context.callId,
                               pluginName: context.pluginName,
@@ -1659,7 +1987,13 @@ const Chat: React.FC<ChatProps> = ({
                             }
                             onSelectTab={handleSelectSidePanelTab}
                             onCloseTab={handleCloseSidePanelTab}
-                            onOpenMailDetail={handleOpenMailDetail}
+                            onUpdateView={(nextPayload) =>
+                              handleUpdatePluginView(activeSidePanelContext, nextPayload)
+                            }
+                            onOpenView={(nextPayload) =>
+                              handleOpenPluginView(activeSidePanelContext, nextPayload)
+                            }
+                            onComposeMessage={handleComposePluginMessage}
                         />
                     </>
                 ) : null}

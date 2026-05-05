@@ -5,6 +5,7 @@ import Layout from '@/components/layout';
 import { initializeStores } from '@/stores';
 import { useViewportHeight } from '@/hooks/useViewportHeight';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import PluginViewPage from '@/pages/plugin_view';
 
 const Chat = React.lazy(() => import('@/pages/home'));
 const NotFound = React.lazy(() => import('@/pages/common/NotFound.tsx'));
@@ -16,7 +17,6 @@ const AddProviderPage = React.lazy(
 const AddAgentPage = React.lazy(() => import('@/pages/forms/AddAgentPage'));
 const AddSkillPage = React.lazy(() => import('@/pages/forms/AddSkillPage'));
 const EditMemoryPage = React.lazy(() => import('@/pages/forms/EditMemoryPage'));
-const EmailPluginSettingsPage = React.lazy(() => import('@/pages/forms/EmailPluginSettingsPage'));
 
 function EntryRedirect() {
   const [searchParams] = useSearchParams();
@@ -45,10 +45,15 @@ function EntryRedirect() {
           replace
         />
       );
+    case 'plugin_view':
     case 'form_plugin_email':
       return (
         <Navigate
-          to={id ? `/forms/plugin-email?id=${id}` : '/forms/plugin-email'}
+          to={
+            id
+              ? `/plugin-view?id=${id}${tab ? `&view=${tab}` : '&view=settings'}`
+              : '/plugin-view?view=settings'
+          }
           replace
         />
       );
@@ -135,7 +140,7 @@ function App() {
           <Route path="/forms/agent" element={<AddAgentPage />} />
           <Route path="/forms/skill" element={<AddSkillPage />} />
           <Route path="/forms/memory" element={<EditMemoryPage />} />
-          <Route path="/forms/plugin-email" element={<EmailPluginSettingsPage />} />
+          <Route path="/plugin-view" element={<PluginViewPage />} />
 
           {/* 其他路由 - 使用Layout */}
           <Route path="/app" element={<Layout />}></Route>

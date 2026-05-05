@@ -294,6 +294,14 @@ export function GetPluginSettings(id: string): $CancellablePromise<{ [_ in strin
     });
 }
 
+export function GetPluginViewDocument(id: string, viewID: string): $CancellablePromise<string> {
+    return $Call.ByID(764514117, id, viewID);
+}
+
+export function GetPluginViewURL(id: string, viewID: string): $CancellablePromise<string> {
+    return $Call.ByID(2584067261, id, viewID);
+}
+
 export function GetPromptFile(name: string): $CancellablePromise<view_models$0.PromptFileDetail | null> {
     return $Call.ByID(508910466, name).then(($result: any) => {
         return $$createType36($result);
