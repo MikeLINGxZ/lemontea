@@ -12,6 +12,7 @@ const fallbackBootstrap: SettingsBootstrap = {
   font_size: 'md',
   data_dir: '',
   log_level: 'info',
+  quick_chat_shortcut: 'CmdOrCtrl+Shift+Space',
   default_provider_id: 0,
   version: 'v0.0.1-dev',
   providers: [],

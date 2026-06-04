@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { startTransition, useEffect, useRef, useState } from 'react'
 import { Events } from '@wailsio/runtime'
 import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from 'react-resizable-panels'
 import { Sidebar } from '@/components/sidebar/Sidebar'
@@ -6,6 +6,8 @@ import { ChatArea } from '@/components/chat/ChatArea'
 import { isH5Width } from '@/lib/responsive'
 import { isMac } from '@/lib/utils'
 import { useChatStore } from '@/store/chatStore'
+
+const QUICK_CHAT_SELECTED_EVENT = 'quick_chat:selected'
 
 export function MainLayout() {
   const loadSessions = useChatStore((state) => state.loadSessions)
@@ -54,6 +56,22 @@ export function MainLayout() {
   useEffect(() => {
     void loadSessions(true)
   }, [loadSessions])
+
+  useEffect(() => {
+    const offQuickChatSelected = Events.On(QUICK_CHAT_SELECTED_EVENT, (event: { data?: { sessionId?: number } }) => {
+      const sessionId = event.data?.sessionId
+      if (typeof sessionId !== 'number' || sessionId <= 0) return
+      startTransition(() => {
+        useChatStore.getState().setCurrentConversation(sessionId)
+      })
+    })
+
+    return () => {
+      if (typeof offQuickChatSelected === 'function') {
+        offQuickChatSelected()
+      }
+    }
+  }, [])
 
   useEffect(() => {
     if (!isMac) return

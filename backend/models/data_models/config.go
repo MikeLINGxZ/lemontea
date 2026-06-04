@@ -34,6 +34,7 @@ type Config struct {
 	FontSize          string          `json:"font_size"`
 	DataDir           string          `json:"data_dir"`
 	LogLevel          string          `json:"log_level"`
+	QuickChatShortcut string          `json:"quick_chat_shortcut"`
 	DefaultProviderID uint            `json:"default_provider_id"`
 	Extensions        []ExtensionItem `json:"extensions"`
 	// DisabledSkills lists skill names the user has explicitly disabled.

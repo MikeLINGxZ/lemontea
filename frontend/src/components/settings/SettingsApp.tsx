@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { Globe2, Languages, MonitorSmartphone } from 'lucide-react'
+import { Globe2, Keyboard, Languages, MonitorSmartphone } from 'lucide-react'
 import { Events } from '@wailsio/runtime'
 import { AboutSettingsView } from '@/components/settings/about/AboutSettingsView'
 import { SettingsShell } from '@/components/settings/SettingsShell'
@@ -191,6 +191,7 @@ export function SettingsApp() {
   const generalItems = [
     { key: 'display' as const, label: t('settingsPage.general.display.title'), icon: <MonitorSmartphone size={16} /> },
     { key: 'locale' as const, label: t('settingsPage.general.locale.title'), icon: <Languages size={16} /> },
+    { key: 'shortcuts' as const, label: t('settingsPage.general.shortcuts.title'), icon: <Keyboard size={16} /> },
     { key: 'file' as const, label: t('settingsPage.general.file.title'), icon: <Globe2 size={16} className="rotate-45" /> },
   ]
 

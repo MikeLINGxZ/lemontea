@@ -9,5 +9,9 @@ export {
     SaveDisplaySettingsInput,
     SaveDisplaySettingsOutput,
     SaveLocaleSettingsInput,
-    SaveLocaleSettingsOutput
+    SaveLocaleSettingsOutput,
+    SaveShortcutSettingsInput,
+    SaveShortcutSettingsOutput,
+    ValidateShortcutSettingsInput,
+    ValidateShortcutSettingsOutput
 } from "./models.js";

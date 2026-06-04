@@ -1,7 +1,8 @@
 import type { FontSize, Language } from '@/types'
 
 export type SettingsPrimaryTab = 'general' | 'providers' | 'plugins' | 'skills' | 'memory' | 'about'
-export type GeneralSettingsTab = 'display' | 'locale' | 'file'
+export type GeneralSettingsTab = 'display' | 'locale' | 'file' | 'shortcuts'
+export type ShortcutValidationStatus = 'available' | 'conflict' | 'invalid' | 'idle'
 
 export interface SettingsOption {
   id: string
@@ -48,6 +49,7 @@ export interface SettingsBootstrap {
   font_size: FontSize
   data_dir: string
   log_level: string
+  quick_chat_shortcut: string
   default_provider_id: number
   version: string
   providers: ProviderItem[]

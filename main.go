@@ -7,6 +7,8 @@ import (
 	"log"
 
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/dir"
+	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/global_hotkey"
+	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/i18n"
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/id/window_id"
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/migration"
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/skills"
@@ -27,6 +29,7 @@ import (
 	skillsSvc "gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/service/skills"
 	terminalSvc "gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/service/terminal"
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/service/window"
+	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/service/window/window_dto"
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/storage"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -75,6 +78,19 @@ func main() {
 	notificationService := notificationSvc.NewNotification(istorage)
 	terminalManager := pkgterminal.NewManager(istorage, nil)
 	terminalService := terminalSvc.NewTerminalWithManager(terminalManager)
+	windowService := &window.Window{}
+	quickChatShortcut, shortcutErr := settings.LoadQuickChatShortcutForStartup()
+	if shortcutErr != nil {
+		log.Printf("load quick chat shortcut failed, using default: %v", shortcutErr)
+		quickChatShortcut = global_hotkey.DefaultQuickChatShortcut()
+	}
+	quickChatService := global_hotkey.NewQuickChatServiceWithShortcut(func() {
+		log.Printf("quick chat global hotkey pressed")
+		if _, err := windowService.ToggleQuickChat(context.Background(), window_dto.ToggleQuickChatInput{}); err != nil {
+			log.Printf("quick chat toggle failed: %v", err)
+		}
+	}, quickChatShortcut)
+	settingsService := settings.NewSettings(settings.Dependencies{QuickChatShortcuts: quickChatService})
 	agentService := agentSvc.NewAgent(istorage, agentSvc.Dependencies{
 		SkillProvider:        skillsManager,
 		AttentionRequester:   notificationService,
@@ -90,20 +106,29 @@ func main() {
 		Name:        window_id.Home,
 		Description: "A demo of using raw HTML & CSS",
 		Services: []application.Service{
-			application.NewService(&settings.Settings{}),
+			application.NewService(settingsService),
 			application.NewService(agentService),
 			application.NewService(providerService),
 			application.NewService(onboardingService),
+			application.NewService(quickChatService),
 			application.NewService(runtimeSvc.NewRuntime()),
 			application.NewService(pluginService),
 			application.NewService(terminalService),
 			application.NewService(&process.Process{}),
-			application.NewService(&window.Window{}),
+			application.NewService(windowService),
 			application.NewService(&file.File{}),
 			application.NewService(&config.Config{}),
 			application.NewService(skillsSvc.NewSkills(skillsManager)),
 			application.NewService(memoryService),
 			application.NewService(notificationService),
+		},
+		KeyBindings: map[string]func(window application.Window){
+			quickChatShortcut: func(window application.Window) {
+				log.Printf("quick chat app-level shortcut pressed")
+				if _, err := windowService.ToggleQuickChat(context.Background(), window_dto.ToggleQuickChatInput{}); err != nil {
+					log.Printf("quick chat toggle failed: %v", err)
+				}
+			},
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
@@ -128,6 +153,9 @@ func main() {
 	} else {
 		app.Window.NewWithOptions(window_options.DefaultOnboarding())
 	}
+	quickChatOptions := window_options.DefaultQuickChat()
+	quickChatOptions.Title = i18n.TCurrent("app.window.quick_chat_title", nil)
+	app.Window.NewWithOptions(quickChatOptions)
 
 	if err := app.Run(); err != nil {
 		log.Fatal(err)

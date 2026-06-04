@@ -6,6 +6,7 @@ require (
 	github.com/creack/pty v1.1.24
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/wailsapp/wails/v3 v3.0.0-alpha.79
+	golang.design/x/hotkey v0.4.1
 	golang.org/x/net v0.53.0
 	golang.org/x/text v0.37.0
 	gopkg.in/yaml.v3 v3.0.1

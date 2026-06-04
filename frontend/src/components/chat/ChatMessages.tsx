@@ -1,4 +1,5 @@
 import { memo, useEffect, useMemo } from 'react'
+import type { CSSProperties } from 'react'
 import { ChevronDown, Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { cn, shouldShowTimestamp, formatTimestamp, groupMessagesForDisplay } from '@/lib/utils'
@@ -12,6 +13,11 @@ import { WelcomeScreen } from './WelcomeScreen'
 import type { Message, DisplayMessage } from '@/types'
 
 const EMPTY_MESSAGES: DisplayMessage[] = []
+
+const quickNoDragStyle = {
+  '--wails-draggable': 'no-drag',
+  WebkitAppRegion: 'no-drag',
+} as CSSProperties & Record<'--wails-draggable', string>
 
 interface MessageGroupProps {
   language: string
@@ -95,11 +101,13 @@ StreamingMessageRow.displayName = 'StreamingMessageRow'
 
 type ChatMessagesProps = {
   sessionId?: number
+  variant?: 'default' | 'quick'
 }
 
-export function ChatMessages({ sessionId }: ChatMessagesProps) {
+export function ChatMessages({ sessionId, variant = 'default' }: ChatMessagesProps) {
   const { t } = useTranslation()
   const language = useAppStore(s => s.language)
+  const isQuick = variant === 'quick'
   const {
     activeSessionId,
     currentMessages,
@@ -196,17 +204,26 @@ export function ChatMessages({ sessionId }: ChatMessagesProps) {
   useEffect(() => initEventListeners(), [initEventListeners])
 
   return (
-    <div className="relative flex flex-col flex-1 min-h-0">
+    <div
+      data-testid={isQuick ? 'quick-chat-messages' : undefined}
+      style={isQuick ? quickNoDragStyle : undefined}
+      className="relative flex flex-col flex-1 min-h-0"
+    >
       <div
         ref={containerRef}
-        className="chat-scroll-area flex-1 overflow-y-auto py-4"
+        className={cn('chat-scroll-area flex-1 overflow-y-auto', isQuick ? 'py-3' : 'py-4')}
       >
         {isNewChat ? (
-          <div className="mx-auto flex min-h-full w-full max-w-5xl items-center justify-center px-4">
-            <WelcomeScreen />
-          </div>
+          isQuick ? null : (
+            <div className="mx-auto flex min-h-full w-full max-w-5xl items-center justify-center px-4">
+              <WelcomeScreen />
+            </div>
+          )
         ) : (
-          <div className="mx-auto flex w-full max-w-5xl flex-col gap-2.5 px-4">
+          <div className={cn(
+            'mx-auto flex w-full flex-col',
+            isQuick ? 'max-w-none gap-2 px-3' : 'max-w-5xl gap-2.5 px-4',
+          )}>
             <HistoricalMessages language={language} messages={otherHistoricalMessages} />
 
             {streamingMessage && activeSessionId && (
@@ -234,7 +251,8 @@ export function ChatMessages({ sessionId }: ChatMessagesProps) {
         <button
           onClick={() => scrollToBottom(true)}
           className={cn(
-            'absolute bottom-4 left-1/2 -translate-x-1/2 z-10',
+            'absolute left-1/2 -translate-x-1/2 z-10',
+            isQuick ? 'bottom-2' : 'bottom-4',
             'flex items-center gap-1.5 px-3 py-1.5 rounded-full',
             'bg-background border border-border shadow-md',
             'text-xs text-foreground hover:bg-accent transition-colors'

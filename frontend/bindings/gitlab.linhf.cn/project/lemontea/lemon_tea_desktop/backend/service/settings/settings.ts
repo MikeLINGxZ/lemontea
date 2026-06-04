@@ -50,6 +50,24 @@ export function SaveLocaleSettings(input: settings_dto$0.SaveLocaleSettingsInput
     });
 }
 
+/**
+ * SaveShortcutSettings persists and immediately applies the quick chat shortcut.
+ */
+export function SaveShortcutSettings(input: settings_dto$0.SaveShortcutSettingsInput): $CancellablePromise<settings_dto$0.SaveShortcutSettingsOutput | null> {
+    return $Call.ByID(1452815738, input).then(($result: any) => {
+        return $$createType9($result);
+    });
+}
+
+/**
+ * ValidateShortcutSettings checks whether a quick chat shortcut can be used.
+ */
+export function ValidateShortcutSettings(input: settings_dto$0.ValidateShortcutSettingsInput): $CancellablePromise<settings_dto$0.ValidateShortcutSettingsOutput | null> {
+    return $Call.ByID(2696595609, input).then(($result: any) => {
+        return $$createType11($result);
+    });
+}
+
 // Private type creation functions
 const $$createType0 = settings_dto$0.ApplyFileSettingsOutput.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
@@ -59,3 +77,7 @@ const $$createType4 = settings_dto$0.SaveDisplaySettingsOutput.createFrom;
 const $$createType5 = $Create.Nullable($$createType4);
 const $$createType6 = settings_dto$0.SaveLocaleSettingsOutput.createFrom;
 const $$createType7 = $Create.Nullable($$createType6);
+const $$createType8 = settings_dto$0.SaveShortcutSettingsOutput.createFrom;
+const $$createType9 = $Create.Nullable($$createType8);
+const $$createType10 = settings_dto$0.ValidateShortcutSettingsOutput.createFrom;
+const $$createType11 = $Create.Nullable($$createType10);
