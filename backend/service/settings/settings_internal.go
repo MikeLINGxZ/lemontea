@@ -9,6 +9,7 @@ import (
 
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/models/data_models"
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/dir"
+	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/global_hotkey"
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/ierror"
 )
 
@@ -54,6 +55,9 @@ func (s *Settings) loadConfig() (*data_models.Config, error) {
 	if config.Language == "" {
 		config.Language = "zh-CN"
 	}
+	if config.QuickChatShortcut == "" {
+		config.QuickChatShortcut = global_hotkey.DefaultQuickChatShortcut()
+	}
 	return config, nil
 }
 
@@ -74,11 +78,12 @@ func (s *Settings) saveConfigToDir(targetDir string, config *data_models.Config)
 // defaultConfig builds the baseline config values used for first-time startup.
 func defaultConfig(dataDir string) *data_models.Config {
 	return &data_models.Config{
-		Locale:   "zh-CN",
-		Language: "zh-CN",
-		FontSize: "md",
-		DataDir:  dataDir,
-		LogLevel: "info",
+		Locale:            "zh-CN",
+		Language:          "zh-CN",
+		FontSize:          "md",
+		DataDir:           dataDir,
+		LogLevel:          "info",
+		QuickChatShortcut: global_hotkey.DefaultQuickChatShortcut(),
 		Memory: data_models.MemoryConfig{
 			Enabled: true,
 		},

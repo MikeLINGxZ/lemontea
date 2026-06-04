@@ -42,11 +42,20 @@ export function CloseAddSkill(input: window_dto$0.CloseAddSkillInput): $Cancella
 }
 
 /**
+ * CloseQuickChat hides the quick chat floating window when it exists.
+ */
+export function CloseQuickChat(input: window_dto$0.CloseQuickChatInput): $CancellablePromise<window_dto$0.CloseQuickChatOutput | null> {
+    return $Call.ByID(2571428087, input).then(($result: any) => {
+        return $$createType7($result);
+    });
+}
+
+/**
  * OpenAddMemory opens or focuses the add memory window.
  */
 export function OpenAddMemory(input: window_dto$0.OpenAddMemoryInput): $CancellablePromise<window_dto$0.OpenAddMemoryOutput | null> {
     return $Call.ByID(2448729330, input).then(($result: any) => {
-        return $$createType7($result);
+        return $$createType9($result);
     });
 }
 
@@ -55,7 +64,7 @@ export function OpenAddMemory(input: window_dto$0.OpenAddMemoryInput): $Cancella
  */
 export function OpenAddProvider(input: window_dto$0.OpenAddProviderInput): $CancellablePromise<window_dto$0.OpenAddProviderOutput | null> {
     return $Call.ByID(3979454848, input).then(($result: any) => {
-        return $$createType9($result);
+        return $$createType11($result);
     });
 }
 
@@ -64,7 +73,7 @@ export function OpenAddProvider(input: window_dto$0.OpenAddProviderInput): $Canc
  */
 export function OpenAddSkill(input: window_dto$0.OpenAddSkillInput): $CancellablePromise<window_dto$0.OpenAddSkillOutput | null> {
     return $Call.ByID(2720003650, input).then(($result: any) => {
-        return $$createType11($result);
+        return $$createType13($result);
     });
 }
 
@@ -73,7 +82,16 @@ export function OpenAddSkill(input: window_dto$0.OpenAddSkillInput): $Cancellabl
  */
 export function OpenOnboarding(input: window_dto$0.OpenOnboardingInput): $CancellablePromise<window_dto$0.OpenOnboardingOutput | null> {
     return $Call.ByID(1844766991, input).then(($result: any) => {
-        return $$createType13($result);
+        return $$createType15($result);
+    });
+}
+
+/**
+ * OpenQuickChat opens or focuses the quick chat floating window.
+ */
+export function OpenQuickChat(input: window_dto$0.OpenQuickChatInput): $CancellablePromise<window_dto$0.OpenQuickChatOutput | null> {
+    return $Call.ByID(1857643947, input).then(($result: any) => {
+        return $$createType17($result);
     });
 }
 
@@ -82,7 +100,25 @@ export function OpenOnboarding(input: window_dto$0.OpenOnboardingInput): $Cancel
  */
 export function OpenSettings(input: window_dto$0.OpenSettingsInput): $CancellablePromise<window_dto$0.OpenSettingsOutput | null> {
     return $Call.ByID(271811047, input).then(($result: any) => {
-        return $$createType15($result);
+        return $$createType19($result);
+    });
+}
+
+/**
+ * SelectQuickChat emits the selected session to the home window and closes the quick chat popup.
+ */
+export function SelectQuickChat(input: window_dto$0.SelectQuickChatInput): $CancellablePromise<window_dto$0.SelectQuickChatOutput | null> {
+    return $Call.ByID(372929771, input).then(($result: any) => {
+        return $$createType21($result);
+    });
+}
+
+/**
+ * ToggleQuickChat shows the quick chat window or hides it when it is already visible.
+ */
+export function ToggleQuickChat(input: window_dto$0.ToggleQuickChatInput): $CancellablePromise<window_dto$0.ToggleQuickChatOutput | null> {
+    return $Call.ByID(2882023675, input).then(($result: any) => {
+        return $$createType23($result);
     });
 }
 
@@ -93,13 +129,21 @@ const $$createType2 = window_dto$0.CloseAddProviderOutput.createFrom;
 const $$createType3 = $Create.Nullable($$createType2);
 const $$createType4 = window_dto$0.CloseAddSkillOutput.createFrom;
 const $$createType5 = $Create.Nullable($$createType4);
-const $$createType6 = window_dto$0.OpenAddMemoryOutput.createFrom;
+const $$createType6 = window_dto$0.CloseQuickChatOutput.createFrom;
 const $$createType7 = $Create.Nullable($$createType6);
-const $$createType8 = window_dto$0.OpenAddProviderOutput.createFrom;
+const $$createType8 = window_dto$0.OpenAddMemoryOutput.createFrom;
 const $$createType9 = $Create.Nullable($$createType8);
-const $$createType10 = window_dto$0.OpenAddSkillOutput.createFrom;
+const $$createType10 = window_dto$0.OpenAddProviderOutput.createFrom;
 const $$createType11 = $Create.Nullable($$createType10);
-const $$createType12 = window_dto$0.OpenOnboardingOutput.createFrom;
+const $$createType12 = window_dto$0.OpenAddSkillOutput.createFrom;
 const $$createType13 = $Create.Nullable($$createType12);
-const $$createType14 = window_dto$0.OpenSettingsOutput.createFrom;
+const $$createType14 = window_dto$0.OpenOnboardingOutput.createFrom;
 const $$createType15 = $Create.Nullable($$createType14);
+const $$createType16 = window_dto$0.OpenQuickChatOutput.createFrom;
+const $$createType17 = $Create.Nullable($$createType16);
+const $$createType18 = window_dto$0.OpenSettingsOutput.createFrom;
+const $$createType19 = $Create.Nullable($$createType18);
+const $$createType20 = window_dto$0.SelectQuickChatOutput.createFrom;
+const $$createType21 = $Create.Nullable($$createType20);
+const $$createType22 = window_dto$0.ToggleQuickChatOutput.createFrom;
+const $$createType23 = $Create.Nullable($$createType22);

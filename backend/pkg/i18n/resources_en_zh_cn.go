@@ -6,6 +6,7 @@ var zhCN = map[string]string{
 	"app.window.add_provider_title":             "添加提供商",
 	"app.window.add_skill_title":                "新建 Skill",
 	"app.window.add_memory_title":               "新建记忆",
+	"app.window.quick_chat_title":               "快速对话",
 	"provider.deepseek.name":                    "深度求索",
 	"provider.deepseek.description":             "成立于2023年，专注于研究世界领先的通用人工智能底层模型与技术，挑战人工智能前沿性难题。",
 	"provider.aliyun.name":                      "阿里云百炼",

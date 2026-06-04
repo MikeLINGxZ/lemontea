@@ -2,6 +2,20 @@ import { ChatHeader } from './ChatHeader'
 import { ChatMessages } from './ChatMessages'
 import { ChatInput } from './ChatInput'
 
+type ChatContentProps = {
+  sessionId?: number
+  variant?: 'default' | 'quick'
+}
+
+export function ChatContent({ sessionId, variant = 'default' }: ChatContentProps) {
+  return (
+    <>
+      <ChatMessages sessionId={sessionId} variant={variant} />
+      <ChatInput sessionId={sessionId} variant={variant} />
+    </>
+  )
+}
+
 interface ChatAreaProps {
   sidebarCollapsed: boolean
   onExpandSidebar: () => void
@@ -23,8 +37,7 @@ export function ChatArea({
         showWindowControlSpace={showWindowControlSpace}
         animateWindowControlSpace={animateWindowControlSpace}
       />
-      <ChatMessages />
-      <ChatInput />
+      <ChatContent />
     </div>
   )
 }

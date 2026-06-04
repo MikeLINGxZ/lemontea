@@ -8,6 +8,8 @@ export {
     CloseAddProviderOutput,
     CloseAddSkillInput,
     CloseAddSkillOutput,
+    CloseQuickChatInput,
+    CloseQuickChatOutput,
     OpenAddMemoryInput,
     OpenAddMemoryOutput,
     OpenAddProviderInput,
@@ -16,6 +18,12 @@ export {
     OpenAddSkillOutput,
     OpenOnboardingInput,
     OpenOnboardingOutput,
+    OpenQuickChatInput,
+    OpenQuickChatOutput,
     OpenSettingsInput,
-    OpenSettingsOutput
+    OpenSettingsOutput,
+    SelectQuickChatInput,
+    SelectQuickChatOutput,
+    ToggleQuickChatInput,
+    ToggleQuickChatOutput
 } from "./models.js";

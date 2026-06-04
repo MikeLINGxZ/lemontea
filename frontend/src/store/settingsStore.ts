@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type { StateCreator } from 'zustand'
 import type { FontSize, Language } from '@/types'
-import type { ExtensionItem, GeneralSettingsTab, ProviderItem, SettingsBootstrap, SettingsOption, SettingsPrimaryTab } from '@/types/settings'
+import type { ExtensionItem, GeneralSettingsTab, ProviderItem, SettingsBootstrap, SettingsOption, SettingsPrimaryTab, ShortcutValidationStatus } from '@/types/settings'
 import type { SkillItem } from '@/types/skills'
 
 type DisplayDraft = {
@@ -17,6 +17,15 @@ type FileDraft = {
   dataDir: string
 }
 
+type ShortcutDraft = {
+  quickChatShortcut: string
+}
+
+type ShortcutValidation = {
+  status: ShortcutValidationStatus
+  message: string
+}
+
 type SettingsState = {
   activeTab: SettingsPrimaryTab
   generalTab: GeneralSettingsTab
@@ -24,6 +33,7 @@ type SettingsState = {
   language: Language
   fontSize: FontSize
   dataDir: string
+  quickChatShortcut: string
   logLevel: string
   defaultProviderId: number
   selectedProviderId: number | null
@@ -38,9 +48,12 @@ type SettingsState = {
   displayDraft: DisplayDraft
   localeDraft: LocaleDraft
   fileDraft: FileDraft
+  shortcutDraft: ShortcutDraft
+  shortcutValidation: ShortcutValidation
   displayDirty: boolean
   localeDirty: boolean
   fileDirty: boolean
+  shortcutDirty: boolean
   setProviders: (providers: SettingsBootstrap['providers']) => void
   setExtensions: (extensions: ExtensionItem[]) => void
   updateProvider: (provider: ProviderItem) => void
@@ -60,9 +73,12 @@ type SettingsState = {
   setLocaleOptions: (payload: { languages: SettingsOption[]; regions: SettingsOption[] }) => void
   applyDisplaySettings: (fontSize: FontSize) => void
   applyLocaleSettings: (payload: { locale: string; language: Language }) => void
+  applyShortcutSettings: (quickChatShortcut: string) => void
   setDisplayDraft: (draft: Partial<DisplayDraft>) => void
   setLocaleDraft: (draft: Partial<LocaleDraft>) => void
   setFileDraft: (draft: Partial<FileDraft>) => void
+  setShortcutDraft: (draft: Partial<ShortcutDraft>) => void
+  setShortcutValidation: (validation: ShortcutValidation) => void
 }
 
 const createSettingsState: StateCreator<SettingsState> = (set) => ({
@@ -72,6 +88,7 @@ const createSettingsState: StateCreator<SettingsState> = (set) => ({
     language: 'zh-CN',
     fontSize: 'md',
     dataDir: '',
+    quickChatShortcut: 'CmdOrCtrl+Shift+Space',
     logLevel: 'info',
     defaultProviderId: 0,
     selectedProviderId: null,
@@ -86,14 +103,18 @@ const createSettingsState: StateCreator<SettingsState> = (set) => ({
     displayDraft: { fontSize: 'md' },
     localeDraft: { locale: 'zh-CN', language: 'zh-CN' },
     fileDraft: { dataDir: '' },
+    shortcutDraft: { quickChatShortcut: 'CmdOrCtrl+Shift+Space' },
+    shortcutValidation: { status: 'idle', message: '' },
     displayDirty: false,
     localeDirty: false,
     fileDirty: false,
+    shortcutDirty: false,
     hydrate: (payload) => set((state) => ({
       locale: payload.locale,
       language: payload.language,
       fontSize: payload.font_size,
       dataDir: payload.data_dir,
+      quickChatShortcut: payload.quick_chat_shortcut || 'CmdOrCtrl+Shift+Space',
       logLevel: payload.log_level,
       defaultProviderId: payload.default_provider_id,
       selectedProviderId: payload.providers?.[0]?.id ?? null,
@@ -107,9 +128,12 @@ const createSettingsState: StateCreator<SettingsState> = (set) => ({
       displayDraft: { fontSize: payload.font_size },
       localeDraft: { locale: payload.locale, language: payload.language },
       fileDraft: { dataDir: payload.data_dir },
+      shortcutDraft: { quickChatShortcut: payload.quick_chat_shortcut || 'CmdOrCtrl+Shift+Space' },
+      shortcutValidation: { status: 'idle', message: '' },
       displayDirty: false,
       localeDirty: false,
       fileDirty: false,
+      shortcutDirty: false,
     })),
     setActiveTab: (tab) => set({ activeTab: tab }),
     setGeneralTab: (tab) => set({ generalTab: tab }),
@@ -129,6 +153,12 @@ const createSettingsState: StateCreator<SettingsState> = (set) => ({
       language: payload.language,
       localeDraft: payload,
       localeDirty: false,
+    }),
+    applyShortcutSettings: (quickChatShortcut) => set({
+      quickChatShortcut,
+      shortcutDraft: { quickChatShortcut },
+      shortcutValidation: { status: 'available', message: '' },
+      shortcutDirty: false,
     }),
     setDisplayDraft: (draft) => set((state) => {
       const nextDraft = { ...state.displayDraft, ...draft }
@@ -151,6 +181,14 @@ const createSettingsState: StateCreator<SettingsState> = (set) => ({
         fileDirty: nextDraft.dataDir !== state.dataDir,
       }
     }),
+    setShortcutDraft: (draft) => set((state) => {
+      const nextDraft = { ...state.shortcutDraft, ...draft }
+      return {
+        shortcutDraft: nextDraft,
+        shortcutDirty: nextDraft.quickChatShortcut !== state.quickChatShortcut,
+      }
+    }),
+    setShortcutValidation: (validation) => set({ shortcutValidation: validation }),
     setProviders: (providers) => set({ providers }),
     setExtensions: (extensions) => set((state) => {
       // Keep the user's current selection across refreshes (window focus, mutations).

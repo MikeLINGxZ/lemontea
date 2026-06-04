@@ -23,3 +23,9 @@ const AgentStreamToolResult = "agent:stream:tool_result"
 const AgentStreamDone = "agent:stream:done"
 const AgentStreamError = "agent:stream:error"
 const AgentSessionStatus = "agent:session:status"
+
+// QuickChatSelected event asks the home window to activate a session selected from the quick chat popup.
+const QuickChatSelected = "quick_chat:selected"
+
+// QuickChatReset event asks the quick chat window to return to its input shell without reloading.
+const QuickChatReset = "quick_chat:reset"

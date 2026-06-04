@@ -107,6 +107,46 @@ export class CloseAddSkillOutput {
     }
 }
 
+/**
+ * CloseQuickChatInput carries no fields for closing the quick chat window.
+ */
+export class CloseQuickChatInput {
+
+    /** Creates a new CloseQuickChatInput instance. */
+    constructor($$source: Partial<CloseQuickChatInput> = {}) {
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new CloseQuickChatInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): CloseQuickChatInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new CloseQuickChatInput($$parsedSource as Partial<CloseQuickChatInput>);
+    }
+}
+
+/**
+ * CloseQuickChatOutput carries no fields after closing the quick chat window.
+ */
+export class CloseQuickChatOutput {
+
+    /** Creates a new CloseQuickChatOutput instance. */
+    constructor($$source: Partial<CloseQuickChatOutput> = {}) {
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new CloseQuickChatOutput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): CloseQuickChatOutput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new CloseQuickChatOutput($$parsedSource as Partial<CloseQuickChatOutput>);
+    }
+}
+
 export class OpenAddMemoryInput {
 
     /** Creates a new OpenAddMemoryInput instance. */
@@ -243,6 +283,46 @@ export class OpenOnboardingOutput {
     }
 }
 
+/**
+ * OpenQuickChatInput carries no fields for opening the quick chat window.
+ */
+export class OpenQuickChatInput {
+
+    /** Creates a new OpenQuickChatInput instance. */
+    constructor($$source: Partial<OpenQuickChatInput> = {}) {
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new OpenQuickChatInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): OpenQuickChatInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new OpenQuickChatInput($$parsedSource as Partial<OpenQuickChatInput>);
+    }
+}
+
+/**
+ * OpenQuickChatOutput carries no fields after opening the quick chat window.
+ */
+export class OpenQuickChatOutput {
+
+    /** Creates a new OpenQuickChatOutput instance. */
+    constructor($$source: Partial<OpenQuickChatOutput> = {}) {
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new OpenQuickChatOutput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): OpenQuickChatOutput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new OpenQuickChatOutput($$parsedSource as Partial<OpenQuickChatOutput>);
+    }
+}
+
 export class OpenSettingsInput {
     "tab": string;
 
@@ -278,5 +358,89 @@ export class OpenSettingsOutput {
     static createFrom($$source: any = {}): OpenSettingsOutput {
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         return new OpenSettingsOutput($$parsedSource as Partial<OpenSettingsOutput>);
+    }
+}
+
+/**
+ * SelectQuickChatInput identifies the session selected from the quick chat window.
+ */
+export class SelectQuickChatInput {
+    "session_id": number;
+
+    /** Creates a new SelectQuickChatInput instance. */
+    constructor($$source: Partial<SelectQuickChatInput> = {}) {
+        if (!("session_id" in $$source)) {
+            this["session_id"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new SelectQuickChatInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): SelectQuickChatInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new SelectQuickChatInput($$parsedSource as Partial<SelectQuickChatInput>);
+    }
+}
+
+/**
+ * SelectQuickChatOutput carries no fields after the selection event is emitted.
+ */
+export class SelectQuickChatOutput {
+
+    /** Creates a new SelectQuickChatOutput instance. */
+    constructor($$source: Partial<SelectQuickChatOutput> = {}) {
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new SelectQuickChatOutput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): SelectQuickChatOutput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new SelectQuickChatOutput($$parsedSource as Partial<SelectQuickChatOutput>);
+    }
+}
+
+/**
+ * ToggleQuickChatInput carries no fields for toggling the quick chat window.
+ */
+export class ToggleQuickChatInput {
+
+    /** Creates a new ToggleQuickChatInput instance. */
+    constructor($$source: Partial<ToggleQuickChatInput> = {}) {
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ToggleQuickChatInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ToggleQuickChatInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ToggleQuickChatInput($$parsedSource as Partial<ToggleQuickChatInput>);
+    }
+}
+
+/**
+ * ToggleQuickChatOutput carries no fields after toggling the quick chat window.
+ */
+export class ToggleQuickChatOutput {
+
+    /** Creates a new ToggleQuickChatOutput instance. */
+    constructor($$source: Partial<ToggleQuickChatOutput> = {}) {
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ToggleQuickChatOutput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ToggleQuickChatOutput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ToggleQuickChatOutput($$parsedSource as Partial<ToggleQuickChatOutput>);
     }
 }

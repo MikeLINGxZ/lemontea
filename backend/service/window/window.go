@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/i18n"
+	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/id/event_id"
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/id/window_id"
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/window_options"
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/service/window/window_dto"
@@ -171,4 +172,76 @@ func (p *Window) OpenOnboarding(ctx context.Context, input window_dto.OpenOnboar
 	onboardingWindow := p.wailsApp.Window.NewWithOptions(window_options.DefaultOnboarding())
 	p.showCenteredOnHomeScreen(onboardingWindow)
 	return &window_dto.OpenOnboardingOutput{}, nil
+}
+
+// OpenQuickChat opens or focuses the quick chat floating window.
+func (p *Window) OpenQuickChat(ctx context.Context, input window_dto.OpenQuickChatInput) (*window_dto.OpenQuickChatOutput, error) {
+	if p.wailsApp == nil {
+		return &window_dto.OpenQuickChatOutput{}, nil
+	}
+	if quickChatWindow, ok := p.wailsApp.Window.GetByName(window_id.QuickChat); ok {
+		p.resetAndShowQuickChatWindow(quickChatWindow)
+		return &window_dto.OpenQuickChatOutput{}, nil
+	}
+
+	options := window_options.DefaultQuickChat()
+	options.Title = i18n.TCurrent("app.window.quick_chat_title", nil)
+	quickChatWindow := p.wailsApp.Window.NewWithOptions(p.childWindowOptions(options))
+	p.showCenteredOnHomeScreen(quickChatWindow)
+	return &window_dto.OpenQuickChatOutput{}, nil
+}
+
+// CloseQuickChat hides the quick chat floating window when it exists.
+func (p *Window) CloseQuickChat(ctx context.Context, input window_dto.CloseQuickChatInput) (*window_dto.CloseQuickChatOutput, error) {
+	if p.wailsApp == nil {
+		return &window_dto.CloseQuickChatOutput{}, nil
+	}
+	if quickChatWindow, ok := p.wailsApp.Window.GetByName(window_id.QuickChat); ok {
+		quickChatWindow.Hide()
+	}
+	return &window_dto.CloseQuickChatOutput{}, nil
+}
+
+// ToggleQuickChat shows the quick chat window or hides it when it is already visible.
+func (p *Window) ToggleQuickChat(ctx context.Context, input window_dto.ToggleQuickChatInput) (*window_dto.ToggleQuickChatOutput, error) {
+	if p.wailsApp == nil {
+		return &window_dto.ToggleQuickChatOutput{}, nil
+	}
+	if quickChatWindow, ok := p.wailsApp.Window.GetByName(window_id.QuickChat); ok {
+		if quickChatWindow.IsVisible() {
+			quickChatWindow.Hide()
+			return &window_dto.ToggleQuickChatOutput{}, nil
+		}
+		p.resetAndShowQuickChatWindow(quickChatWindow)
+		return &window_dto.ToggleQuickChatOutput{}, nil
+	}
+
+	_, err := p.OpenQuickChat(ctx, window_dto.OpenQuickChatInput{})
+	return &window_dto.ToggleQuickChatOutput{}, err
+}
+
+// SelectQuickChat emits the selected session to the home window and closes the quick chat popup.
+func (p *Window) SelectQuickChat(ctx context.Context, input window_dto.SelectQuickChatInput) (*window_dto.SelectQuickChatOutput, error) {
+	if p.wailsApp == nil {
+		return &window_dto.SelectQuickChatOutput{}, nil
+	}
+	p.wailsApp.Event.Emit(event_id.QuickChatSelected, map[string]uint{
+		"sessionId": input.SessionID,
+	})
+	if homeWindow, ok := p.wailsApp.Window.GetByName(window_id.Home); ok {
+		homeWindow.Show()
+		homeWindow.Focus()
+	}
+
+	if quickChatWindow, ok := p.wailsApp.Window.GetByName(window_id.QuickChat); ok {
+		quickChatWindow.Hide()
+	}
+	return &window_dto.SelectQuickChatOutput{}, nil
+}
+
+func (p *Window) resetAndShowQuickChatWindow(quickChatWindow application.Window) {
+	options := window_options.DefaultQuickChat()
+	quickChatWindow.SetSize(options.Width, options.Height)
+	quickChatWindow.EmitEvent(event_id.QuickChatReset)
+	p.showCenteredOnHomeScreen(quickChatWindow)
 }

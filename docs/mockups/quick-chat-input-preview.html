@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quick Chat Input Preview</title>
+  <style>
+    :root {
+      --radius: 8px;
+      --background: #ffffff;
+      --foreground: #111827;
+      --muted: #f3f4f6;
+      --muted-foreground: #6b7280;
+      --border: #e5e7eb;
+      --primary: #111827;
+      --primary-foreground: #f9fafb;
+      --ring: rgba(17, 24, 39, 0.2);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif;
+      color: var(--foreground);
+      background:
+        linear-gradient(135deg, rgba(17, 24, 39, 0.06), rgba(17, 24, 39, 0)),
+        #f6f7f9;
+    }
+
+    body {
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+      padding: 32px;
+    }
+
+    .preview-stack {
+      display: grid;
+      gap: 18px;
+      width: min(760px, 100%);
+    }
+
+    .quick-chat {
+      --wails-draggable: drag;
+      -webkit-app-region: drag;
+      display: grid;
+      grid-template-columns: auto auto auto 1fr auto;
+      align-items: center;
+      width: 720px;
+      max-width: 100%;
+      height: 60px;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 18px 50px rgba(17, 24, 39, 0.16);
+      backdrop-filter: blur(18px);
+    }
+
+    .mode-button {
+      --wails-draggable: no-drag;
+      -webkit-app-region: no-drag;
+      height: 28px;
+      padding: 0 10px;
+      border: 0;
+      border-radius: calc(var(--radius) - 2px);
+      background: transparent;
+      color: var(--muted-foreground);
+      font: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: default;
+    }
+
+    .mode-button.is-active {
+      background: var(--muted);
+      color: var(--foreground);
+    }
+
+    .mode-divider {
+      color: #d1d5db;
+      padding: 0 2px;
+      line-height: 1;
+      user-select: none;
+      -webkit-app-region: drag;
+    }
+
+    .quick-input {
+      --wails-draggable: no-drag;
+      -webkit-app-region: no-drag;
+      min-width: 0;
+      height: 38px;
+      margin: 0 12px;
+      border: 0;
+      outline: none;
+      background: transparent;
+      color: var(--foreground);
+      font: inherit;
+      font-size: 16px;
+    }
+
+    .quick-input::placeholder {
+      color: var(--muted-foreground);
+    }
+
+    .send-button {
+      --wails-draggable: no-drag;
+      -webkit-app-region: no-drag;
+      display: inline-grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      border: 0;
+      border-radius: var(--radius);
+      background: var(--primary);
+      color: var(--primary-foreground);
+      cursor: default;
+    }
+
+    .send-button svg {
+      width: 17px;
+      height: 17px;
+    }
+
+    .notes {
+      display: grid;
+      gap: 6px;
+      color: var(--muted-foreground);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .notes strong {
+      color: var(--foreground);
+      font-weight: 650;
+    }
+  </style>
+</head>
+<body>
+  <main class="preview-stack">
+    <form class="quick-chat">
+      <button class="mode-button is-active" type="button">新建</button>
+      <span class="mode-divider">|</span>
+      <button class="mode-button" type="button">继续</button>
+      <input class="quick-input" aria-label="快速对话消息" placeholder="输入后按 Enter 发送..." autofocus>
+      <button class="send-button" type="button" aria-label="发送">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 19V5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="m5 12 7-7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </form>
+
+    <div class="notes">
+      <div><strong>单层结构：</strong>弹窗本体就是输入容器，<code>新建 | 继续</code>、输入框、发送按钮都是直接子元素。</div>
+      <div><strong>拖拽：</strong>整条弹窗背景可拖动，交互控件设置 no-drag。</div>
+      <div><strong>圆角：</strong>弹窗、切换和发送按钮统一使用页面变量 <code>--radius: 8px</code>。</div>
+    </div>
+  </main>
+</body>
+</html>

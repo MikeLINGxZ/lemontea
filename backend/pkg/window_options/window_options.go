@@ -44,3 +44,32 @@ func DefaultOnboarding() application.WebviewWindowOptions {
 		MinHeight:        560,
 	}
 }
+
+// DefaultQuickChat returns the floating WebviewWindowOptions for the quick chat chooser.
+func DefaultQuickChat() application.WebviewWindowOptions {
+	return application.WebviewWindowOptions{
+		Name:                window_id.QuickChat,
+		Title:               "lemontea",
+		MinimiseButtonState: application.ButtonHidden,
+		MaximiseButtonState: application.ButtonHidden,
+		CloseButtonState:    application.ButtonHidden,
+		Hidden:              true,
+		HideOnFocusLost:     true,
+		Mac: application.MacWindow{
+			InvisibleTitleBarHeight: 54,
+			Backdrop:                application.MacBackdropTranslucent,
+			TitleBar:                application.MacTitleBarHiddenInsetUnified,
+		},
+		BackgroundColour: application.NewRGB(27, 38, 54),
+		URL:              "/?entry=quick_chat",
+		Width:            720,
+		Height:           54,
+		MinWidth:         560,
+		MinHeight:        54,
+	}
+}
+
+// QuickChatShortcut returns the app-level accelerator used to toggle the quick chat popup.
+func QuickChatShortcut() string {
+	return "CmdOrCtrl+Shift+Space"
+}

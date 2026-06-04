@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import type { CSSProperties } from 'react'
 import { Events } from '@wailsio/runtime'
 import { useEditor, EditorContent as EditorContentBase } from '@tiptap/react'
 import { Extension, InputRule } from '@tiptap/core'
@@ -181,10 +182,17 @@ const convertFencedCodeBlock = (editor: Editor) => {
 
 type ChatInputProps = {
   sessionId?: number
+  variant?: 'default' | 'quick'
 }
 
-export function ChatInput({ sessionId }: ChatInputProps) {
+const quickNoDragStyle = {
+  '--wails-draggable': 'no-drag',
+  WebkitAppRegion: 'no-drag',
+} as CSSProperties & Record<'--wails-draggable', string>
+
+export function ChatInput({ sessionId, variant = 'default' }: ChatInputProps) {
   const { t } = useTranslation()
+  const isQuick = variant === 'quick'
   const {
     currentConversationId,
     isStreaming,
@@ -572,20 +580,25 @@ export function ChatInput({ sessionId }: ChatInputProps) {
 
   return (
     <div
-      className="chat-input-area shrink-0 pb-4 pt-2"
+      style={isQuick ? quickNoDragStyle : undefined}
+      className={cn('chat-input-area shrink-0', isQuick ? 'px-3 pb-3 pt-1' : 'pb-4 pt-2')}
       data-file-drop-target
       onPaste={handlePaste}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      <div className="mx-auto w-full max-w-[calc(66rem)] px-4">
+      <div className={cn('mx-auto w-full', isQuick ? 'max-w-none px-0' : 'max-w-[calc(66rem)] px-4')}>
         <div className={cn(
-          "rounded-2xl border border-border bg-background shadow-sm focus-within:border-primary/40 transition-colors relative",
+          'border border-border bg-background shadow-sm focus-within:border-primary/40 transition-colors relative',
+          isQuick ? 'rounded-lg' : 'rounded-2xl',
           isDraggingOver && "border-primary"
         )}>
           {isDraggingOver && (
-            <div className="absolute inset-0 z-10 rounded-2xl bg-primary/5 flex items-center justify-center pointer-events-none">
+            <div className={cn(
+              'absolute inset-0 z-10 bg-primary/5 flex items-center justify-center pointer-events-none',
+              isQuick ? 'rounded-lg' : 'rounded-2xl',
+            )}>
               <span className="text-sm text-primary font-medium">{t('input.dropFiles')}</span>
             </div>
           )}

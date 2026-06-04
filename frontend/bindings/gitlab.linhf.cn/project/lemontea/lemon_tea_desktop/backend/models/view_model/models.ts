@@ -218,6 +218,7 @@ export class SettingsBootstrap {
     "font_size": string;
     "data_dir": string;
     "log_level": string;
+    "quick_chat_shortcut": string;
     "default_provider_id": number;
     "version": string;
 
@@ -237,6 +238,9 @@ export class SettingsBootstrap {
         }
         if (!("log_level" in $$source)) {
             this["log_level"] = "";
+        }
+        if (!("quick_chat_shortcut" in $$source)) {
+            this["quick_chat_shortcut"] = "";
         }
         if (!("default_provider_id" in $$source)) {
             this["default_provider_id"] = 0;

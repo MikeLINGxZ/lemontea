@@ -7,6 +7,7 @@ import { SettingsApp } from '@/components/settings/SettingsApp'
 import { AddMemoryApp } from '@/components/settings/memory/AddMemoryApp'
 import { AddProviderApp } from '@/components/settings/providers/AddProviderApp'
 import { AddSkillApp } from '@/components/settings/skills/AddSkillApp'
+import { QuickChatApp } from '@/components/quick-chat/QuickChatApp'
 import { OnboardingApp } from '@/components/onboarding/OnboardingApp'
 import { AlertViewport } from '@/components/alert/AlertViewport'
 import { useNotificationsSubscription } from '@/hooks/useNotificationsSubscription'
@@ -37,7 +38,9 @@ function App() {
                   ? <AddSkillApp />
                   : entry === 'add_memory'
                     ? <AddMemoryApp />
-                    : <MainLayout />}
+                    : entry === 'quick_chat'
+                      ? <QuickChatApp />
+                      : <MainLayout />}
             <AlertViewport />
           </FontSizeProvider>
         </ThemeProvider>

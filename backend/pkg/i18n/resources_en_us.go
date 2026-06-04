@@ -6,6 +6,7 @@ var enUS = map[string]string{
 	"app.window.add_provider_title":             "Add Provider",
 	"app.window.add_skill_title":                "New Skill",
 	"app.window.add_memory_title":               "New Memory",
+	"app.window.quick_chat_title":               "Quick Chat",
 	"provider.deepseek.name":                    "DeepSeek",
 	"provider.deepseek.description":             "Founded in 2023, focused on world-class general AI foundation models and frontier research.",
 	"provider.aliyun.name":                      "Alibaba Cloud Bailian",

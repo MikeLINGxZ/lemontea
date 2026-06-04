@@ -169,5 +169,105 @@ export class SaveLocaleSettingsOutput {
     }
 }
 
+export class SaveShortcutSettingsInput {
+    "quick_chat_shortcut": string;
+
+    /** Creates a new SaveShortcutSettingsInput instance. */
+    constructor($$source: Partial<SaveShortcutSettingsInput> = {}) {
+        if (!("quick_chat_shortcut" in $$source)) {
+            this["quick_chat_shortcut"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new SaveShortcutSettingsInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): SaveShortcutSettingsInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new SaveShortcutSettingsInput($$parsedSource as Partial<SaveShortcutSettingsInput>);
+    }
+}
+
+export class SaveShortcutSettingsOutput {
+    "quick_chat_shortcut": string;
+    "status": string;
+    "message": string;
+
+    /** Creates a new SaveShortcutSettingsOutput instance. */
+    constructor($$source: Partial<SaveShortcutSettingsOutput> = {}) {
+        if (!("quick_chat_shortcut" in $$source)) {
+            this["quick_chat_shortcut"] = "";
+        }
+        if (!("status" in $$source)) {
+            this["status"] = "";
+        }
+        if (!("message" in $$source)) {
+            this["message"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new SaveShortcutSettingsOutput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): SaveShortcutSettingsOutput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new SaveShortcutSettingsOutput($$parsedSource as Partial<SaveShortcutSettingsOutput>);
+    }
+}
+
+export class ValidateShortcutSettingsInput {
+    "quick_chat_shortcut": string;
+
+    /** Creates a new ValidateShortcutSettingsInput instance. */
+    constructor($$source: Partial<ValidateShortcutSettingsInput> = {}) {
+        if (!("quick_chat_shortcut" in $$source)) {
+            this["quick_chat_shortcut"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ValidateShortcutSettingsInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ValidateShortcutSettingsInput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ValidateShortcutSettingsInput($$parsedSource as Partial<ValidateShortcutSettingsInput>);
+    }
+}
+
+export class ValidateShortcutSettingsOutput {
+    "quick_chat_shortcut": string;
+    "status": string;
+    "message": string;
+
+    /** Creates a new ValidateShortcutSettingsOutput instance. */
+    constructor($$source: Partial<ValidateShortcutSettingsOutput> = {}) {
+        if (!("quick_chat_shortcut" in $$source)) {
+            this["quick_chat_shortcut"] = "";
+        }
+        if (!("status" in $$source)) {
+            this["status"] = "";
+        }
+        if (!("message" in $$source)) {
+            this["message"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ValidateShortcutSettingsOutput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ValidateShortcutSettingsOutput {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ValidateShortcutSettingsOutput($$parsedSource as Partial<ValidateShortcutSettingsOutput>);
+    }
+}
+
 // Private type creation functions
 const $$createType0 = view_model$0.SettingsBootstrap.createFrom;
