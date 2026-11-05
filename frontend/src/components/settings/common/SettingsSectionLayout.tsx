@@ -8,7 +8,7 @@ function H5NavBar(props: { /* 处理点击事件，无返回值 */ onClick: () =
   return (
     <div className={cn(
       'flex shrink-0 items-end border-b border-border/50',
-      isMac ? 'h-[50px] justify-end pr-5 pb-3' : 'py-2.5 pl-5 pr-5',
+      isMac ? 'window-titlebar h-[50px] justify-end pr-5 pb-3' : 'py-2.5 pl-5 pr-5',
     )}>
       <button
         type="button"
@@ -72,7 +72,7 @@ export function SettingsSectionLayout(props: {
 
   return (
     <section className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
-      <div className={cn('shrink-0 bg-background/40 px-3 pb-3 pt-[var(--settings-top-padding)]', props.sidebarClassName ?? 'w-56')}>{props.sidebar}</div>
+      <div className={cn('shrink-0 border-r border-border/50 bg-background/40 px-3 pb-3 pt-[var(--settings-top-padding)]', props.sidebarClassName ?? 'w-56')}>{props.sidebar}</div>
       <div className="flex min-h-0 min-w-0 flex-1 flex-col pt-[var(--settings-top-padding)]">{props.children}</div>
     </section>
   )

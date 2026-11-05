@@ -1,5 +1,5 @@
 import { PanelLeftClose } from 'lucide-react'
-import { isMac } from '@/lib/utils'
+import { cn, isMac } from '@/lib/utils'
 
 /** 侧栏页头组件接收的属性 */
 interface SidebarHeaderProps {
@@ -10,7 +10,7 @@ interface SidebarHeaderProps {
 /** 渲染侧栏页头界面，接收on折叠，返回组件内容 */
 export function SidebarHeader({ onCollapse }: SidebarHeaderProps) {
   return (
-    <div className="flex h-12 items-center gap-2.5 px-4 select-none shrink-0">
+    <div className={cn('flex h-12 items-center gap-2.5 px-4 select-none shrink-0', isMac && 'window-titlebar')}>
       {!isMac && (
         <>
           <div className="group cursor-pointer">

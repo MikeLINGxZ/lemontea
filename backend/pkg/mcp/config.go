@@ -51,6 +51,11 @@ func loadServerConfig(configPath string) (ServerConfig, error) {
 		return ServerConfig{}, err
 	}
 
+	return parseServerConfig(bytes)
+}
+
+// parseServerConfig 解析传入的 JSON 配置内容，返回服务配置及可能发生的错误
+func parseServerConfig(bytes []byte) (ServerConfig, error) {
 	cfg := ServerConfig{}                    // 配置
 	decodeErr := json.Unmarshal(bytes, &cfg) // 解析序列化内容时的错误
 	if decodeErr != nil {

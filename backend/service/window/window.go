@@ -31,25 +31,48 @@ func (p *Window) OpenSettings(ctx context.Context, input window_dto.OpenSettings
 	settingsWindow, ok := p.wailsApp.Window.GetByName(window_id.Settings) // 设置窗口、是否成功取得对应值
 	if ok {
 		settingsWindow.SetURL(pageUrl)
-		p.showCenteredOnHomeScreen(settingsWindow)
-		return &window_dto.OpenSettingsOutput{}, nil
+	} else {
+		settingsWindow = p.wailsApp.Window.NewWithOptions(p.childWindowOptions(application.WebviewWindowOptions{
+			Name:   window_id.Settings,
+			Title:  i18n.TCurrent("app.window.settings_title", nil),
+			Hidden: true,
+			Mac: application.MacWindow{
+				// 设置窗口的拖动和双击由前端标题栏声明
+				Backdrop: application.MacBackdropTranslucent,
+				TitleBar: application.MacTitleBarHiddenInsetUnified,
+			},
+			BackgroundColour: application.NewRGB(27, 38, 54),
+			URL:              pageUrl,
+			Width:            1200,
+			Height:           800,
+			MinWidth:         550,
+			MinHeight:        550,
+		}))
 	}
-	settingsWindow = p.wailsApp.Window.NewWithOptions(p.childWindowOptions(application.WebviewWindowOptions{
-		Name:  window_id.Settings,
-		Title: i18n.TCurrent("app.window.settings_title", nil),
-		Mac: application.MacWindow{
-			InvisibleTitleBarHeight: 48,
-			Backdrop:                application.MacBackdropTranslucent,
-			TitleBar:                application.MacTitleBarHiddenInsetUnified,
-		},
-		BackgroundColour: application.NewRGB(27, 38, 54),
-		URL:              pageUrl,
-		Width:            1200,
-		Height:           800,
-		MinWidth:         550,
-		MinHeight:        550,
-	}))
-	p.showCenteredOnHomeScreen(settingsWindow)
+
+	// 已最大化或全屏时保持系统管理的窗口位置
+	if !settingsWindow.IsMaximised() && !settingsWindow.IsFullscreen() {
+		home, hasHome := p.wailsApp.Window.GetByName(window_id.Home) // 主窗口及是否存在
+		if !hasHome || !home.IsVisible() || home.IsMinimised() {
+			p.showCenteredOnHomeScreen(settingsWindow)
+			return &window_dto.OpenSettingsOutput{}, nil
+		}
+		homeBounds := home.Bounds()                      // 主窗口的桌面坐标和尺寸
+		width, height := settingsWindow.Size()           // 设置窗口当前的宽高
+		x := homeBounds.X + (homeBounds.Width-width)/2   // 相对主窗口居中的横坐标
+		y := homeBounds.Y + (homeBounds.Height-height)/2 // 相对主窗口居中的纵坐标
+
+		// 主窗口靠近屏幕边缘时，将设置窗口限制在屏幕工作区内
+		screen := p.homeWindowScreen() // 主窗口所在屏幕
+		if screen != nil && screen.WorkArea.Width > 0 && screen.WorkArea.Height > 0 {
+			area := screen.WorkArea // 扣除系统菜单栏和任务栏后的可用区域
+			x = max(area.X, min(x, area.X+area.Width-width))
+			y = max(area.Y, min(y, area.Y+area.Height-height))
+		}
+		settingsWindow.SetPosition(x, y)
+	}
+	settingsWindow.Show()
+	settingsWindow.Focus()
 	return &window_dto.OpenSettingsOutput{}, nil
 }
 

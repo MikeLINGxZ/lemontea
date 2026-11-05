@@ -6,7 +6,7 @@ import type { ProviderWrapper } from '@bindings/gitlab.linhf.cn/project/lemontea
 import { resolveProviderType } from '@/lib/provider'
 import { useChatStore } from '@/store/chatStore'
 import { useSettingsStore } from '@/store/settingsStore'
-import { cn } from '@/lib/utils'
+import { cn, isMac } from '@/lib/utils'
 import { useShallow } from 'zustand/react/shallow'
 import type { Message } from '@/types'
 import type { ProviderItem } from '@/types/settings'
@@ -21,10 +21,6 @@ interface ChatHeaderProps {
   sidebarCollapsed: boolean
   /** 处理展开侧栏事件，无返回值 */
   onExpandSidebar: () => void
-  /** 显示窗口控制区域 */
-  showWindowControlSpace: boolean
-  /** 动画窗口控制区域 */
-  animateWindowControlSpace: boolean
 }
 
 /** 选择模型服务商模型，接收模型服务商、首选模型名称，返回对应的处理结果 */
@@ -70,12 +66,10 @@ function mapWrapperToProviderItems(wrappers: ProviderWrapper[]): ProviderItem[] 
   }))
 }
 
-/** 显示会话标题和当前模型，并处理重命名和标题生成，接收侧栏折叠、on展开侧栏、显示窗口控制区域、动画窗口控制区域，返回组件内容 */
+/** 显示会话标题和当前模型，并处理重命名和标题生成，接收侧栏折叠状态和展开回调，返回组件内容 */
 export function ChatHeader({
   sidebarCollapsed,
   onExpandSidebar,
-  showWindowControlSpace,
-  animateWindowControlSpace,
 }: ChatHeaderProps) {
   const { t } = useTranslation() // 获取当前语言的翻译方法
   /** 从状态仓库读取当前会话编号、重命名会话、生成标题草稿、标题、是否有消息列表、会话运行配置、消息列表 */
@@ -196,8 +190,9 @@ export function ChatHeader({
   return (
     <div className={cn(
       'flex items-center gap-2 px-4 py-3 border-b border-border h-14 shrink-0',
-      animateWindowControlSpace && 'transition-[padding-left] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[padding-left]',
-      sidebarCollapsed && showWindowControlSpace ? cn('pl-20', animateWindowControlSpace && 'duration-150') : animateWindowControlSpace && 'duration-300'
+      isMac && 'window-titlebar',
+      // 窗口失焦时仍需为灰色原生按钮预留位置
+      sidebarCollapsed && isMac && 'pl-20',
     )}>
       {sidebarCollapsed && (
         <button
@@ -254,7 +249,7 @@ export function ChatHeader({
           )}
         </div>
       )}
-      <div className="ml-auto flex shrink-0 items-center">
+      <div className="ml-auto flex shrink-0 items-center [--wails-draggable:no-drag]">
         <NotificationBell />
       </div>
     </div>

@@ -1,6 +1,7 @@
 import { createContext, type ReactNode, useEffect, useRef, useState } from 'react'
 import { SettingsPrimaryMenu } from '@/components/settings/SettingsPrimaryMenu'
 import { isH5Width } from '@/lib/responsive'
+import { isMac } from '@/lib/utils'
 import { useSettingsStore } from '@/store/settingsStore'
 
 /** 设置菜单上下文 */
@@ -78,7 +79,9 @@ export function SettingsShell(props: { /* 要渲染的子内容 */ children: Rea
     : undefined
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-background text-foreground [--settings-top-padding:2.5rem]">
+    <div className="flex h-screen w-full overflow-hidden bg-background text-foreground [--settings-top-padding:2.5rem]">
+      {/* 将顶部留白交给 Wails，窄屏时给返回按钮留出点击空间 */}
+      {isMac && <div aria-hidden="true" className={`window-titlebar absolute inset-x-0 top-0 z-10 ${isH5 ? 'h-4' : 'h-[var(--settings-top-padding)]'}`} />}
       {!menuCollapsed && !isH5 && <SettingsPrimaryMenu activeTab={activeTab} onChange={handleChangeTab} />}
       {!menuCollapsed && isH5 ? (
         <main className="relative flex h-full w-full flex-col bg-background">

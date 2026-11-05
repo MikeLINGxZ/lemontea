@@ -26,26 +26,18 @@ interface ChatAreaProps {
   sidebarCollapsed: boolean
   /** 处理展开侧栏事件，无返回值 */
   onExpandSidebar: () => void
-  /** 显示窗口控制区域 */
-  showWindowControlSpace: boolean
-  /** 动画窗口控制区域 */
-  animateWindowControlSpace: boolean
 }
 
-/** 组合聊天页标题、消息列表和输入区，接收侧栏折叠、on展开侧栏、显示窗口控制区域、动画窗口控制区域，返回组件内容 */
+/** 组合聊天页标题、消息列表和输入区，接收侧栏折叠状态和展开回调，返回组件内容 */
 export function ChatArea({
   sidebarCollapsed,
   onExpandSidebar,
-  showWindowControlSpace,
-  animateWindowControlSpace,
 }: ChatAreaProps) {
   return (
     <div className="flex flex-col h-full bg-background">
       <ChatHeader
         sidebarCollapsed={sidebarCollapsed}
         onExpandSidebar={onExpandSidebar}
-        showWindowControlSpace={showWindowControlSpace}
-        animateWindowControlSpace={animateWindowControlSpace}
       />
       <ChatContent />
     </div>

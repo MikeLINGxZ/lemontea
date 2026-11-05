@@ -24,6 +24,19 @@ export function ToolCallBlock({ toolName, purpose, args, result, userComment, st
   const { t } = useTranslation() // 获取当前语言的翻译方法
   const [expanded, setExpanded] = useState(false) // 展开及其更新方法
 
+  /** 工具结果的展示文本，普通文本和无效 JSON 保留原样 */
+  let displayResult = result
+  if (expanded && result) {
+    try {
+      let parsed: unknown = JSON.parse(result) // 解析后的工具结果
+      // 兼容外层又包了一层 JSON 字符串的结构化结果
+      if (typeof parsed === 'string' && /^[\s]*[\[{]/.test(parsed)) parsed = JSON.parse(parsed)
+      if (parsed !== null && typeof parsed === 'object') displayResult = JSON.stringify(parsed, null, 2)
+    } catch {
+      // 无法解析时直接展示原始结果
+    }
+  }
+
   /** 状态图标 */
   const statusIcon = {
     executing: <Wrench size={12} className="animate-spin" />,
@@ -78,7 +91,7 @@ export function ToolCallBlock({ toolName, purpose, args, result, userComment, st
           {result && (
             <div>
               <div className="mb-1 text-[10px] font-semibold uppercase text-muted-foreground">Result</div>
-              <pre className="select-text max-h-48 overflow-x-auto overflow-y-auto whitespace-pre-wrap rounded bg-muted/70 p-2 text-xs">{result}</pre>
+              <pre className="select-text max-h-48 overflow-x-auto overflow-y-auto whitespace-pre-wrap rounded bg-muted/70 p-2 text-xs">{displayResult}</pre>
             </div>
           )}
         </div>

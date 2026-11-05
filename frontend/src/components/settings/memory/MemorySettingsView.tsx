@@ -339,7 +339,7 @@ export function MemoryList(props: { /* 控制器 */ controller: MemoryController
         <span>{t('settingsPage.memory.showForgotten')}</span>
         <span className={cn(
           'relative inline-flex h-[18px] w-[31px] shrink-0 items-center rounded-full transition-colors duration-200',
-          controller.includeForgotten ? 'bg-primary' : 'bg-muted',
+          controller.includeForgotten ? 'bg-switch-on' : 'bg-switch-off',
         )}>
           <span className={cn(
             'inline-block h-[14px] w-[14px] rounded-full bg-white shadow-xs transition-transform duration-200',

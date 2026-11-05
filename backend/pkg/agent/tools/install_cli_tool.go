@@ -21,7 +21,7 @@ const InstallCliToolName = "InstallCli"
 func BuildInstallCliTool() ToolMeta {
 	return ToolMeta{
 		Name:        InstallCliToolName,
-		Description: "Install a CLI plugin from npm. Call with {\"npm_package\":\"@scope/pkg\",\"name\":\"my-cli\"}. Returns the installed extension item JSON.",
+		Description: "Install a CLI plugin from npm and prepare its callable tools. Call with {\"npm_package\":\"@scope/pkg\",\"name\":\"my-cli\"}. Returns the installed extension item JSON.",
 		Category:    CategoryBuiltin,
 		FormatPurpose: /* 执行当前步骤的回调，接收参数，返回文本 */ func(args json.RawMessage) string {
 			// 解析结果

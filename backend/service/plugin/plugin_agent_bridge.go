@@ -3,44 +3,47 @@ package plugin
 import (
 	"context"
 	"encoding/json"
+	"strconv"
 	"strings"
 
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/agent/tools"
 	pkgcli "gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/cli"
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/service/plugin/plugin_dto"
+	trpcagent "trpc.group/trpc-go/trpc-agent-go/agent"
 )
 
-// InstallCliSync 实现 tools.CliInstaller，调用 InstallCliFromNpm 执行安装并发送进度事件
-// 接收本次调用的上下文、npm包名、当前名称、on进度，返回文本及可能发生的错误
+// InstallCliSync 安装 CLI 并上报工具准备阶段，接收上下文、包名、名称和进度回调，返回扩展 JSON 或错误
 func (p *Plugin) InstallCliSync(ctx context.Context, npmPackage string, name string, onProgress func(string, string)) (string, error) {
-	// 发布
-	emit := /* 实现发布回调，接收阶段、详情，无返回值 */ func(phase, detail string) {
+	var sessionID uint // 当前智能安装任务对应的会话编号
+	if invocation, ok := trpcagent.InvocationFromContext(ctx); ok && invocation.Session != nil {
+		id, err := strconv.ParseUint(invocation.Session.ID, 10, strconv.IntSize) // 会话编号和解析错误
+		if err == nil {
+			sessionID = uint(id)
+		}
+	}
+
+	// 将安装和初始化的进度合并到同一条会话记录
+	report := /* 发布安装进度，接收阶段、详情和扩展编号，无返回值 */ func(phase, detail, extensionID string) {
 		if onProgress != nil {
 			onProgress(phase, detail)
 		}
-		if p.wailsApp != nil {
-			p.wailsApp.Event.Emit("cli.install.progress", map[string]string{
-				"npm_package": npmPackage,
-				"name":        name,
-				"phase":       phase,
-				"detail":      detail,
-			})
-		}
+		_ = p.ReportCliInstallProgress(ctx, sessionID, tools.CliInstallProgressItem{
+			NpmPackage:  npmPackage,
+			Name:        name,
+			ExtensionID: extensionID,
+			Phase:       phase,
+			Detail:      detail,
+		})
 	}
-
-	emit("downloading", "Fetching "+npmPackage)
-	// 本次处理的输出、处理安装CLI起点npm时的错误
-	out, err := p.InstallCliFromNpm(ctx, plugin_dto.InstallCliFromNpmInput{
-		NpmPackage: npmPackage,
-		Name:       name,
-	})
+	item, err := p.installCli(ctx, plugin_dto.InstallCliFromNpmInput{NpmPackage: npmPackage, Name: name},
+		/* 发布阶段，接收安装阶段，无返回值 */ func(phase string) { report(phase, "", "") })
 	if err != nil {
-		emit("failed", err.Error())
+		report("failed", err.Error(), "")
 		return "", err
 	}
-	emit("installed", "Package installed to "+out.Extension.RootDir)
+	report("installed", "", item.ID)
 
-	resultBytes, _ := json.Marshal(out.Extension) // 结果字节
+	resultBytes, _ := json.Marshal(item) // 扩展 JSON
 	return string(resultBytes), nil
 }
 
@@ -49,8 +52,7 @@ func (p *Plugin) InstallCliSync(ctx context.Context, npmPackage string, name str
 func (p *Plugin) ReportCliInstallProgress(ctx context.Context, sessionID uint, item tools.CliInstallProgressItem) error {
 	_ = ctx
 	if p.wailsApp != nil {
-		p.wailsApp.Event.Emit("cli.install.progress", map[string]any{
-			"session_id":   sessionID,
+		payload := map[string]any{ // 安装进度事件
 			"npm_package":  item.NpmPackage,
 			"name":         item.Name,
 			"extension_id": item.ExtensionID,
@@ -59,7 +61,11 @@ func (p *Plugin) ReportCliInstallProgress(ctx context.Context, sessionID uint, i
 			"action_url":   item.ActionURL,
 			"action_label": item.ActionLabel,
 			"expires_at":   item.ExpiresAt,
-		})
+		}
+		if sessionID != 0 {
+			payload["session_id"] = sessionID
+		}
+		p.wailsApp.Event.Emit("cli.install.progress", payload)
 	}
 	return nil
 }

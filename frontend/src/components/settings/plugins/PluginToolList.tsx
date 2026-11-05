@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { ChevronDown, Loader2, Plus } from 'lucide-react'
+import { ChevronDown, CircleAlert, Loader2, Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { CliInstallProgress } from '@/components/settings/plugins/CliInstallProgress'
 import { PluginToolListItem } from '@/components/settings/plugins/PluginToolListItem'
 import { useCliInstallStore } from '@/store/cliInstallStore'
 import type { ExtensionItem } from '@/types/settings'
@@ -21,10 +22,13 @@ export function PluginToolList(props: {
   onReload: (id: string) => void
   /** 处理删除事件，接收当前条目的唯一编号，无返回值 */
   onDelete: (id: string) => void
+  /** 重试 npm 安装，接收包名和显示名称，返回后台安装任务 */
+  onRetryNpm: (npmPackage: string, name: string) => Promise<void>
 }) {
   const { t } = useTranslation() // 获取当前语言的翻译方法
   const [menuOpen, setMenuOpen] = useState(false) // 菜单展开及其更新方法
   const pendingInstalls = useCliInstallStore((s) => s.items) // 从状态仓库读取待处理安装记录
+  const removeInstall = useCliInstallStore((s) => s.remove) // 移除安装记录的操作
 
   return (
     <div className="flex h-full flex-col">
@@ -70,16 +74,42 @@ export function PluginToolList(props: {
       )}
 
       <div className="space-y-2">
-        {pendingInstalls.map((install) => (
-          <div key={`installing:${install.npm_package}`} className="rounded-2xl bg-accent/50 px-3 py-3">
+        {pendingInstalls.filter((install) =>
+          !install.extension_id || !props.items.some((item) => item.id === install.extension_id),
+        ).map((install) => (
+          <div key={install.request_id ?? `installing:${install.npm_package}`} className="rounded-2xl bg-accent/50 px-3 py-3">
             <div className="flex items-center gap-2">
-              <Loader2 size={14} className="animate-spin text-muted-foreground" />
-              <span className="text-sm font-medium">{install.name || install.npm_package}</span>
-              <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[11px] text-purple-700 dark:bg-purple-500/20 dark:text-purple-400">
+              {install.phase === 'failed' ? (
+                <CircleAlert size={14} className="shrink-0 text-destructive" aria-hidden="true" />
+              ) : (
+                <Loader2 size={14} className="shrink-0 animate-spin text-muted-foreground" aria-hidden="true" />
+              )}
+              <span className="min-w-0 truncate text-sm font-medium" title={install.name || install.npm_package}>
+                {install.name || install.npm_package}
+              </span>
+              <span className="shrink-0 rounded-full bg-purple-100 px-2 py-0.5 text-[11px] text-purple-700 dark:bg-purple-500/20 dark:text-purple-400">
                 {t('settingsPage.plugins.kindCli')}
               </span>
             </div>
-            <div className="mt-1 text-xs text-muted-foreground">{install.detail || install.phase}</div>
+            {install.request_id && install.phase === 'failed' ? (
+              <>
+                <div role="alert" className="mt-1 text-xs text-destructive">{t('settingsPage.plugins.cliInstallFailed')}</div>
+                <details className="mt-1 text-xs text-muted-foreground">
+                  <summary className="cursor-pointer">{t('settingsPage.plugins.cliNpmErrorDetails')}</summary>
+                  <div className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap break-all">{install.detail}</div>
+                </details>
+                <div className="mt-2 flex gap-3 text-xs">
+                  <button type="button" className="text-primary hover:underline" onClick={() => { void props.onRetryNpm(install.npm_package, install.name) }}>
+                    {t('settingsPage.plugins.cliNpmRetry')}
+                  </button>
+                  <button type="button" className="text-muted-foreground hover:underline" onClick={() => removeInstall(install.request_id ?? '')}>
+                    {t('settingsPage.plugins.cliNpmDismiss')}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <CliInstallProgress install={install} />
+            )}
             {install.action_url && install.phase === 'waiting_auth' && (
               <a
                 href={install.action_url}

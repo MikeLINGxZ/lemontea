@@ -11,7 +11,7 @@ interface SidebarProps {
 /** 渲染侧栏界面，接收on折叠，返回组件内容 */
 export function Sidebar({ onCollapse }: SidebarProps) {
   return (
-    <div className="flex flex-col h-full overflow-visible border-r border-border bg-background">
+    <div className="flex flex-col h-full overflow-visible bg-background">
       <SidebarHeader onCollapse={onCollapse} />
       <ConversationList />
       <SidebarFooter />

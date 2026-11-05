@@ -84,7 +84,7 @@ export function ProviderListItem(props: {
                   onClick={(e) => { e.stopPropagation(); props.onToggleEnable(item) }}
                   className={cn(
                     'relative inline-flex h-[18px] w-[31px] shrink-0 items-center rounded-full transition-colors duration-200',
-                    item.enabled ? 'bg-primary' : 'bg-muted'
+                    item.enabled ? 'bg-switch-on' : 'bg-switch-off'
                   )}
                 >
                   <span className={cn(

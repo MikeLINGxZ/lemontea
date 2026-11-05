@@ -14,9 +14,9 @@ func DefaultHome() application.WebviewWindowOptions {
 		Title:          "lemontea",
 		EnableFileDrop: true,
 		Mac: application.MacWindow{
-			InvisibleTitleBarHeight: 48,
-			Backdrop:                application.MacBackdropTranslucent,
-			TitleBar:                application.MacTitleBarHiddenInsetUnified,
+			// 主窗口由前端标题栏声明拖动区域，避免原生拖动区域拦截双击
+			Backdrop: application.MacBackdropTranslucent,
+			TitleBar: application.MacTitleBarHiddenInsetUnified,
 		},
 		BackgroundColour: application.NewRGB(27, 38, 54),
 		URL:              "/",

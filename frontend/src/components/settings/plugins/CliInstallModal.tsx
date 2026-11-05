@@ -11,8 +11,8 @@ type Props = {
   open: boolean
   /** 处理关闭事件，无返回值 */
   onClose: () => void
-  /** 处理npm提交事件，接收npm包名、名称，无返回值 */
-  onNpmSubmit: (npmPackage: string, name: string) => void
+  /** 处理 npm 提交，接收包名和显示名称，返回后台安装任务 */
+  onNpmSubmit: (npmPackage: string, name: string) => Promise<void>
   /** 处理智能提交事件，接收内容，无返回值 */
   onSmartSubmit: (content: string) => void
 }
@@ -41,13 +41,6 @@ export function CliInstallModal({ open, onClose, onNpmSubmit, onSmartSubmit }: P
   const handleSmartSubmit = () => {
     if (!content.trim()) return
     onSmartSubmit(content.trim())
-    onClose()
-  }
-
-  /** 处理npm提交，无返回值 */
-  const handleNpmSubmit = () => {
-    if (!npmPkg.trim()) return
-    onNpmSubmit(npmPkg.trim(), name.trim())
     onClose()
   }
 
@@ -113,36 +106,39 @@ export function CliInstallModal({ open, onClose, onNpmSubmit, onSmartSubmit }: P
         )}
 
         {tab === 'npm' && (
-          <>
+          <form onSubmit={/** 提交表单并在后台安装，接收提交事件，无返回值 */ (event) => {
+            event.preventDefault()
+            const npmPackage = npmPkg.trim() // 去除首尾空格的包名
+            if (!npmPackage) return
+            void onNpmSubmit(npmPackage, name.trim())
+            onClose()
+          }}>
             <input
               value={npmPkg}
               onChange={(e) => setNpmPkg(e.target.value)}
               placeholder={t('settingsPage.plugins.cliNpmPlaceholder')}
               className="mb-3 w-full rounded-lg border bg-background px-3 py-2 text-sm"
               autoFocus
-              onKeyDown={(e) => { if (e.key === 'Enter') handleNpmSubmit() }}
             />
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder={t('settingsPage.plugins.cliNamePlaceholder')}
               className="mb-4 w-full rounded-lg border bg-background px-3 py-2 text-sm"
-              onKeyDown={(e) => { if (e.key === 'Enter') handleNpmSubmit() }}
             />
             <div className="flex justify-end gap-2">
               <button type="button" onClick={onClose} className="rounded-xl border px-4 py-2 text-sm">
                 {t('settingsPage.plugins.cliCancel')}
               </button>
               <button
-                type="button"
-                onClick={handleNpmSubmit}
+                type="submit"
                 disabled={!npmPkg.trim()}
                 className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-60"
               >
                 {t('settingsPage.plugins.cliInstall')}
               </button>
             </div>
-          </>
+          </form>
         )}
       </div>
     </div>

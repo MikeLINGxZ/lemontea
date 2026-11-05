@@ -19,7 +19,6 @@ The manifest schema is:
   "version": "<package version>",
   "description": "<short>",
   "executable": "<provided>",
-  "login_command": ["<subcommand path that starts an interactive auth flow; see rules below>"],
   "isolation": "isolated",
   "tools": [
     {
@@ -37,7 +36,6 @@ The manifest schema is:
 
 Rules:
 - Map each useful subcommand to a tool. Skip "help" / "version" / "completion".
-- login_command: scan top-level subcommands for anything related to authentication — names like "auth", "login", "signin", "oauth", "config" (when the description mentions credentials or app setup). If you find one with sub-subcommands, dig in: e.g. an "auth" group containing "login" should yield ["auth", "login"]. A standalone "login" command yields ["login"]. A config-style setup like "config init" yields ["config", "init"]. Only leave login_command as an empty array if the CLI clearly has no authentication step at all. Prefer the OAuth / device-flow command over credential-stdin setup when both exist.
 - requires_confirm: true for verbs that mutate state (send/delete/create/update/upload). false for read verbs (list/get/show).
 - argv_template must use {placeholder} tokens that match input_schema.properties keys.
 - Any {placeholder} the CLI cannot accept as missing must be listed in input_schema.required. Placeholders left out of required are treated as optional: at runtime, if the caller omits the value, the engine drops that argv segment AND the immediately preceding "--flag" segment, so optional pairs vanish cleanly. Pair optional values with a "--flag" segment (e.g. ["--data", "{data}"]); never put an optional placeholder in a positional slot.
@@ -80,36 +78,12 @@ func Generate(ctx context.Context, p GenerateParams) (Manifest, error) {
 	if manifest.Isolation == "" {
 		manifest.Isolation = IsolationIsolated
 	}
-	if len(manifest.LoginCommand) == 0 {
-		manifest.LoginCommand = guessLoginCommand(p.HelpText)
-	}
 	validateErr := Validate(manifest) // 校验当前数据时的错误
 	if validateErr != nil {
 		log.Printf("cli manifest generator validation failed: %v", validateErr)
 		return stubManifest(p), nil
 	}
 	return manifest, nil
-}
-
-// guessLoginCommand 从 CLI 的 --help 输出中查找顶层认证子命令
-// 返回约定的登录参数，其中 auth 和 oauth 会展开
-// 为 ["<name>", "login"]（沿用 gh、gcloud、lark-cli 的约定），login 和 signin 保持为单项
-// 没有匹配项时返回 nil
-func guessLoginCommand(helpText string) []string {
-	// 遍历分栏帮助文本数量，逐项取得行
-	for _, line := range strings.Split(helpText, "\n") {
-		fields := strings.Fields(line) // 字段
-		if len(fields) < 1 {
-			continue
-		}
-		switch strings.ToLower(fields[0]) {
-		case "auth", "oauth":
-			return []string{fields[0], "login"}
-		case "login", "signin":
-			return []string{fields[0]}
-		}
-	}
-	return nil
 }
 
 // buildGeneratorUserPrompt 生成指定 CLI 包对应的用户提示词

@@ -100,10 +100,6 @@ var enUS = map[string]string{
 	"ierror.cli.tool_not_found":           "CLI tool not found",
 
 	// CLI 登录消息
-	"cli.login.session_conflict": "A login session is already running for this CLI.",
-	"cli.login.not_found":        "No active login session for this CLI.",
-	"cli.login.no_command":       "This CLI's manifest has no login_command.",
-	"cli.login.start_failed":     "Failed to start CLI login: {detail}",
 
 	// 终端消息
 	"ierror.terminal.list":        "Failed to list terminals",

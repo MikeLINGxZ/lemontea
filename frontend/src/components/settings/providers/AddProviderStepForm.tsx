@@ -217,7 +217,7 @@ export function AddProviderStepForm(props: {
           onClick={() => setEnable((v) => !v)}
           className={cn(
             'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors',
-            enable ? 'bg-primary' : 'bg-muted'
+            enable ? 'bg-switch-on' : 'bg-switch-off'
           )}
         >
           <span className={cn(
@@ -322,7 +322,7 @@ export function AddProviderStepForm(props: {
           </div>
         </div>
 
-        <div className="scrollbar-track-transparent min-h-0 flex-1 overflow-y-auto rounded-xl border border-border">
+        <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-border">
           {addingCustom && (
             <div className="flex items-center gap-1.5 border-b border-border px-3 py-2">
               <input

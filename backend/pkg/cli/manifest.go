@@ -33,6 +33,9 @@ const (
 	IsolationShared IsolationMode = "shared"
 )
 
+// ArgvListPlaceholder 表示将输入的 argv 字符串数组逐项传给命令
+const ArgvListPlaceholder = "{argv...}"
+
 // Tool 描述 CLI 插件暴露的一个可由 AI 调用的工具
 type Tool struct {
 	// 名称
@@ -63,37 +66,10 @@ type Manifest struct {
 	Description string `json:"description"`
 	// 可执行文件
 	Executable string `json:"executable"`
-	// 登录命令
-	LoginCommand []string `json:"login_command,omitempty"`
-	// 登录步骤列表
-	LoginSteps [][]string `json:"login_steps,omitempty"`
 	// 隔离
 	Isolation IsolationMode `json:"isolation"`
 	// 工具列表
 	Tools []Tool `json:"tools"`
-}
-
-// ResolveLoginSteps 返回交互式登录各步骤的有序 argv 列表
-// LoginSteps 非空时优先使用，否则将 LoginCommand 包装为单个步骤
-// 结果为空表示清单未配置登录流程
-func (m Manifest) ResolveLoginSteps() [][]string {
-	if len(m.LoginSteps) > 0 {
-		out := make([][]string, 0, len(m.LoginSteps)) // 本次处理的输出
-		// 遍历登录步骤列表，逐项取得步骤
-		for _, step := range m.LoginSteps {
-			if len(step) == 0 {
-				continue
-			}
-			out = append(out, step)
-		}
-		if len(out) > 0 {
-			return out
-		}
-	}
-	if len(m.LoginCommand) > 0 {
-		return [][]string{m.LoginCommand}
-	}
-	return nil
 }
 
 // LoadManifest 读取 JSON 清单文件，文件不存在时返回零值清单和 nil 错误
@@ -146,7 +122,7 @@ func RepairManifestExecutable(path string, installDir string, manifest Manifest)
 		return manifest, nil
 	}
 
-	pkg, err := ReadPackageJSON(installDir) // 包名、读取包名JSON时的错误
+	pkg, err := ReadPackageJSON(installDir, manifest.Name) // 包名、读取包名JSON时的错误
 	if err != nil {
 		return Manifest{}, err
 	}

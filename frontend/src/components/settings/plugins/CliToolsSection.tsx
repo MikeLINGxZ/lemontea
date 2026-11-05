@@ -20,12 +20,7 @@ export function CliToolsSection(props: CliToolsSectionProps) {
   const { t } = useTranslation() // 获取当前语言的翻译方法
 
   return (
-    <section className="mt-6 space-y-3 border-t border-border pt-4">
-      <div className="space-y-1">
-        <h3 className="text-sm font-semibold text-foreground">{t('settingsPage.plugins.cliToolsTitle')}</h3>
-        <p className="text-sm text-muted-foreground">{t('settingsPage.plugins.cliToolsDescription')}</p>
-      </div>
-
+    <section className="mt-6 space-y-3 pt-4">
       {props.tools.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-muted/30 px-4 py-5 text-sm text-muted-foreground">
           {t('settingsPage.plugins.cliToolsEmpty')}

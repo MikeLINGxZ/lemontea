@@ -3,6 +3,7 @@ package mcp
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"unicode"
@@ -211,7 +212,17 @@ func (m *Manager) DiscoverTools(ctx context.Context, item data_models.ExtensionI
 // BuildToolSet 为指定扩展创建 MCP 工具集，可按指定工具 ID 筛选
 // 接收扩展条目、启用状态工具索引Ds，返回工具集合及可能发生的错误
 func (m *Manager) BuildToolSet(item data_models.ExtensionItem, enabledToolIDs []string) (agenttool.ToolSet, error) {
-	config, err := loadServerConfig(item.ConfigFilePath) // 配置、加载服务配置时的错误
+	configBytes, err := os.ReadFile(item.ConfigFilePath) // 连接配置内容和读取错误
+	if err != nil {
+		return nil, err
+	}
+	return m.BuildToolSetFromConfig(item, enabledToolIDs, configBytes)
+}
+
+// BuildToolSetFromConfig 使用已读取的连接配置构建 MCP 工具集
+// 接收扩展条目、已选工具 ID 和配置内容，返回工具集及可能发生的错误
+func (m *Manager) BuildToolSetFromConfig(item data_models.ExtensionItem, enabledToolIDs []string, configBytes []byte) (agenttool.ToolSet, error) {
+	config, err := parseServerConfig(configBytes) // 服务配置和解析错误
 	if err != nil {
 		return nil, err
 	}

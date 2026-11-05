@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { MoreHorizontal, RefreshCw, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
+import { CliInstallProgress } from '@/components/settings/plugins/CliInstallProgress'
 import { ConfirmDialog } from '@/components/settings/common/ConfirmDialog'
 import { useCliInstallStore } from '@/store/cliInstallStore'
 import type { ExtensionItem } from '@/types/settings'
@@ -26,9 +27,8 @@ export function PluginToolListItem(props: {
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false) // 确认删除展开及其更新方法
   /** 从状态仓库读取安装进度 */
   const installProgress = useCliInstallStore((s) =>
-    s.items.find((i) => i.name === props.item.name || i.extension_id === props.item.id),
+    s.items.find((i) => i.extension_id === props.item.id),
   )
-  const progressWidth = installProgress ? phaseWidth(installProgress.phase) : '0%' // 进度宽度
 
   return (
     <>
@@ -66,18 +66,8 @@ export function PluginToolListItem(props: {
                   </span>
                 </div>
                 <div className="mt-1 truncate text-xs text-muted-foreground">{props.item.description || props.item.author || props.item.version}</div>
-                {installProgress && installProgress.phase !== 'done' && installProgress.phase !== 'failed' && (
-                  <div className="mt-2 flex items-center gap-2">
-                    <div className="h-1 flex-1 overflow-hidden rounded-full bg-muted">
-                      <div
-                        className="h-full rounded-full bg-primary transition-all duration-300"
-                        style={{ width: progressWidth }}
-                      />
-                    </div>
-                    <span className="text-[11px] text-muted-foreground">
-                      {installProgress.detail || installProgress.phase}
-                    </span>
-                  </div>
+                {installProgress && installProgress.phase !== 'failed' && (
+                  <CliInstallProgress install={installProgress} />
                 )}
                 {installProgress?.action_url && installProgress.phase === 'waiting_auth' && (
                   <a
@@ -106,7 +96,7 @@ export function PluginToolListItem(props: {
                   }}
                   className={cn(
                     'relative inline-flex h-[18px] w-[31px] shrink-0 items-center rounded-full transition-colors duration-200',
-                    props.item.enabled ? 'bg-primary' : 'bg-muted',
+                    props.item.enabled ? 'bg-switch-on' : 'bg-switch-off',
                   )}
                 >
                   <span className={cn(
@@ -175,28 +165,4 @@ export function PluginToolListItem(props: {
       />
     </>
   )
-}
-
-/** 阶段宽度处理，接收阶段，返回处理后的文本 */
-function phaseWidth(phase: string): string {
-  switch (phase) {
-    case 'pending':
-      return '12%'
-    case 'downloading':
-      return '30%'
-    case 'installed':
-      return '55%'
-    case 'generating':
-      return '72%'
-    case 'initializing':
-      return '82%'
-    case 'waiting_auth':
-      return '88%'
-    case 'verifying':
-      return '94%'
-    case 'done':
-      return '100%'
-    default:
-      return '30%'
-  }
 }

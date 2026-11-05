@@ -4,6 +4,7 @@ export type CliInstallPhase =
   | 'downloading'
   | 'installed'
   | 'generating'
+  | 'registering'
   | 'initializing'
   | 'waiting_auth'
   | 'verifying'
@@ -12,6 +13,8 @@ export type CliInstallPhase =
 
 /** 定义CLI安装条目的数据结构 */
 export type CliInstallItem = {
+  /** 直接从 npm 安装的请求标识，与智能安装任务分开 */
+  request_id?: string
   /** npm包名 */
   npm_package: string
   /** 名称 */

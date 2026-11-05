@@ -75,7 +75,7 @@ export function SkillsListItem({ item, selected, onSelect, onToggle, onDelete }:
           }}
           className={cn(
             'relative mt-0.5 inline-flex h-[18px] w-[31px] items-center rounded-full transition-colors duration-200',
-            item.disabled ? 'bg-muted' : 'bg-primary'
+            item.disabled ? 'bg-switch-off' : 'bg-switch-on'
           )}
         >
           <span

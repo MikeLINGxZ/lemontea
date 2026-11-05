@@ -1,5 +1,3 @@
-import { useState } from 'react'
-import { ChevronDown, ChevronRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { PluginToolConfigEditor } from '@/components/settings/plugins/PluginToolConfigEditor'
@@ -29,6 +27,25 @@ const runtimeStatusDot = (status: string) => {
   }
 }
 
+/** 渲染运行状态徽标，接收扩展运行状态，返回对应颜色和文案的徽标 */
+export function RuntimeStatusBadge({ status }: { /** 扩展运行状态 */ status: ExtensionItem['runtime_status'] }): React.JSX.Element {
+  const { t } = useTranslation() // 获取运行状态文案的翻译方法
+
+  return (
+    <span className={cn(
+      'inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium',
+      runtimeStatusClass(status)
+    )}>
+      <span className={cn('inline-block h-1.5 w-1.5 rounded-full', runtimeStatusDot(status))} />
+      {status === 'error'
+        ? t('settingsPage.plugins.runtimeStatusError')
+        : status === 'ready'
+          ? t('settingsPage.plugins.runtimeStatusReady')
+          : t('settingsPage.plugins.runtimeStatusIdle')}
+    </span>
+  )
+}
+
 /** 渲染扩展详情信息界面，接收组件输入属性，返回组件内容 */
 export function ExtensionDetailInfo(props: {
   /** 扩展 */
@@ -44,63 +61,39 @@ export function ExtensionDetailInfo(props: {
 }) {
   const { t } = useTranslation() // 获取当前语言的翻译方法
   const ext = props.extension // 扩展名
-  const [configExpanded, setConfigExpanded] = useState(false) // 配置展开及其更新方法
 
   if (ext.kind === 'cli') {
     return (
-      <div className="space-y-4 pt-2">
-        <div className="grid gap-3 text-sm text-muted-foreground md:grid-cols-2">
-          <div className="md:col-span-2">
-            <span className="font-medium text-foreground">{t('settingsPage.plugins.installDirLabel')}:</span>{' '}
-            <span className="break-all">{ext.root_dir}</span>
+      <details key={ext.id} className="mt-6 pb-4 pt-4">
+        <summary className="cursor-pointer text-sm font-semibold text-foreground transition-colors hover:text-foreground/80">
+          {t('settingsPage.plugins.developerConfig')}
+        </summary>
+        <div className="mt-3 space-y-3">
+          <div className="space-y-3 text-sm text-muted-foreground">
+            <div>
+              <span className="font-medium text-foreground">{t('settingsPage.plugins.installDirLabel')}:</span>{' '}
+              <span className="break-all">{ext.root_dir}</span>
+            </div>
+            <div>
+              <span className="font-medium text-foreground">{t('settingsPage.plugins.manifestPathLabel')}:</span>{' '}
+              <span className="break-all">{ext.config_file_path}</span>
+            </div>
           </div>
-          <div className="md:col-span-2">
-            <span className="font-medium text-foreground">{t('settingsPage.plugins.manifestPathLabel')}:</span>{' '}
-            <span className="break-all">{ext.config_file_path}</span>
-          </div>
-          <div>
-            <span className="font-medium text-foreground">{t('settingsPage.plugins.runtimeStatusLabel')}:</span>{' '}
-            <span className={cn(
-              'inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium',
-              runtimeStatusClass(ext.runtime_status)
-            )}>
-              <span className={cn('inline-block h-1.5 w-1.5 rounded-full', runtimeStatusDot(ext.runtime_status))} />
-              {ext.runtime_status === 'error'
-                ? t('settingsPage.plugins.runtimeStatusError')
-                : ext.runtime_status === 'ready'
-                  ? t('settingsPage.plugins.runtimeStatusReady')
-                  : t('settingsPage.plugins.runtimeStatusIdle')}
-            </span>
-          </div>
-          {ext.runtime_message && (
-            <div className="md:col-span-2 rounded-xl border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-              <span className="font-medium">{t('settingsPage.plugins.runtimeMessageLabel')}:</span>{' '}
-              {ext.runtime_message}
+          {ext.config_file_path && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <h3 className="text-sm font-semibold text-foreground">{t('settingsPage.plugins.configuration')}</h3>
+                {!props.jsonValid && (
+                  <span className="text-xs font-medium text-red-600 dark:text-red-400">
+                    {t('settingsPage.plugins.configJsonError', { line: props.errorLine })}
+                  </span>
+                )}
+              </div>
+              <PluginToolConfigEditor value={props.draft} errorLine={props.errorLine} onChange={props.onDraftChange} />
             </div>
           )}
         </div>
-
-        {ext.config_file_path && (
-          <div className="space-y-3">
-            <button
-              type="button"
-              onClick={() => setConfigExpanded((v) => !v)}
-              className="flex items-center gap-1.5 text-sm font-semibold text-foreground hover:text-foreground/80 transition-colors"
-            >
-              {configExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-              {t('settingsPage.plugins.configuration')}
-            </button>
-            {!props.jsonValid && (
-              <span className="text-xs font-medium text-red-600 dark:text-red-400">
-                {t('settingsPage.plugins.configJsonError', { line: props.errorLine })}
-              </span>
-            )}
-            {configExpanded && (
-              <PluginToolConfigEditor value={props.draft} errorLine={props.errorLine} onChange={props.onDraftChange} />
-            )}
-          </div>
-        )}
-      </div>
+      </details>
     )
   }
 
@@ -114,17 +107,7 @@ export function ExtensionDetailInfo(props: {
           </div>
           <div>
             <span className="font-medium text-foreground">{t('settingsPage.plugins.runtimeStatusLabel')}:</span>{' '}
-            <span className={cn(
-              'inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium',
-              runtimeStatusClass(ext.runtime_status)
-            )}>
-              <span className={cn('inline-block h-1.5 w-1.5 rounded-full', runtimeStatusDot(ext.runtime_status))} />
-              {ext.runtime_status === 'error'
-                ? t('settingsPage.plugins.runtimeStatusError')
-                : ext.runtime_status === 'ready'
-                  ? t('settingsPage.plugins.runtimeStatusReady')
-                  : t('settingsPage.plugins.runtimeStatusIdle')}
-            </span>
+            <RuntimeStatusBadge status={ext.runtime_status} />
           </div>
           {ext.config_file_path && (
             <div className="md:col-span-2">

@@ -25,6 +25,14 @@ export function OpenFile(input: file_dto$0.OpenFileInput): $CancellablePromise<f
 }
 
 /**
+ * ReadMediaPreview 读取指定路径的本地图片或视频，返回供对话预览使用的数据 URL
+ * 文件不可用、格式不支持或超出大小上限时返回空字符串，读取异常时返回错误
+ */
+export function ReadMediaPreview(path: string): $CancellablePromise<string> {
+    return $Call.ByID(2385214690, path);
+}
+
+/**
  * SaveTempFile 解码 Base64 数据并写入应用的临时目录
  * 写入成功时返回文件的绝对路径
  * 接收调用上下文和请求参数，返回操作结果及可能发生的错误

@@ -125,6 +125,14 @@ export function SelectQuickChat(input: window_dto$0.SelectQuickChatInput): $Canc
 }
 
 /**
+ * SetNativeTheme 将调用窗口的原生标题栏与应用主题同步
+ * 接收调用上下文和主题偏好，自动模式恢复系统外观，无返回值
+ */
+export function SetNativeTheme(theme: string): $CancellablePromise<void> {
+    return $Call.ByID(3191135826, theme);
+}
+
+/**
  * ToggleQuickChat 切换快捷聊天浮窗的显示状态
  * 接收调用上下文和请求参数，返回操作结果及可能发生的错误
  */
