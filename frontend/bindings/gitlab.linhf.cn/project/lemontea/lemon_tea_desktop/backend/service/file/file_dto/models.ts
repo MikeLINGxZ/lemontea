@@ -5,7 +5,13 @@
 // @ts-ignore: Unused imports
 import { Create as $Create } from "@wailsio/runtime";
 
+/**
+ * 封装以指定模式打开文件所需的请求参数
+ */
 export class OpenFileInput {
+    /**
+     * 路径
+     */
     "path": string;
 
     /** Creates a new OpenFileInput instance. */
@@ -26,6 +32,9 @@ export class OpenFileInput {
     }
 }
 
+/**
+ * 封装以指定模式打开文件返回给调用方的数据
+ */
 export class OpenFileOutput {
 
     /** Creates a new OpenFileOutput instance. */
@@ -43,19 +52,22 @@ export class OpenFileOutput {
     }
 }
 
+/**
+ * 封装保存临时文件所需的请求参数
+ */
 export class SaveTempFileInput {
     /**
-     * original filename, e.g. "screenshot.png"
+     * 原始文件名，例如 screenshot.png
      */
     "name": string;
 
     /**
-     * base64-encoded file content
+     * Base64 编码的文件内容
      */
     "data": string;
 
     /**
-     * e.g. "image/png"
+     * 文件的 MIME 类型，例如 image/png
      */
     "mime": string;
 
@@ -83,7 +95,13 @@ export class SaveTempFileInput {
     }
 }
 
+/**
+ * 封装保存临时文件返回给调用方的数据
+ */
 export class SaveTempFileOutput {
+    /**
+     * 文件路径
+     */
     "file_path": string;
 
     /** Creates a new SaveTempFileOutput instance. */
@@ -104,7 +122,13 @@ export class SaveTempFileOutput {
     }
 }
 
+/**
+ * 封装打开文件选择对话框所需的请求参数
+ */
 export class SelectFileInput {
+    /**
+     * 默认文件夹路径
+     */
     "default_folder_path": string;
 
     /** Creates a new SelectFileInput instance. */
@@ -125,7 +149,13 @@ export class SelectFileInput {
     }
 }
 
+/**
+ * 封装打开文件选择对话框返回给调用方的数据
+ */
 export class SelectFileOutput {
+    /**
+     * 文件路径
+     */
     "file_path": string;
 
     /** Creates a new SelectFileOutput instance. */
@@ -146,7 +176,13 @@ export class SelectFileOutput {
     }
 }
 
+/**
+ * 封装打开目录选择对话框所需的请求参数
+ */
 export class SelectFolderInput {
+    /**
+     * 文件夹路径
+     */
     "folder_path": string;
 
     /** Creates a new SelectFolderInput instance. */
@@ -167,7 +203,13 @@ export class SelectFolderInput {
     }
 }
 
+/**
+ * 封装打开目录选择对话框返回给调用方的数据
+ */
 export class SelectFolderOutput {
+    /**
+     * 文件夹路径
+     */
     "folder_path": string;
 
     /** Creates a new SelectFolderOutput instance. */

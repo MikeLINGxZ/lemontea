@@ -4,20 +4,27 @@ import { Config } from '@bindings/gitlab.linhf.cn/project/lemontea/lemon_tea_des
 import { cn } from '@/lib/utils'
 import type { SupportedProvider } from '@/types/settings'
 
+/** 首次引导步骤选择组件接收的属性 */
 type Props = {
+	/** 选中项 */
 	selected: SupportedProvider | null
+	/** 处理选择事件，接收模型服务商，无返回值 */
 	onSelect: (provider: SupportedProvider) => void
+	/** 处理返回事件，无返回值 */
 	onBack: () => void
+	/** 处理更新后的值事件，无返回值 */
 	onNext: () => void
 }
 
+/** 渲染首次引导步骤选择界面，接收组件输入属性，返回组件内容 */
 export function OnboardingStepSelect(props: Props) {
-	const { t } = useTranslation()
-	const [providers, setProviders] = useState<SupportedProvider[]>([])
-	const [loadFailed, setLoadFailed] = useState(false)
+	const { t } = useTranslation() // 获取当前语言的翻译方法
+	const [providers, setProviders] = useState<SupportedProvider[]>([]) // 服务商列表及其更新方法
+	const [loadFailed, setLoadFailed] = useState(false) // 加载已失败及其更新方法
 
+	/** 同步外部状态并管理本次副作用的生命周期 */
 	useEffect(() => {
-		let cancelled = false
+		let cancelled = false // 已取消
 
 		Config.SupportedProviderList({})
 			.then((result) => {

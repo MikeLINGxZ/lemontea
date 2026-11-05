@@ -6,11 +6,22 @@
 import { Create as $Create } from "@wailsio/runtime";
 
 /**
- * ShortcutValidationResult is returned by shortcut validation requests.
+ * ShortcutValidationResult 保存快捷键校验请求的结果
  */
 export class ShortcutValidationResult {
+    /**
+     * 快捷键
+     */
     "Shortcut": string;
+
+    /**
+     * 当前状态
+     */
     "Status": ShortcutValidationStatus;
+
+    /**
+     * 消息
+     */
     "Message": string;
 
     /** Creates a new ShortcutValidationResult instance. */
@@ -38,7 +49,7 @@ export class ShortcutValidationResult {
 }
 
 /**
- * ShortcutValidationStatus describes realtime shortcut availability.
+ * ShortcutValidationStatus 表示快捷键的实时可用状态
  */
 export enum ShortcutValidationStatus {
     /**
@@ -46,7 +57,18 @@ export enum ShortcutValidationStatus {
      */
     $zero = "",
 
+    /**
+     * 快捷键校验可用项
+     */
     ShortcutValidationAvailable = "available",
+
+    /**
+     * 快捷键校验冲突
+     */
     ShortcutValidationConflict = "conflict",
+
+    /**
+     * 快捷键校验无效
+     */
     ShortcutValidationInvalid = "invalid",
 };

@@ -11,12 +11,17 @@ import { Skills as SkillsBinding } from '@bindings/gitlab.linhf.cn/project/lemon
 import { CreateSkillInput } from '@bindings/gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/service/skills/skills_dto/models'
 import { toSkillName } from '@/lib/skills'
 
+/** 保存的编辑草稿 */
 type SaveDraft = {
+  /** 名称 */
   name: string
+  /** 描述 */
   description: string
+  /** 正文 */
   body: string
 }
 
+/** 新增技能应用，返回组件内容 */
 export function AddSkillApp() {
   return (
     <AppSettingsSyncProvider>
@@ -32,13 +37,15 @@ export function AddSkillApp() {
   )
 }
 
+/** 新增技能窗口，返回组件内容 */
 function AddSkillWindow() {
-  const { t } = useTranslation()
-  const [saving, setSaving] = useState(false)
-  const [nameError, setNameError] = useState<string | null>(null)
+  const { t } = useTranslation() // 获取当前语言的翻译方法
+  const [saving, setSaving] = useState(false) // 保存中及其更新方法
+  const [nameError, setNameError] = useState<string | null>(null) // 名称错误及其更新方法
 
+  /** 处理提交，接收草稿，完成后结束异步任务 */
   const handleSubmit = async (draft: SaveDraft) => {
-    const name = toSkillName(draft.name)
+    const name = toSkillName(draft.name) // 名称
     if (!name) {
       setNameError(t('settingsPage.skills.editor.nameInvalid'))
       return

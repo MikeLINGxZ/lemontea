@@ -2,34 +2,47 @@ import { ChevronDown, Check } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
 
-type SettingsSelectOption<T extends string> = {
-  value: T
+/** 定义设置选择选项的数据结构 */
+type SettingsSelectOption = {
+  /** 值 */
+  value: string
+  /** 标签 */
   label: string
+  /** 图标 */
   icon?: string
 }
 
-export function SettingsSelect<T extends string>(props: {
+/** 渲染设置下拉选项，并在选择、点击外部或按退出键时收起，接收组件输入属性，返回组件内容 */
+export function SettingsSelect(props: {
+  /** 无障碍标签 */
   ariaLabel: string
-  value: T
-  options: SettingsSelectOption<T>[]
-  onChange: (value: T) => void
+  /** 值 */
+  value: string
+  /** 可用选项列表 */
+  options: SettingsSelectOption[]
+  /** 处理本次变更事件，接收值，无返回值 */
+  onChange: (value: string) => void
 }) {
-  const [open, setOpen] = useState(false)
-  const containerRef = useRef<HTMLDivElement | null>(null)
-  const listboxId = useId()
+  const [open, setOpen] = useState(false) // 展开及其更新方法
+  const containerRef = useRef<HTMLDivElement | null>(null) // 容器引用，供后续读取当前值
+  const listboxId = useId() // 为控件及其关联内容生成稳定的无障碍标识
+  /** 当前选中的下拉选项 */
   const selectedOption = props.options.find((option) => option.value === props.value) ?? props.options[0]
 
+  /** 同步外部状态并管理本次副作用的生命周期 */
   useEffect(() => {
     if (!open) {
       return undefined
     }
 
+    /** 处理指针向下，接收触发本次回调的事件，无返回值 */
     const handlePointerDown = (event: MouseEvent) => {
       if (!containerRef.current?.contains(event.target as Node)) {
         setOpen(false)
       }
     }
 
+    /** 处理退出键，接收触发本次回调的事件，无返回值 */
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setOpen(false)
@@ -55,7 +68,7 @@ export function SettingsSelect<T extends string>(props: {
         onClick={() => setOpen((current) => !current)}
         className={cn(
           'flex h-11 w-full items-center justify-between rounded-xl border border-border/80 bg-card/80 px-3.5 text-left',
-          'text-sm text-foreground transition-colors hover:bg-accent/60 focus:outline-none focus:ring-2 focus:ring-primary/20'
+          'text-sm text-foreground transition-colors hover:bg-accent/60 focus:outline-hidden focus:ring-2 focus:ring-primary/20'
         )}
       >
         <span className="inline-flex items-center gap-2 truncate">
@@ -73,7 +86,7 @@ export function SettingsSelect<T extends string>(props: {
           className="absolute left-0 top-[calc(100%+0.5rem)] z-30 w-full rounded-2xl border border-border/80 bg-popover p-1.5 shadow-xl max-h-72 overflow-y-auto overscroll-contain"
         >
           {props.options.map((option) => {
-            const selected = option.value === props.value
+            const selected = option.value === props.value // 选中项
             return (
               <button
                 key={option.value}

@@ -10,35 +10,35 @@ import (
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/service/plugin/plugin_dto"
 )
 
+// CLI登录不受支持在Windows对应的错误
 var errCliLoginUnsupportedOnWindows = errors.New("cli login is not supported on Windows")
 
-// LoginCli starts an interactive login flow for the named CLI plugin and returns immediately.
-// The flow runs each entry in manifest.ResolveLoginSteps() sequentially against the same PTY
-// dialog — output streams to the "cli.login.output" event throughout; "cli.login.done" is
-// emitted once when the whole flow ends (last step success, first step failure, or cancellation).
+// LoginCli 在 Windows 上返回平台不支持交互式 CLI 登录的错误
+// 接收调用上下文和请求参数，返回操作结果及可能发生的错误
 func (p *Plugin) LoginCli(ctx context.Context, input plugin_dto.LoginCliInput) (*plugin_dto.LoginCliOutput, error) {
 	_ = ctx
 	_ = input
 	return nil, ierror.Error(ierror.ErrRuntimeUnsupportedOS, errCliLoginUnsupportedOnWindows)
 }
 
-// SendLoginStdin forwards raw bytes to the running login session's PTY stdin.
+// SendLoginStdin 在 Windows 上返回平台不支持写入登录会话的错误
+// 接收调用上下文和请求参数，返回操作错误
 func (p *Plugin) SendLoginStdin(ctx context.Context, input plugin_dto.SendLoginStdinInput) error {
 	_ = ctx
 	_ = input
 	return ierror.Error(ierror.ErrRuntimeUnsupportedOS, errCliLoginUnsupportedOnWindows)
 }
 
-// ResizeLoginCli resizes the PTY window of a running login session.
+// ResizeLoginCli 在 Windows 上返回平台不支持调整登录会话尺寸的错误
+// 接收调用上下文和请求参数，返回操作错误
 func (p *Plugin) ResizeLoginCli(ctx context.Context, input plugin_dto.ResizeLoginCliInput) error {
 	_ = ctx
 	_ = input
 	return ierror.Error(ierror.ErrRuntimeUnsupportedOS, errCliLoginUnsupportedOnWindows)
 }
 
-// CancelLoginCli terminates a running login flow. Sets the orchestrator's abort
-// flag so the next step (if any) is skipped, and signals the current step's session
-// so its PTY dies and the orchestrator advances out of its output drain.
+// CancelLoginCli 在 Windows 上直接返回成功，因为此平台不会启动 CLI 登录流程
+// 接收调用上下文和请求参数，返回操作错误
 func (p *Plugin) CancelLoginCli(ctx context.Context, input plugin_dto.CancelLoginCliInput) error {
 	_ = ctx
 	_ = input

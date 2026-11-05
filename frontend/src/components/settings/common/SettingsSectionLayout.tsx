@@ -3,7 +3,8 @@ import { type ReactNode, useContext } from 'react'
 import { SettingsMenuContext } from '@/components/settings/SettingsShell'
 import { cn, isMac } from '@/lib/utils'
 
-function H5NavBar(props: { onClick: () => void }) {
+/** 渲染窄屏导航 栏界面，接收组件输入属性，返回组件内容 */
+function H5NavBar(props: { /* 处理点击事件，无返回值 */ onClick: () => void }) {
   return (
     <div className={cn(
       'flex shrink-0 items-end border-b border-border/50',
@@ -21,11 +22,16 @@ function H5NavBar(props: { onClick: () => void }) {
   )
 }
 
+/** 渲染设置区块布局界面，接收组件输入属性，返回组件内容 */
 export function SettingsSectionLayout(props: {
+  /** 侧栏 */
   sidebar?: ReactNode
+  /** 侧栏类名名称 */
   sidebarClassName?: string
+  /** 要渲染的子内容 */
   children: ReactNode
 }) {
+  /** 取出是否采用窄屏布局、二级菜单折叠、on展开菜单、on展开二级菜单 */
   const { isH5, submenuCollapsed, onOpenMenu, onOpenSubmenu } = useContext(SettingsMenuContext)
 
   if (isH5 && props.sidebar) {

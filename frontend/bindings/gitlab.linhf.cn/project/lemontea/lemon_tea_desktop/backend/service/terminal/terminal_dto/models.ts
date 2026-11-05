@@ -13,9 +13,12 @@ import * as data_models$0 from "../../../models/data_models/models.js";
 import * as terminal$0 from "../../../pkg/terminal/models.js";
 
 /**
- * ListTerminalsInput identifies the chat session whose terminals should be loaded.
+ * ListTerminalsInput 指定要查询终端列表的聊天会话
  */
 export class ListTerminalsInput {
+    /**
+     * 会话编号
+     */
     "session_id": number;
 
     /** Creates a new ListTerminalsInput instance. */
@@ -37,9 +40,12 @@ export class ListTerminalsInput {
 }
 
 /**
- * ListTerminalsOutput returns terminal metadata for a chat session.
+ * ListTerminalsOutput 返回指定聊天会话的终端元数据
  */
 export class ListTerminalsOutput {
+    /**
+     * 条目列表
+     */
     "items": terminal$0.Info[];
 
     /** Creates a new ListTerminalsOutput instance. */
@@ -65,10 +71,17 @@ export class ListTerminalsOutput {
 }
 
 /**
- * ReadTerminalOutputInput identifies the terminal and cursor to read from.
+ * ReadTerminalOutputInput 指定要读取的终端和起始字节游标
  */
 export class ReadTerminalOutputInput {
+    /**
+     * 终端编号
+     */
     "terminal_id": string;
+
+    /**
+     * 游标
+     */
     "cursor": number;
 
     /** Creates a new ReadTerminalOutputInput instance. */
@@ -93,9 +106,12 @@ export class ReadTerminalOutputInput {
 }
 
 /**
- * ReadTerminalOutputOutput returns terminal output chunks after the cursor.
+ * ReadTerminalOutputOutput 返回指定游标之后的终端输出片段
  */
 export class ReadTerminalOutputOutput {
+    /**
+     * 分片列表
+     */
     "chunks": terminal$0.TerminalOutputChunk[];
 
     /** Creates a new ReadTerminalOutputOutput instance. */
@@ -121,11 +137,22 @@ export class ReadTerminalOutputOutput {
 }
 
 /**
- * ResizeTerminalInput carries the current frontend terminal dimensions.
+ * ResizeTerminalInput 携带前端终端的当前尺寸
  */
 export class ResizeTerminalInput {
+    /**
+     * 终端编号
+     */
     "terminal_id": string;
+
+    /**
+     * 行数
+     */
     "rows": number;
+
+    /**
+     * 列数
+     */
     "cols": number;
 
     /** Creates a new ResizeTerminalInput instance. */
@@ -153,7 +180,7 @@ export class ResizeTerminalInput {
 }
 
 /**
- * ResizeTerminalOutput acknowledges that the resize request was handled.
+ * ResizeTerminalOutput 表示尺寸调整请求已处理
  */
 export class ResizeTerminalOutput {
 
@@ -173,10 +200,17 @@ export class ResizeTerminalOutput {
 }
 
 /**
- * WriteTerminalInputInput carries user input destined for an active terminal.
+ * WriteTerminalInputInput 携带要发送给活动终端的用户输入
  */
 export class WriteTerminalInputInput {
+    /**
+     * 终端编号
+     */
     "terminal_id": string;
+
+    /**
+     * 数据
+     */
     "data": string;
 
     /** Creates a new WriteTerminalInputInput instance. */
@@ -201,7 +235,7 @@ export class WriteTerminalInputInput {
 }
 
 /**
- * WriteTerminalInputOutput acknowledges that terminal input was accepted.
+ * WriteTerminalInputOutput 表示终端输入已接收
  */
 export class WriteTerminalInputOutput {
 

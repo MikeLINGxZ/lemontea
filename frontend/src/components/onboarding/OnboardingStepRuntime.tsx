@@ -5,31 +5,42 @@ import { Onboarding } from '@bindings/gitlab.linhf.cn/project/lemontea/lemon_tea
 import { Runtime } from '@bindings/gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/service/runtime/index'
 import { cn } from '@/lib/utils'
 
+/** 阶段的可选值 */
 type Phase = 'download' | 'extract' | 'verify'
 
+/** 运行环境视图的状态数据 */
 type RuntimeViewState =
-  | { kind: 'idle' }
-  | { kind: 'downloading'; phase: Phase; received: number; total: number; percent: number }
-  | { kind: 'ready'; version: string; installDir: string }
-  | { kind: 'failed'; message: string }
+  | { /* 类别标识 */ kind: 'idle' }
+  | { /* 类别标识 */ kind: 'downloading'; /* 阶段 */ phase: Phase; /* 已接收数量 */ received: number; /* 总量 */ total: number; /* 百分比 */ percent: number }
+  | { /* 类别标识 */ kind: 'ready'; /* 版本 */ version: string; /* 安装目录 */ installDir: string }
+  | { /* 类别标识 */ kind: 'failed'; /* 消息 */ message: string }
 
+/** 定义进度事件数据的数据结构 */
 type ProgressEventData = {
+  /** 阶段 */
   phase: Phase
+  /** 已接收数量 */
   received: number
+  /** 总量 */
   total: number
+  /** 百分比 */
   percent: number
 }
 
+/** 首次引导步骤运行环境组件接收的属性 */
 type Props = {
+  /** 处理返回事件，无返回值 */
   onBack: () => void
 }
 
+/** 展示运行环境下载进度，并处理安装、取消及稍后继续，接收组件输入属性，返回组件内容 */
 export function OnboardingStepRuntime(props: Props) {
-  const { t } = useTranslation()
-  const [state, setState] = useState<RuntimeViewState>({ kind: 'idle' })
+  const { t } = useTranslation() // 获取当前语言的翻译方法
+  const [state, setState] = useState<RuntimeViewState>({ kind: 'idle' }) // 当前状态及其更新方法
 
+  /** 同步外部状态并管理本次副作用的生命周期 */
   useEffect(() => {
-    let cancelled = false
+    let cancelled = false // 已取消
 
     Runtime.GetStatus({})
       .then((res) => {
@@ -52,8 +63,10 @@ export function OnboardingStepRuntime(props: Props) {
       })
       .catch(() => undefined)
 
-    const off = Events.On('runtime.node.progress', (evt: { data: ProgressEventData }) => {
-      const progress = evt.data
+    /** 订阅 runtime.node.progress 并保存解绑方法 */
+    const off = Events.On('runtime.node.progress', (evt: { /* 事件携带的数据 */ data: ProgressEventData }) => {
+      const progress = evt.data // 进度
+      /** 基于当前状态合并变化 */
       setState((prev) => {
         if (prev.kind === 'ready' || prev.kind === 'failed') {
           return prev
@@ -89,21 +102,25 @@ export function OnboardingStepRuntime(props: Props) {
     }
   }, [])
 
+  /** 启动下载，无返回值 */
   const startDownload = () => {
     setState({ kind: 'downloading', phase: 'download', received: 0, total: 0, percent: 0 })
     void Runtime.DownloadNode({})
   }
 
+  /** 下载稍后处理，完成后结束异步任务 */
   const downloadLater = async () => {
     await Runtime.MarkDownloadLater({})
     await Onboarding.EnterHome({})
   }
 
+  /** 取消下载，无返回值 */
   const cancelDownload = () => {
     void Runtime.CancelDownload({})
     setState({ kind: 'idle' })
   }
 
+  /** 进入主界面，无返回值 */
   const enterHome = () => {
     void Onboarding.EnterHome({})
   }
@@ -216,17 +233,19 @@ export function OnboardingStepRuntime(props: Props) {
   )
 }
 
+/** 将首字母转为大写处理，接收值，返回处理后的文本 */
 function capitalize(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1)
 }
 
+/** 将字节数转换为带单位的显示文本，接收值，返回处理后的文本 */
 function formatBytes(value: number): string {
   if (value <= 0) {
     return '0 B'
   }
-  const units = ['B', 'KB', 'MB', 'GB']
-  let unitIndex = 0
-  let current = value
+  const units = ['B', 'KB', 'MB', 'GB'] // 单位列表
+  let unitIndex = 0 // 单位索引
+  let current = value // 当前
   while (current >= 1024 && unitIndex < units.length - 1) {
     current /= 1024
     unitIndex += 1

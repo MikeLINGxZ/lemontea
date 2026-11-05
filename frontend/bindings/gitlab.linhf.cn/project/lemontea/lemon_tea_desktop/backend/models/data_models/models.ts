@@ -8,26 +8,74 @@ import { Create as $Create } from "@wailsio/runtime";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as gorm$0 from "../../../../../../../gorm.io/gorm/models.js";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore: Unused imports
-import * as time$0 from "../../../../../../../time/models.js";
 
 /**
- * ExtensionItem stores one imported MCP tool or plugin entry.
+ * ExtensionItem 保存一项已导入的 MCP 工具或插件
  */
 export class ExtensionItem {
+    /**
+     * 唯一标识
+     */
     "id": string;
+
+    /**
+     * 名称
+     */
     "name": string;
+
+    /**
+     * 描述
+     */
     "description": string;
+
+    /**
+     * 作者
+     */
     "author": string;
+
+    /**
+     * 版本
+     */
     "version": string;
+
+    /**
+     * 类别
+     */
     "kind": string;
+
+    /**
+     * 启用状态
+     */
     "enabled": boolean;
+
+    /**
+     * 运行环境状态
+     */
     "runtime_status": string;
+
+    /**
+     * 运行环境消息
+     */
     "runtime_message": string;
+
+    /**
+     * 根目录目录
+     */
     "root_dir": string;
+
+    /**
+     * 来源目录
+     */
     "source_dir": string;
+
+    /**
+     * 配置文件路径
+     */
     "config_file_path": string;
+
+    /**
+     * 工具列表
+     */
     "tools": ExtensionTool[];
 
     /** Creates a new ExtensionItem instance. */
@@ -89,14 +137,37 @@ export class ExtensionItem {
 }
 
 /**
- * ExtensionTool stores discovered tool metadata for an imported extension.
+ * ExtensionTool 保存导入扩展时发现的工具元数据
  */
 export class ExtensionTool {
+    /**
+     * 工具编号
+     */
     "tool_id": string;
+
+    /**
+     * 服务编号
+     */
     "server_id": string;
+
+    /**
+     * 名称
+     */
     "name": string;
+
+    /**
+     * 描述
+     */
     "description": string;
+
+    /**
+     * 启用状态
+     */
     "enabled": boolean;
+
+    /**
+     * 需要确认
+     */
     "requires_confirm": boolean;
 
     /** Creates a new ExtensionTool instance. */
@@ -133,17 +204,52 @@ export class ExtensionTool {
 }
 
 /**
- * TerminalOutputChunk stores an append-only slice of terminal output.
+ * TerminalOutputChunk 保存终端输出中只追加的一段数据
  */
 export class TerminalOutputChunk {
+    /**
+     * 唯一标识
+     */
     "id": number;
-    "created_at": time$0.Time;
-    "updated_at": time$0.Time;
+
+    /**
+     * 创建时间
+     */
+    "created_at": string;
+
+    /**
+     * 更新时间
+     */
+    "updated_at": string;
+
+    /**
+     * 软删除时间
+     */
     "deleted_at": gorm$0.DeletedAt;
+
+    /**
+     * 终端编号
+     */
     "terminal_id": string;
+
+    /**
+     * 序号
+     */
     "seq": number;
+
+    /**
+     * 游标开始
+     */
     "cursor_start": number;
+
+    /**
+     * 游标结束
+     */
     "cursor_end": number;
+
+    /**
+     * 数据
+     */
     "data": string;
 
     /** Creates a new TerminalOutputChunk instance. */
@@ -152,10 +258,10 @@ export class TerminalOutputChunk {
             this["id"] = 0;
         }
         if (!("created_at" in $$source)) {
-            this["created_at"] = null;
+            this["created_at"] = "0001-01-01T00:00:00.000Z";
         }
         if (!("updated_at" in $$source)) {
-            this["updated_at"] = null;
+            this["updated_at"] = "0001-01-01T00:00:00.000Z";
         }
         if (!("deleted_at" in $$source)) {
             this["deleted_at"] = null;

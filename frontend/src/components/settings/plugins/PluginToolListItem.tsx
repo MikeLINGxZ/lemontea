@@ -6,21 +6,29 @@ import { ConfirmDialog } from '@/components/settings/common/ConfirmDialog'
 import { useCliInstallStore } from '@/store/cliInstallStore'
 import type { ExtensionItem } from '@/types/settings'
 
+/** 渲染插件工具列表条目界面，接收组件输入属性，返回组件内容 */
 export function PluginToolListItem(props: {
+  /** 当前条目 */
   item: ExtensionItem
+  /** 选中项 */
   selected: boolean
+  /** 处理选择事件，接收当前条目的唯一编号，无返回值 */
   onSelect: (id: string) => void
+  /** 处理切换启用事件，接收当前条目，无返回值 */
   onToggleEnable: (item: ExtensionItem) => void
+  /** 处理重新加载事件，接收当前条目的唯一编号，无返回值 */
   onReload: (id: string) => void
+  /** 处理删除事件，接收当前条目的唯一编号，无返回值 */
   onDelete: (id: string) => void
 }) {
-  const { t } = useTranslation()
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
+  const { t } = useTranslation() // 获取当前语言的翻译方法
+  const [menuOpen, setMenuOpen] = useState(false) // 菜单展开及其更新方法
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false) // 确认删除展开及其更新方法
+  /** 从状态仓库读取安装进度 */
   const installProgress = useCliInstallStore((s) =>
     s.items.find((i) => i.name === props.item.name || i.extension_id === props.item.id),
   )
-  const progressWidth = installProgress ? phaseWidth(installProgress.phase) : '0%'
+  const progressWidth = installProgress ? phaseWidth(installProgress.phase) : '0%' // 进度宽度
 
   return (
     <>
@@ -102,7 +110,7 @@ export function PluginToolListItem(props: {
                   )}
                 >
                   <span className={cn(
-                    'inline-block h-[14px] w-[14px] rounded-full bg-white shadow-sm transition-transform duration-200',
+                    'inline-block h-[14px] w-[14px] rounded-full bg-white shadow-xs transition-transform duration-200',
                     props.item.enabled ? 'translate-x-[15px]' : 'translate-x-[2px]',
                   )} />
                 </button>
@@ -169,6 +177,7 @@ export function PluginToolListItem(props: {
   )
 }
 
+/** 阶段宽度处理，接收阶段，返回处理后的文本 */
 function phaseWidth(phase: string): string {
   switch (phase) {
     case 'pending':

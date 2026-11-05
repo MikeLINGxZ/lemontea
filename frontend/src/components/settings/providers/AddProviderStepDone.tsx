@@ -1,8 +1,9 @@
 import { CheckCircle2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+/** 新增模型服务商步骤完成，返回组件内容 */
 export function AddProviderStepDone() {
-  const { t } = useTranslation()
+  const { t } = useTranslation() // 获取当前语言的翻译方法
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
       <CheckCircle2 size={56} className="text-primary" />

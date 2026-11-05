@@ -9,7 +9,13 @@ import { Create as $Create } from "@wailsio/runtime";
 // @ts-ignore: Unused imports
 import * as view_model$0 from "../../../models/view_model/models.js";
 
+/**
+ * 封装应用文件设置所需的请求参数
+ */
 export class ApplyFileSettingsInput {
+    /**
+     * 目标目录
+     */
     "target_dir": string;
 
     /** Creates a new ApplyFileSettingsInput instance. */
@@ -30,6 +36,9 @@ export class ApplyFileSettingsInput {
     }
 }
 
+/**
+ * 封装应用文件设置返回给调用方的数据
+ */
 export class ApplyFileSettingsOutput {
 
     /** Creates a new ApplyFileSettingsOutput instance. */
@@ -47,6 +56,9 @@ export class ApplyFileSettingsOutput {
     }
 }
 
+/**
+ * 封装加载初始化数据所需的请求参数
+ */
 export class LoadBootstrapInput {
 
     /** Creates a new LoadBootstrapInput instance. */
@@ -64,7 +76,13 @@ export class LoadBootstrapInput {
     }
 }
 
+/**
+ * 封装加载初始化数据返回给调用方的数据
+ */
 export class LoadBootstrapOutput {
+    /**
+     * 初始化数据
+     */
     "bootstrap": view_model$0.SettingsBootstrap;
 
     /** Creates a new LoadBootstrapOutput instance. */
@@ -89,7 +107,13 @@ export class LoadBootstrapOutput {
     }
 }
 
+/**
+ * 封装保存显示设置所需的请求参数
+ */
 export class SaveDisplaySettingsInput {
+    /**
+     * 字体尺寸
+     */
     "font_size": string;
 
     /** Creates a new SaveDisplaySettingsInput instance. */
@@ -110,6 +134,9 @@ export class SaveDisplaySettingsInput {
     }
 }
 
+/**
+ * 封装保存显示设置返回给调用方的数据
+ */
 export class SaveDisplaySettingsOutput {
 
     /** Creates a new SaveDisplaySettingsOutput instance. */
@@ -127,8 +154,18 @@ export class SaveDisplaySettingsOutput {
     }
 }
 
+/**
+ * 封装保存地区设置所需的请求参数
+ */
 export class SaveLocaleSettingsInput {
+    /**
+     * 地区
+     */
     "locale": string;
+
+    /**
+     * 语言
+     */
     "language": string;
 
     /** Creates a new SaveLocaleSettingsInput instance. */
@@ -152,6 +189,9 @@ export class SaveLocaleSettingsInput {
     }
 }
 
+/**
+ * 封装保存地区设置返回给调用方的数据
+ */
 export class SaveLocaleSettingsOutput {
 
     /** Creates a new SaveLocaleSettingsOutput instance. */
@@ -169,7 +209,13 @@ export class SaveLocaleSettingsOutput {
     }
 }
 
+/**
+ * 封装保存快捷键设置所需的请求参数
+ */
 export class SaveShortcutSettingsInput {
+    /**
+     * 快捷聊天快捷键
+     */
     "quick_chat_shortcut": string;
 
     /** Creates a new SaveShortcutSettingsInput instance. */
@@ -190,9 +236,23 @@ export class SaveShortcutSettingsInput {
     }
 }
 
+/**
+ * 封装保存快捷键设置返回给调用方的数据
+ */
 export class SaveShortcutSettingsOutput {
+    /**
+     * 快捷聊天快捷键
+     */
     "quick_chat_shortcut": string;
+
+    /**
+     * 当前状态
+     */
     "status": string;
+
+    /**
+     * 消息
+     */
     "message": string;
 
     /** Creates a new SaveShortcutSettingsOutput instance. */
@@ -219,7 +279,13 @@ export class SaveShortcutSettingsOutput {
     }
 }
 
+/**
+ * 封装校验快捷键设置所需的请求参数
+ */
 export class ValidateShortcutSettingsInput {
+    /**
+     * 快捷聊天快捷键
+     */
     "quick_chat_shortcut": string;
 
     /** Creates a new ValidateShortcutSettingsInput instance. */
@@ -240,9 +306,23 @@ export class ValidateShortcutSettingsInput {
     }
 }
 
+/**
+ * 封装校验快捷键设置返回给调用方的数据
+ */
 export class ValidateShortcutSettingsOutput {
+    /**
+     * 快捷聊天快捷键
+     */
     "quick_chat_shortcut": string;
+
+    /**
+     * 当前状态
+     */
     "status": string;
+
+    /**
+     * 消息
+     */
     "message": string;
 
     /** Creates a new ValidateShortcutSettingsOutput instance. */

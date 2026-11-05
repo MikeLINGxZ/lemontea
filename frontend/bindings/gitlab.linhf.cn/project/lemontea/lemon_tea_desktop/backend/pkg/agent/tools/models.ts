@@ -6,16 +6,47 @@
 import { Create as $Create } from "@wailsio/runtime";
 
 /**
- * CliInstallProgressItem is the generic progress payload surfaced to the UI.
+ * CliInstallProgressItem 表示提供给界面的通用进度数据
  */
 export class CliInstallProgressItem {
+    /**
+     * npm包名
+     */
     "npm_package"?: string;
+
+    /**
+     * 名称
+     */
     "name"?: string;
+
+    /**
+     * 扩展编号
+     */
     "extension_id"?: string;
+
+    /**
+     * 阶段
+     */
     "phase": string;
+
+    /**
+     * 详情
+     */
     "detail"?: string;
+
+    /**
+     * 操作地址
+     */
     "action_url"?: string;
+
+    /**
+     * 操作标签
+     */
     "action_label"?: string;
+
+    /**
+     * 过期时间
+     */
     "expires_at"?: string;
 
     /** Creates a new CliInstallProgressItem instance. */

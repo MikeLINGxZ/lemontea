@@ -2,7 +2,7 @@ package provider_dto
 
 import "gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/models/view_model"
 
-// EditProviderInput carries all mutable fields for an existing provider.
+// EditProviderInput 包含已有提供商的全部可编辑字段
 type EditProviderInput struct {
 	ProviderId   int64              `json:"provider_id"`   // 供应商ID
 	ProviderName string             `json:"provider_name"` // 供应商名称
@@ -13,4 +13,5 @@ type EditProviderInput struct {
 	Models       []view_model.Model `json:"models"`        // 需要新增的模型（id=0 的条目）
 }
 
+// 封装处理编辑提供商返回给调用方的数据
 type EditProviderOutput struct{}

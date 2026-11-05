@@ -4,21 +4,33 @@ import { useTranslation } from 'react-i18next'
 import type { AlertAction, AlertItem } from '@/alert/types'
 import { useAlertStore } from '@/alert/store'
 
+/** 提醒卡片组件接收的属性 */
 type AlertCardProps = {
+  /** 提醒 */
   alert: AlertItem
 }
 
+/** 定义变体颜色组的数据结构 */
 type VariantColors = {
+  /** 卡片 */
   card: string
+  /** 图标 */
   icon: string
+  /** 标题 */
   title: string
+  /** 消息 */
   message: string
+  /** 弱化 */
   muted: string
+  /** 数量 */
   count: string
+  /** 分隔线 */
   divider: string
+  /** 关闭 */
   close: string
 }
 
+/** 变体颜色组处理，接收类别标识，返回对应的处理结果 */
 function variantColors(kind: AlertItem['kind']): VariantColors {
   switch (kind) {
     case 'error':
@@ -68,29 +80,34 @@ function variantColors(kind: AlertItem['kind']): VariantColors {
   }
 }
 
+/** 类别图标处理，接收类别标识、图标类名，返回对应的处理结果 */
 function kindIcon(kind: AlertItem['kind'], iconClass: string) {
-  const props = { size: 16, strokeWidth: 2, className: `shrink-0 ${iconClass}` } as const
+  const props = { size: 16, strokeWidth: 2, className: `shrink-0 ${iconClass}` } as const // 组件输入属性
   if (kind === 'error') return <CircleX {...props} />
   if (kind === 'warning') return <AlertTriangle {...props} />
   if (kind === 'success') return <CheckCircle2 {...props} />
   return <Info {...props} />
 }
 
+/** 操作类名名称处理，接收操作，返回处理后的文本 */
 function actionClassName(action: AlertAction): string {
   if (action.style === 'danger') return 'bg-red-500 text-white hover:bg-red-600'
   if (action.style === 'secondary') return 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
   return 'bg-primary text-primary-foreground hover:bg-primary/90'
 }
 
+/** 渲染单条提醒的正文、详情及操作，并管理展开和关闭动画，接收提醒，返回组件内容 */
 export function AlertCard({ alert }: AlertCardProps) {
-  const { t } = useTranslation()
-  const closeAlert = useAlertStore((state) => state.closeAlert)
-  const [detailsExpanded, setDetailsExpanded] = useState<boolean>(false)
-  const visibleActions = alert.actions.slice(0, 2)
-  const colors = variantColors(alert.kind)
+  const { t } = useTranslation() // 获取当前语言的翻译方法
+  const closeAlert = useAlertStore((state) => state.closeAlert) // 从状态仓库读取关闭提醒
+  const [detailsExpanded, setDetailsExpanded] = useState<boolean>(false) // 详情展开及其更新方法
+  const visibleActions = alert.actions.slice(0, 2) // 可见操作列表
+  const colors = variantColors(alert.kind) // 颜色组
 
+  /** 复制详情，完成后结束异步任务 */
   const copyDetails = async (): Promise<void> => {
     if (!alert.detail || !navigator.clipboard) return
+    /** 载荷 */
     const payload = [
       alert.title,
       alert.message,

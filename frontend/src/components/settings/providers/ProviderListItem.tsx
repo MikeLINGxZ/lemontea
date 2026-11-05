@@ -5,19 +5,27 @@ import { ConfirmDialog } from '@/components/settings/common/ConfirmDialog'
 import { cn } from '@/lib/utils'
 import type { ProviderItem } from '@/types/settings'
 
+/** 渲染服务商摘要并提供启用和默认设置操作，接收组件输入属性，返回组件内容 */
 export function ProviderListItem(props: {
+  /** 当前条目 */
   item: ProviderItem
+  /** 选中项 */
   selected: boolean
+  /** 处理选择事件，接收当前条目的唯一编号，无返回值 */
   onSelect: (id: number) => void
+  /** 处理切换启用事件，接收当前条目，无返回值 */
   onToggleEnable: (item: ProviderItem) => void
+  /** 处理集合默认事件，接收当前条目的唯一编号，无返回值 */
   onSetDefault: (id: number) => void
+  /** 处理删除事件，接收当前条目的唯一编号，无返回值 */
   onDelete: (id: number) => void
 }) {
-  const { t } = useTranslation()
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
-  const { item } = props
+  const { t } = useTranslation() // 获取当前语言的翻译方法
+  const [menuOpen, setMenuOpen] = useState(false) // 菜单展开及其更新方法
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false) // 确认删除展开及其更新方法
+  const { item } = props // 当前条目
 
+  /** 关闭菜单，无返回值 */
   const closeMenu = () => { setMenuOpen(false) }
 
   return (
@@ -80,7 +88,7 @@ export function ProviderListItem(props: {
                   )}
                 >
                   <span className={cn(
-                    'inline-block h-[14px] w-[14px] rounded-full bg-white shadow-sm transition-transform duration-200',
+                    'inline-block h-[14px] w-[14px] rounded-full bg-white shadow-xs transition-transform duration-200',
                     item.enabled ? 'translate-x-[15px]' : 'translate-x-[2px]'
                   )} />
                 </button>

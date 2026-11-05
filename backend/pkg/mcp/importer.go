@@ -6,37 +6,41 @@ import (
 	"path/filepath"
 )
 
-// copyDirectory recursively copies a directory tree into the target path.
+// copyDirectory 递归地将目录树复制到目标路径
+// 接收来源目录、目标目录，返回操作错误
 func copyDirectory(sourceDir string, targetDir string) error {
-	if err := os.RemoveAll(targetDir); err != nil {
-		return err
+	removeErr := os.RemoveAll(targetDir) // 移除指定路径下的数据时的错误
+	if removeErr != nil {
+		return removeErr
 	}
 	return filepath.Walk(sourceDir, func(path string, info os.FileInfo, err error) error {
+		// 处理遍历时调用的回调，接收文件路径、信息、操作错误，返回操作错误
 		if err != nil {
 			return err
 		}
 
-		relPath, err := filepath.Rel(sourceDir, path)
+		relPath, err := filepath.Rel(sourceDir, path) // 相对路径路径
 		if err != nil {
 			return err
 		}
-		destPath := filepath.Join(targetDir, relPath)
+		destPath := filepath.Join(targetDir, relPath) // 目标路径路径
 
 		if info.IsDir() {
 			return os.MkdirAll(destPath, 0o755)
 		}
 
-		if err := os.MkdirAll(filepath.Dir(destPath), 0o755); err != nil {
-			return err
+		mkdirErr := os.MkdirAll(filepath.Dir(destPath), 0o755) // 创建所需目录时的错误
+		if mkdirErr != nil {
+			return mkdirErr
 		}
 
-		sourceFile, err := os.Open(path)
+		sourceFile, err := os.Open(path) // 来源文件
 		if err != nil {
 			return err
 		}
 		defer sourceFile.Close()
 
-		targetFile, err := os.OpenFile(destPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
+		targetFile, err := os.OpenFile(destPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644) // 目标文件
 		if err != nil {
 			return err
 		}

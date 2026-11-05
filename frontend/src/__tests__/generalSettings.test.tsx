@@ -126,6 +126,60 @@ describe('DisplaySettingsView', () => {
     })
   })
 
+  it('records shifted number keys by physical key code', async () => {
+    const { Settings } = await import('@bindings/gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/service/settings')
+    vi.mocked(Settings.ValidateShortcutSettings).mockResolvedValueOnce({
+      quick_chat_shortcut: 'Ctrl+Shift+1',
+      status: 'available',
+      message: '',
+    })
+
+    useSettingsStore.setState({
+      generalTab: 'shortcuts',
+      quickChatShortcut: 'CmdOrCtrl+Shift+Space',
+      shortcutDraft: { quickChatShortcut: 'CmdOrCtrl+Shift+Space' },
+      shortcutDirty: false,
+      shortcutValidation: { status: 'idle', message: '' },
+    })
+
+    render(<GeneralSettingsPanel />)
+
+    await userEvent.click(screen.getByRole('button', { name: /记录快捷键/i }))
+    fireEvent.keyDown(window, { key: '!', code: 'Digit1', ctrlKey: true, shiftKey: true })
+
+    await waitFor(() => {
+      expect(Settings.ValidateShortcutSettings).toHaveBeenCalledWith({ quick_chat_shortcut: 'Ctrl+Shift+1' })
+      expect(screen.getByText('Ctrl+Shift+1')).toBeInTheDocument()
+    })
+  })
+
+  it('records common punctuation keys by physical key code', async () => {
+    const { Settings } = await import('@bindings/gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/service/settings')
+    vi.mocked(Settings.ValidateShortcutSettings).mockResolvedValueOnce({
+      quick_chat_shortcut: 'Ctrl+Alt+Slash',
+      status: 'available',
+      message: '',
+    })
+
+    useSettingsStore.setState({
+      generalTab: 'shortcuts',
+      quickChatShortcut: 'CmdOrCtrl+Shift+Space',
+      shortcutDraft: { quickChatShortcut: 'CmdOrCtrl+Shift+Space' },
+      shortcutDirty: false,
+      shortcutValidation: { status: 'idle', message: '' },
+    })
+
+    render(<GeneralSettingsPanel />)
+
+    await userEvent.click(screen.getByRole('button', { name: /记录快捷键/i }))
+    fireEvent.keyDown(window, { key: '/', code: 'Slash', ctrlKey: true, altKey: true })
+
+    await waitFor(() => {
+      expect(Settings.ValidateShortcutSettings).toHaveBeenCalledWith({ quick_chat_shortcut: 'Ctrl+Alt+Slash' })
+      expect(screen.getByText('Ctrl+Alt+Slash')).toBeInTheDocument()
+    })
+  })
+
   it('cancels shortcut recording when Escape is pressed', async () => {
     const { Settings } = await import('@bindings/gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/service/settings')
     vi.mocked(Settings.ValidateShortcutSettings).mockClear()

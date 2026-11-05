@@ -1,20 +1,35 @@
 import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
+/** 渲染设置操作栏界面，接收组件输入属性，返回组件内容 */
 export function SettingsActionBar(props: {
+  /** 主操作标签 */
   primaryLabel: string
+  /** 主操作禁用状态 */
   primaryDisabled?: boolean
+  /** 处理主操作点击事件，无返回值 */
   onPrimaryClick: () => void
+  /** 次操作标签 */
   secondaryLabel?: string
+  /** 次操作禁用状态 */
   secondaryDisabled?: boolean
+  /** 处理次操作点击事件，无返回值 */
   onSecondaryClick?: () => void
+  /** 危险操作标签 */
   dangerLabel?: string
+  /** 处理危险操作点击事件，无返回值 */
   onDangerClick?: () => void
+  /** 重新加载标签 */
   reloadLabel?: string
+  /** 处理重新加载点击事件，无返回值 */
   onReloadClick?: () => void
+  /** 重新生成标签 */
   regenerateLabel?: string
+  /** 重新生成加载中 */
   regenerateLoading?: boolean
+  /** 重新生成禁用状态 */
   regenerateDisabled?: boolean
+  /** 处理重新生成点击事件，无返回值 */
   onRegenerateClick?: () => void
 }) {
   return (

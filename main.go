@@ -36,24 +36,33 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/events"
 )
 
+// 嵌入 Go 可执行文件的前端构建产物
+//
 //go:embed all:frontend/dist
 var assets embed.FS
 
+// 注册前端可订阅的自定义时间事件
 func init() {
 	application.RegisterEvent[string]("time")
 }
 
+// 初始化桌面应用并阻塞在 Wails 事件循环中
+// 先打开存储、迁移旧版扩展目录，再按依赖顺序构造服务
+// 将服务、快捷键和窗口注册到应用后启动事件循环
 func main() {
-	istorage, err := storage.NewStorage()
+	istorage, err := storage.NewStorage() // 存储接口、构建存储时的错误
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	dataDir, derr := dir.GetDataDir()
+	dataDir, derr := dir.GetDataDir() // 应用数据目录和读取错误
 	if derr == nil {
-		if result, merr := migration.MigrateExtensionDirs(dataDir); merr != nil {
+		// 迁移旧版扩展目录并收集可继续启动的警告
+		result, merr := migration.MigrateExtensionDirs(dataDir)
+		if merr != nil {
 			log.Printf("extension dir migration failed: %v", merr)
 		} else if len(result.Warnings) > 0 {
+			// 逐条记录迁移警告
 			for _, w := range result.Warnings {
 				log.Printf("extension dir migration warning: %s", w)
 			}
@@ -62,35 +71,42 @@ func main() {
 		log.Printf("skip extension dir migration: cannot resolve data dir: %v", derr)
 	}
 
-	providerService := provider.NewProvider(istorage)
-	onboardingService := onboardingSvc.NewOnboarding(providerService)
+	providerService := provider.NewProvider(istorage)                 // 提供商服务
+	onboardingService := onboardingSvc.NewOnboarding(providerService) // 首次引导服务
 
-	// Create skills manager (needs the skills root directory).
+	// 使用技能根目录创建技能管理器
 	skillsManager := skills.NewManager(dir.SkillsRoot(dataDir))
-	if err := skillsManager.Refresh(nil); err != nil {
-		// Log warning but don't fail startup — skills are optional.
-		log.Printf("warning: failed to refresh skills: %v", err)
+	refreshErr := skillsManager.Refresh(nil) // 刷新技能列表时的错误
+	if refreshErr != nil {
+		// 技能是可选功能，初始化失败时记录警告并继续启动
+		log.Printf("warning: failed to refresh skills: %v", refreshErr)
 	}
 
-	// Create the plugin and agent services — plugin must come first so its CLI bridge can be wired in.
+	// 先创建插件服务，再创建 Agent 服务，以便接入插件的 CLI 桥接能力
 	pluginService := pluginSvc.NewPlugin()
-	memoryService := memorySvc.NewMemory(istorage)
-	notificationService := notificationSvc.NewNotification(istorage)
-	terminalManager := pkgterminal.NewManager(istorage, nil)
-	terminalService := terminalSvc.NewTerminalWithManager(terminalManager)
-	windowService := &window.Window{}
+	memoryService := memorySvc.NewMemory(istorage)                         // 记忆服务
+	notificationService := notificationSvc.NewNotification(istorage)       // 通知服务
+	terminalManager := pkgterminal.NewManager(istorage, nil)               // 终端管理器
+	terminalService := terminalSvc.NewTerminalWithManager(terminalManager) // 终端服务
+	windowService := &window.Window{}                                      // 窗口服务
+	// 快捷聊天快捷键、加载快捷聊天快捷键对应启动时的错误
 	quickChatShortcut, shortcutErr := settings.LoadQuickChatShortcutForStartup()
 	if shortcutErr != nil {
 		log.Printf("load quick chat shortcut failed, using default: %v", shortcutErr)
 		quickChatShortcut = global_hotkey.DefaultQuickChatShortcut()
 	}
-	quickChatService := global_hotkey.NewQuickChatServiceWithShortcut(func() {
+	// 快捷聊天服务
+	quickChatService := global_hotkey.NewQuickChatServiceWithShortcut( /* 接到全局快捷键事件后切换快捷聊天窗口 */ func() {
 		log.Printf("quick chat global hotkey pressed")
-		if _, err := windowService.ToggleQuickChat(context.Background(), window_dto.ToggleQuickChatInput{}); err != nil {
+		// 切换快捷聊天时的错误
+		_, err := windowService.ToggleQuickChat(context.Background(), window_dto.ToggleQuickChatInput{})
+		if err != nil {
 			log.Printf("quick chat toggle failed: %v", err)
 		}
 	}, quickChatShortcut)
+	// 设置服务
 	settingsService := settings.NewSettings(settings.Dependencies{QuickChatShortcuts: quickChatService})
+	// 智能体服务
 	agentService := agentSvc.NewAgent(istorage, agentSvc.Dependencies{
 		SkillProvider:        skillsManager,
 		AttentionRequester:   notificationService,
@@ -102,6 +118,7 @@ func main() {
 		TerminalRunner:       terminalManager,
 	})
 
+	// Wails 应用实例
 	app := application.New(application.Options{
 		Name:        window_id.Home,
 		Description: "A demo of using raw HTML & CSS",
@@ -123,9 +140,11 @@ func main() {
 			application.NewService(notificationService),
 		},
 		KeyBindings: map[string]func(window application.Window){
-			quickChatShortcut: func(window application.Window) {
+			quickChatShortcut: /* 执行当前步骤的回调，接收窗口，无返回值 */ func(window application.Window) {
 				log.Printf("quick chat app-level shortcut pressed")
-				if _, err := windowService.ToggleQuickChat(context.Background(), window_dto.ToggleQuickChatInput{}); err != nil {
+				// 切换快捷聊天时的错误
+				_, err := windowService.ToggleQuickChat(context.Background(), window_dto.ToggleQuickChatInput{})
+				if err != nil {
 					log.Printf("quick chat toggle failed: %v", err)
 				}
 			},
@@ -138,14 +157,15 @@ func main() {
 		},
 	})
 
+	// 初始化状态
 	initState, err := onboardingService.IsInitialized(context.Background(), onboarding_dto.IsInitializedInput{})
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	if initState != nil && initState.Initialized {
-		win := app.Window.NewWithOptions(window_options.DefaultHome())
-		win.OnWindowEvent(events.Common.WindowFilesDropped, func(event *application.WindowEvent) {
+		win := app.Window.NewWithOptions(window_options.DefaultHome()) // 待操作的窗口
+		win.OnWindowEvent(events.Common.WindowFilesDropped /* 处理窗口事件时调用的回调，接收事件，无返回值 */, func(event *application.WindowEvent) {
 			application.Get().Event.Emit("files-dropped", map[string]any{
 				"files": event.Context().DroppedFiles(),
 			})
@@ -153,11 +173,12 @@ func main() {
 	} else {
 		app.Window.NewWithOptions(window_options.DefaultOnboarding())
 	}
-	quickChatOptions := window_options.DefaultQuickChat()
+	quickChatOptions := window_options.DefaultQuickChat() // 快捷聊天选项列表
 	quickChatOptions.Title = i18n.TCurrent("app.window.quick_chat_title", nil)
 	app.Window.NewWithOptions(quickChatOptions)
 
-	if err := app.Run(); err != nil {
-		log.Fatal(err)
+	runErr := app.Run() // 运行 Wails 应用时的错误
+	if runErr != nil {
+		log.Fatal(runErr)
 	}
 }

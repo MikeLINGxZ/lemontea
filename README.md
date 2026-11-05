@@ -78,9 +78,9 @@ Settings are organized around real product surfaces: general preferences, model 
 
 ## Tech Stack
 
-- Desktop framework: Wails 3
-- Backend: Go 1.25
-- Frontend: React 18, TypeScript, Vite, Tailwind CSS
+- Desktop framework: Wails v3.1.0
+- Backend: Go 1.26+
+- Frontend: React 19.3, TypeScript 7.0, Vite 8.3, Tailwind CSS 4.3
 - State management: Zustand
 - Storage: SQLite / GORM
 - Testing: Go test, Vitest, Testing Library
@@ -90,9 +90,12 @@ Settings are organized around real product surfaces: general preferences, model 
 
 Install the following tools first:
 
-- Go 1.25 or a compatible version
+- Go 1.26 or later
 - Node.js and npm
-- Wails 3 CLI
+- Wails v3.1.0 CLI (`go install github.com/wailsapp/wails/v3/cmd/wails3@v3.1.0`)
+
+Use Go 1.26 to build for macOS 12. Builds with Go 1.27 require macOS 13 or later.
+The macOS WebView needs the WebKit version included with Safari 16.4 or later for Tailwind CSS 4.
 
 Check your environment:
 
@@ -131,10 +134,10 @@ wails3 dev -config ./build/config.yml -port 9246
 wails3 dev -config ./build/config.yml
 
 # Build the desktop app for the current platform
-wails3 build -config ./build/config.yml
+wails3 build
 
 # Package production artifacts for the current platform
-wails3 package -config ./build/config.yml
+wails3 package
 
 # Generate frontend Wails bindings
 wails3 generate bindings -clean=true -ts

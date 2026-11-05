@@ -3,19 +3,28 @@ import { Check, ChevronDown, Wrench, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 
+/** 工具调用区块组件接收的属性 */
 type Props = {
+  /** 工具名称 */
   toolName: string
+  /** 用途 */
   purpose: string
+  /** 参数 */
   args: string
+  /** 本次调用的结果 */
   result: string
+  /** 用户备注 */
   userComment?: string
+  /** 状态 */
   status: 'executing' | 'completed' | 'failed' | 'user_commented' | 'user_rejected'
 }
 
+/** 渲染工具调用区块界面，接收组件属性，返回组件内容 */
 export function ToolCallBlock({ toolName, purpose, args, result, userComment, status }: Props) {
-  const { t } = useTranslation()
-  const [expanded, setExpanded] = useState(false)
+  const { t } = useTranslation() // 获取当前语言的翻译方法
+  const [expanded, setExpanded] = useState(false) // 展开及其更新方法
 
+  /** 状态图标 */
   const statusIcon = {
     executing: <Wrench size={12} className="animate-spin" />,
     completed: <Check size={12} className="text-green-500" />,

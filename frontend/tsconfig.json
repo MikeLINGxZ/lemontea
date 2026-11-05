@@ -6,7 +6,7 @@
     "module": "ESNext",
     "skipLibCheck": true,
 
-    /* Bundler mode */
+    /* 使用 Vite 的模块解析方式 */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
@@ -14,18 +14,16 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
-    /* Linting */
+    /* 类型和未使用声明检查 */
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": false,
-    "noImplicitAny": false,
     "noFallthroughCasesInSwitch": true,
 
-    /* Path aliases */
-    "baseUrl": ".",
+    /* 手写源码和生成绑定的导入别名 */
     "paths": {
-      "@/*": ["src/*"],
-      "@bindings/*": ["bindings/*"]
+      "@/*": ["./src/*"],
+      "@bindings/*": ["./bindings/*"]
     }
   },
   "include": ["src", "bindings"],

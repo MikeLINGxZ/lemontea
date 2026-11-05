@@ -9,6 +9,9 @@ import { Create as $Create } from "@wailsio/runtime";
 // @ts-ignore: Unused imports
 import * as view_model$0 from "../../../models/view_model/models.js";
 
+/**
+ * 封装处理语言列表所需的请求参数
+ */
 export class LanguageListInput {
 
     /** Creates a new LanguageListInput instance. */
@@ -26,7 +29,13 @@ export class LanguageListInput {
     }
 }
 
+/**
+ * 封装处理语言列表返回给调用方的数据
+ */
 export class LanguageListOutput {
+    /**
+     * 语言列表
+     */
     "languages": view_model$0.Language[];
 
     /** Creates a new LanguageListOutput instance. */
@@ -51,6 +60,9 @@ export class LanguageListOutput {
     }
 }
 
+/**
+ * 封装处理区域列表所需的请求参数
+ */
 export class RegionListInput {
 
     /** Creates a new RegionListInput instance. */
@@ -68,7 +80,13 @@ export class RegionListInput {
     }
 }
 
+/**
+ * 封装处理区域列表返回给调用方的数据
+ */
 export class RegionListOutput {
+    /**
+     * 地区列表
+     */
     "regions": view_model$0.Region[];
 
     /** Creates a new RegionListOutput instance. */
@@ -93,6 +111,9 @@ export class RegionListOutput {
     }
 }
 
+/**
+ * 封装处理受支持提供商列表所需的请求参数
+ */
 export class SupportedProviderListInput {
 
     /** Creates a new SupportedProviderListInput instance. */
@@ -110,7 +131,13 @@ export class SupportedProviderListInput {
     }
 }
 
+/**
+ * 封装处理受支持提供商列表返回给调用方的数据
+ */
 export class SupportedProviderListOutput {
+    /**
+     * 受支持提供商列表
+     */
     "supported_providers": view_model$0.SupportedProvider[];
 
     /** Creates a new SupportedProviderListOutput instance. */

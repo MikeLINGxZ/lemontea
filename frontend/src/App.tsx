@@ -14,12 +14,13 @@ import { useNotificationsSubscription } from '@/hooks/useNotificationsSubscripti
 import { useCliInstallSubscription } from '@/hooks/useCliInstallSubscription'
 import { useDisableInputAssistance } from '@/hooks/useDisableInputAssistance'
 
+/** 根据窗口入口组装主界面、设置页、快速聊天和首次引导，并挂载全局同步组件，返回组件内容 */
 function App() {
   useNotificationsSubscription()
   useCliInstallSubscription()
   useDisableInputAssistance()
-  const params = new URLSearchParams(window.location.search)
-  const entry = params.get('entry')
+  const params = new URLSearchParams(window.location.search) // 参数
+  const entry = params.get('entry') // 当前窗口入口
 
   if (entry === 'onboarding') {
     return <OnboardingApp />

@@ -34,23 +34,35 @@ import { SelectFolderInput } from '@bindings/gitlab.linhf.cn/project/lemontea/le
 import type { ProviderWrapper } from '@bindings/gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/service/provider/provider_dto/models'
 import type { ExtensionItem as BindingExtensionItem } from '@bindings/gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/models/data_models/models'
 import type { ExtensionItem, ProviderItem } from '@/types/settings'
+import { resolveProviderType } from '@/lib/provider'
 
+/** 运行环境阶段的可选值 */
 type RuntimePhase = 'download' | 'extract' | 'verify'
 
+/** 运行环境进度事件的数据 */
 type RuntimeProgressEvent = {
+  /** 阶段 */
   phase: RuntimePhase
+  /** 已接收数量 */
   received: number
+  /** 总量 */
   total: number
+  /** 百分比 */
   percent: number
 }
 
+/** 登录对话框的状态数据 */
 type LoginDialogState = {
+  /** 当前条目的唯一编号 */
   id: string
+  /** 标题 */
   title: string
 }
 
+/** 运行环境浮动提示键 */
 const RUNTIME_TOAST_KEY = 'plugins-runtime-download-toast'
 
+/** 将后端服务商信息转换为设置页面条目，接收w，返回对应的处理结果 */
 function mapProviderItem(w: ProviderWrapper): ProviderItem {
   return {
     id: w.providers.id,
@@ -76,7 +88,9 @@ function mapProviderItem(w: ProviderWrapper): ProviderItem {
   }
 }
 
+/** 将后端扩展信息转换为设置页面条目，接收当前条目，返回对应的处理结果 */
 function mapExtensionItem(item: BindingExtensionItem): ExtensionItem {
+  /** 类别标识 */
   const kind: 'mcp' | 'plugin' | 'cli' = item.kind === 'plugin' || item.kind === 'cli' ? item.kind : 'mcp'
   return {
     ...item,
@@ -85,50 +99,55 @@ function mapExtensionItem(item: BindingExtensionItem): ExtensionItem {
   }
 }
 
+/** 协调设置分区、服务商、扩展和运行环境的加载与保存，返回组件内容 */
 export function SettingsApp() {
   useSettingsBootstrap()
-  const { t } = useTranslation()
+  const { t } = useTranslation() // 获取当前语言的翻译方法
 
-  const setProviders = useSettingsStore((state) => state.setProviders)
-  const setExtensions = useSettingsStore((state) => state.setExtensions)
-  const updateProvider = useSettingsStore((state) => state.updateProvider)
-  const updateExtension = useSettingsStore((state) => state.updateExtension)
-  const deleteProvider = useSettingsStore((state) => state.deleteProvider)
-  const deleteExtension = useSettingsStore((state) => state.deleteExtension)
-  const setDefaultProvider = useSettingsStore((state) => state.setDefaultProvider)
-  const cliInstallUpsert = useCliInstallStore((state) => state.upsert)
-  const createConversation = useChatStore((state) => state.createConversation)
-  const sendMessage = useChatStore((state) => state.sendMessage)
-  const setCurrentConversation = useChatStore((state) => state.setCurrentConversation)
-  const [selectedExtensionConfig, setSelectedExtensionConfig] = useState<string>('')
-  const [pluginLoading, setPluginLoading] = useState(false)
-  const [cliModalOpen, setCliModalOpen] = useState(false)
-  const [loginDialog, setLoginDialog] = useState<LoginDialogState | null>(null)
-  const loginDialogRef = useRef<LoginDialogState | null>(null)
+  const setProviders = useSettingsStore((state) => state.setProviders) // 从状态仓库读取集合服务商列表
+  const setExtensions = useSettingsStore((state) => state.setExtensions) // 从状态仓库读取集合扩展列表
+  const updateProvider = useSettingsStore((state) => state.updateProvider) // 从状态仓库读取更新模型服务商
+  const updateExtension = useSettingsStore((state) => state.updateExtension) // 从状态仓库读取更新扩展
+  const deleteProvider = useSettingsStore((state) => state.deleteProvider) // 从状态仓库读取删除模型服务商
+  const deleteExtension = useSettingsStore((state) => state.deleteExtension) // 从状态仓库读取删除扩展
+  const setDefaultProvider = useSettingsStore((state) => state.setDefaultProvider) // 从状态仓库读取集合默认模型服务商
+  const cliInstallUpsert = useCliInstallStore((state) => state.upsert) // 从状态仓库读取CLI安装新增或更新
+  const createConversation = useChatStore((state) => state.createConversation) // 从状态仓库读取创建会话
+  const sendMessage = useChatStore((state) => state.sendMessage) // 将用户消息和模型配置提交到后端，并记录本轮生成状态
+  const setCurrentConversation = useChatStore((state) => state.setCurrentConversation) // 从状态仓库读取集合当前会话
+  const [selectedExtensionConfig, setSelectedExtensionConfig] = useState<string>('') // 选中项扩展配置及其更新方法
+  const [pluginLoading, setPluginLoading] = useState(false) // 插件加载中及其更新方法
+  const [cliModalOpen, setCliModalOpen] = useState(false) // CLI模态框展开及其更新方法
+  const [loginDialog, setLoginDialog] = useState<LoginDialogState | null>(null) // 登录对话框及其更新方法
+  const loginDialogRef = useRef<LoginDialogState | null>(null) // 登录对话框引用，供后续读取当前值
 
+  /** 刷新服务商列表，完成后结束异步任务 */
   const refreshProviders = useCallback(async () => {
     try {
-      const result = await ProviderBinding.ListProviders({})
+      const result = await ProviderBinding.ListProviders({}) // 保存本次调用的结果
       if (result?.providers) {
         setProviders(result.providers.map(mapProviderItem))
       }
     } catch {
-      // ignore
+      // 忽略本次失败并保留当前界面状态
     }
   }, [setProviders])
 
+  /** 刷新扩展列表，完成后结束异步任务 */
   const refreshExtensions = useCallback(async () => {
     try {
-      const result = await PluginBinding.ListExtensions({})
+      const result = await PluginBinding.ListExtensions({}) // 保存本次调用的结果
       if (result?.extensions) {
         setExtensions(result.extensions.map(mapExtensionItem))
       }
     } catch {
-      // ignore
+      // 忽略本次失败并保留当前界面状态
     }
   }, [setExtensions])
 
+  /** 同步外部状态并管理本次副作用的生命周期 */
   useEffect(() => {
+    /** 处理焦点，无返回值 */
     const handleFocus = () => {
       void refreshProviders()
       void refreshExtensions()
@@ -137,8 +156,9 @@ export function SettingsApp() {
     return () => window.removeEventListener('focus', handleFocus)
   }, [refreshExtensions, refreshProviders])
 
+  /** 处理切换启用，接收当前条目，完成后结束异步任务 */
   const handleToggleEnable = useCallback(async (item: ProviderItem) => {
-    const updated = { ...item, enabled: !item.enabled }
+    const updated = { ...item, enabled: !item.enabled } // 更新
     updateProvider(updated)
     try {
       await ProviderBinding.EditProvider(new EditProviderInput({
@@ -155,39 +175,44 @@ export function SettingsApp() {
     }
   }, [updateProvider])
 
+  /** 处理集合默认，接收当前条目的唯一编号，完成后结束异步任务 */
   const handleSetDefault = useCallback(async (id: number) => {
     try {
       await ProviderBinding.SetDefault({ provider_id: id, model_id: null })
       setDefaultProvider(id)
     } catch {
-      // ignore
+      // 忽略本次失败并保留当前界面状态
     }
   }, [setDefaultProvider])
 
+  /** 处理删除起点列表，接收当前条目的唯一编号，完成后结束异步任务 */
   const handleDeleteFromList = useCallback(async (id: number) => {
     try {
       await ProviderBinding.DeleteProvider({ provider_id: id })
       deleteProvider(id)
     } catch {
-      // ignore
+      // 忽略本次失败并保留当前界面状态
     }
   }, [deleteProvider])
 
-  const activeTab = useSettingsStore((state) => state.activeTab)
-  const generalTab = useSettingsStore((state) => state.generalTab)
-  const setActiveTab = useSettingsStore((state) => state.setActiveTab)
-  const setGeneralTab = useSettingsStore((state) => state.setGeneralTab)
-  const version = useSettingsStore((state) => state.version)
-  const providers = useSettingsStore((state) => state.providers)
-  const defaultProviderId = useSettingsStore((state) => state.defaultProviderId)
-  const extensions = useSettingsStore((state) => state.extensions)
-  const selectedProviderId = useSettingsStore((state) => state.selectedProviderId)
-  const selectedExtensionId = useSettingsStore((state) => state.selectedExtensionId)
+  const activeTab = useSettingsStore((state) => state.activeTab) // 从状态仓库读取当前标签页
+  const generalTab = useSettingsStore((state) => state.generalTab) // 从状态仓库读取常规标签页
+  const setActiveTab = useSettingsStore((state) => state.setActiveTab) // 从状态仓库读取集合当前标签页
+  const setGeneralTab = useSettingsStore((state) => state.setGeneralTab) // 从状态仓库读取集合常规标签页
+  const version = useSettingsStore((state) => state.version) // 从状态仓库读取版本
+  const providers = useSettingsStore((state) => state.providers) // 从状态仓库读取服务商列表
+  const defaultProviderId = useSettingsStore((state) => state.defaultProviderId) // 从状态仓库读取默认模型服务商编号
+  const extensions = useSettingsStore((state) => state.extensions) // 从状态仓库读取扩展列表
+  const selectedProviderId = useSettingsStore((state) => state.selectedProviderId) // 从状态仓库读取选中项模型服务商编号
+  const selectedExtensionId = useSettingsStore((state) => state.selectedExtensionId) // 从状态仓库读取选中项扩展编号
+  /** 从状态仓库读取集合选中项模型服务商编号 */
   const setSelectedProviderId = useSettingsStore((state) => state.setSelectedProviderId)
+  /** 从状态仓库读取集合选中项扩展编号 */
   const setSelectedExtensionId = useSettingsStore((state) => state.setSelectedExtensionId)
-  const pushAlert = useAlertStore((state) => state.pushAlert)
-  const memoryController = useMemoryController(activeTab === 'memory')
+  const pushAlert = useAlertStore((state) => state.pushAlert) // 从状态仓库读取加入提醒
+  const memoryController = useMemoryController(activeTab === 'memory') // 记忆控制器
 
+  /** 常规条目列表 */
   const generalItems = [
     { key: 'display' as const, label: t('settingsPage.general.display.title'), icon: <MonitorSmartphone size={16} /> },
     { key: 'locale' as const, label: t('settingsPage.general.locale.title'), icon: <Languages size={16} /> },
@@ -195,19 +220,22 @@ export function SettingsApp() {
     { key: 'file' as const, label: t('settingsPage.general.file.title'), icon: <Globe2 size={16} className="rotate-45" /> },
   ]
 
+  /** 同步外部状态并管理本次副作用的生命周期 */
   useEffect(() => {
-    const tab = new URLSearchParams(window.location.search).get('tab')
+    const tab = new URLSearchParams(window.location.search).get('tab') // 标签页
     if (tab === 'general' || tab === 'providers' || tab === 'plugins' || tab === 'skills' || tab === 'memory' || tab === 'about') {
       setActiveTab(tab)
     }
   }, [setActiveTab])
 
+  /** 同步外部状态并管理本次副作用的生命周期 */
   useEffect(() => {
     void refreshExtensions()
   }, [refreshExtensions])
 
+  /** 同步外部状态并管理本次副作用的生命周期 */
   useEffect(() => {
-    let cancelled = false
+    let cancelled = false // 已取消
 
     if (activeTab !== 'plugins') {
       return
@@ -240,6 +268,7 @@ export function SettingsApp() {
               label: t('onboarding.actions.downloadNow'),
               style: 'primary',
               closeOnClick: false,
+              /** 处理点击事件，无返回值 */
               onClick: () => {
                 pushAlert({
                   kind: 'info',
@@ -271,13 +300,15 @@ export function SettingsApp() {
     }
   }, [activeTab, pushAlert, t])
 
+  /** 同步外部状态并管理本次副作用的生命周期 */
   useEffect(() => {
     if (activeTab !== 'plugins') {
       return
     }
 
-    const off = Events.On('runtime.node.progress', (event: { data: RuntimeProgressEvent }) => {
-      const progress = event.data
+    /** 订阅 runtime.node.progress 并保存解绑方法 */
+    const off = Events.On('runtime.node.progress', (event: { /* 事件携带的数据 */ data: RuntimeProgressEvent }) => {
+      const progress = event.data // 进度
       pushAlert({
         kind: 'info',
         placement: 'toast',
@@ -321,14 +352,16 @@ export function SettingsApp() {
     }
   }, [activeTab, pushAlert, t])
 
+  /** 同步外部状态并管理本次副作用的生命周期 */
   useEffect(() => {
+    /** 加载详情，完成后结束异步任务 */
     const loadDetail = async () => {
       if (!selectedExtensionId) {
         setSelectedExtensionConfig('')
         return
       }
       try {
-        const result = await PluginBinding.GetExtensionDetail({ id: selectedExtensionId })
+        const result = await PluginBinding.GetExtensionDetail({ id: selectedExtensionId }) // 保存本次调用的结果
         setSelectedExtensionConfig(result?.config_text ?? '')
       } catch {
         setSelectedExtensionConfig('')
@@ -337,13 +370,15 @@ export function SettingsApp() {
     void loadDetail()
   }, [selectedExtensionId, extensions])
 
+  /** 同步外部状态并管理本次副作用的生命周期 */
   useEffect(() => {
     loginDialogRef.current = loginDialog
   }, [loginDialog])
 
+  /** 同步外部状态并管理本次副作用的生命周期 */
   useEffect(() => {
     return () => {
-      const activeDialog = loginDialogRef.current
+      const activeDialog = loginDialogRef.current // 当前对话框
       if (!activeDialog) {
         return
       }
@@ -353,7 +388,7 @@ export function SettingsApp() {
     }
   }, [])
 
-  let content: ReactNode
+  let content: ReactNode // 内容
 
   if (activeTab === 'about') {
     content = (
@@ -362,6 +397,7 @@ export function SettingsApp() {
       </SettingsSectionLayout>
     )
   } else if (activeTab === 'providers') {
+    /** 选中项模型服务商 */
     const selectedProvider = providers.find((provider) => provider.id === selectedProviderId) ?? providers[0] ?? null
 
     content = (
@@ -388,10 +424,13 @@ export function SettingsApp() {
       </SettingsSectionLayout>
     )
   } else if (activeTab === 'plugins') {
+    /** 选中项扩展 */
     const selectedExtension = extensions.find((extension) => extension.id === selectedExtensionId) ?? extensions[0] ?? null
 
+    /** 处理npm提交，接收npm包名、名称，完成后结束异步任务 */
     const handleNpmSubmit = async (npmPackage: string, name: string) => {
       try {
+        /** 保存输出 */
         const out = await PluginBinding.InstallCliFromNpm(
           new InstallCliFromNpmInput({ npm_package: npmPackage, name }),
         )
@@ -404,10 +443,14 @@ export function SettingsApp() {
       }
     }
 
+    /** 处理智能提交，接收内容，完成后结束异步任务 */
     const handleSmartSubmit = async (content: string) => {
+      /** 默认模型服务商 */
       const defaultProvider = providers.find((p) => p.id === defaultProviderId) ?? providers.find((p) => p.is_default) ?? providers[0]
+      /** 默认模型 */
       const defaultModel = defaultProvider?.models.find((m) => m.is_default) ?? defaultProvider?.models[0]
       try {
+        /** 保存会话编号 */
         const sessionId = await createConversation({
           title: t('settingsPage.plugins.cliFromDocsTask'),
           tags: ['task'],
@@ -429,7 +472,7 @@ export function SettingsApp() {
             baseUrl: defaultProvider?.base_url ?? '',
             apiKey: defaultProvider?.api_key ?? '',
             modelName: defaultModel?.model ?? '',
-            providerType: (defaultProvider?.provider_type ?? '') as any,
+            providerType: resolveProviderType(defaultProvider?.provider_type),
             enabledUserTools: [],
             attachments: [],
           })
@@ -445,13 +488,15 @@ export function SettingsApp() {
       }
     }
 
+    /** 处理创建扩展，接收类别标识，完成后结束异步任务 */
     const handleCreateExtension = async (kind: 'mcp' | 'plugin' | 'cli') => {
       if (kind === 'cli') {
         setCliModalOpen(true)
         return
       }
-      const result = await FileBinding.SelectFolder(new SelectFolderInput())
+      const result = await FileBinding.SelectFolder(new SelectFolderInput()) // 保存本次调用的结果
       if (!result?.folder_path) return
+      /** 保存已导入 */
       const imported = await PluginBinding.ImportExtension(new ImportExtensionInput({
         kind,
         path: result.folder_path,
@@ -461,9 +506,11 @@ export function SettingsApp() {
       setSelectedExtensionId(imported.extension.id)
     }
 
+    /** 处理切换扩展，接收当前条目，完成后结束异步任务 */
     const handleToggleExtension = async (item: ExtensionItem) => {
       updateExtension({ ...item, enabled: !item.enabled })
       try {
+        /** 保存本次调用的结果 */
         const result = await PluginBinding.ToggleExtension(new ToggleExtensionInput({
           id: item.id,
           enabled: !item.enabled,
@@ -476,25 +523,28 @@ export function SettingsApp() {
       }
     }
 
+    /** 处理重新加载扩展，接收当前条目的唯一编号，完成后结束异步任务 */
     const handleReloadExtension = async (id: string) => {
       try {
-        const result = await PluginBinding.ReloadExtension(new ReloadExtensionInput({ id }))
+        const result = await PluginBinding.ReloadExtension(new ReloadExtensionInput({ id })) // 保存本次调用的结果
         if (result?.extension) {
           updateExtension(mapExtensionItem(result.extension))
         }
         if (selectedExtensionId === id) {
-          const detail = await PluginBinding.GetExtensionDetail({ id })
+          const detail = await PluginBinding.GetExtensionDetail({ id }) // 保存详情
           setSelectedExtensionConfig(detail?.config_text ?? '')
         }
       } catch {
-        // ignore
+        // 忽略本次失败并保留当前界面状态
       }
     }
 
+    /** 处理保存扩展配置，接收配置文本，完成后结束异步任务 */
     const handleSaveExtensionConfig = async (configText: string) => {
       if (!selectedExtension) return
       setPluginLoading(true)
       try {
+        /** 保存本次调用的结果 */
         const result = await PluginBinding.SaveExtensionConfig(new SaveExtensionConfigInput({
           id: selectedExtension.id,
           config_text: configText,
@@ -508,15 +558,17 @@ export function SettingsApp() {
       }
     }
 
+    /** 处理删除扩展，接收当前条目的唯一编号，完成后结束异步任务 */
     const handleDeleteExtension = async (id: string) => {
       try {
         await PluginBinding.DeleteExtension({ id })
         deleteExtension(id)
       } catch {
-        // ignore
+        // 忽略本次失败并保留当前界面状态
       }
     }
 
+    /** 处理重置CLI数据，完成后结束异步任务 */
     const handleResetCliData = async (): Promise<void> => {
       if (!selectedExtension || selectedExtension.kind !== 'cli') return
       try {
@@ -527,21 +579,24 @@ export function SettingsApp() {
       }
     }
 
+    /** 处理重新生成CLI清单，完成后结束异步任务 */
     const handleRegenerateCliManifest = async (): Promise<void> => {
       if (!selectedExtension || selectedExtension.kind !== 'cli') return
       setPluginLoading(true)
       try {
+        /** 保存本次调用的结果 */
         const result = await PluginBinding.GenerateCliManifest(new GenerateCliManifestInput({ id: selectedExtension.id }))
         if (result?.extension) {
           updateExtension(mapExtensionItem(result.extension))
         }
-        const detail = await PluginBinding.GetExtensionDetail({ id: selectedExtension.id })
+        const detail = await PluginBinding.GetExtensionDetail({ id: selectedExtension.id }) // 保存详情
         setSelectedExtensionConfig(detail?.config_text ?? '')
       } finally {
         setPluginLoading(false)
       }
     }
 
+    /** 处理登录CLI，完成后结束异步任务 */
     const handleLoginCli = async (): Promise<void> => {
       if (!selectedExtension || selectedExtension.kind !== 'cli') return
       setLoginDialog({
@@ -550,8 +605,9 @@ export function SettingsApp() {
       })
     }
 
+    /** 处理登录开始错误，接收捕获的异常，无返回值 */
     const handleLoginStartError = (err: unknown): void => {
-      const parsed = parseUnknownIError(err)
+      const parsed = parseUnknownIError(err) // 从文本解析出的数据
       pushAlert({
         kind: 'error',
         placement: 'banner',
@@ -561,6 +617,7 @@ export function SettingsApp() {
       })
     }
 
+    /** 处理取消登录，完成后结束异步任务 */
     const handleCancelLogin = async (): Promise<void> => {
       if (!loginDialog) return
       try {
@@ -671,6 +728,7 @@ export function SettingsApp() {
   return <SettingsShell>{content}</SettingsShell>
 }
 
+/** 构造运行环境进度详情，接收当前语言的翻译函数、进度，返回处理后的文本 */
 function buildRuntimeProgressDetail(
   t: (key: string) => string,
   progress: RuntimeProgressEvent,
@@ -681,6 +739,7 @@ function buildRuntimeProgressDetail(
   ].join(' · ')
 }
 
+/** 构造运行环境进度消息，接收当前语言的翻译函数、进度，返回处理后的文本 */
 function buildRuntimeProgressMessage(
   t: (key: string) => string,
   progress: RuntimeProgressEvent,
@@ -688,22 +747,25 @@ function buildRuntimeProgressMessage(
   return `${t('onboarding.runtime.stateDownloading')} ${progress.percent}% · ${buildRuntimeProgressDetail(t, progress)}`
 }
 
+/** 判断是否需要显示运行环境提醒，接收当前状态，返回是否满足条件 */
 function shouldShowRuntimeReminder(state: string): boolean {
   return state === 'pending_later' || state === 'missing'
 }
 
+/** 将首字母转为大写处理，接收值，返回处理后的文本 */
 function capitalize(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1)
 }
 
+/** 将字节数转换为带单位的显示文本，接收值，返回处理后的文本 */
 function formatBytes(value: number): string {
   if (value <= 0) {
     return '0 B'
   }
 
-  const units = ['B', 'KB', 'MB', 'GB']
-  let unitIndex = 0
-  let current = value
+  const units = ['B', 'KB', 'MB', 'GB'] // 单位列表
+  let unitIndex = 0 // 单位索引
+  let current = value // 当前
 
   while (current >= 1024 && unitIndex < units.length - 1) {
     current /= 1024

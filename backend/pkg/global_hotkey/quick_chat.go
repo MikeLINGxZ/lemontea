@@ -10,69 +10,84 @@ import (
 	"golang.design/x/hotkey"
 )
 
+// 定义全局快捷键句柄的调用契约
 type hotkeyHandle interface {
+	// 注册全局快捷键句柄，返回操作错误
 	Register() error
+	// 注销全局快捷键句柄，返回操作错误
 	Unregister() error
+	// 处理按键按下，返回事件通道
 	Keydown() <-chan hotkey.Event
 }
 
+// 定义全局快捷键工厂回调的参数与返回值
 type hotkeyFactory func(mods []hotkey.Modifier, key hotkey.Key) hotkeyHandle
 
-// StartQuickChat registers the OS-level global shortcut for toggling quick chat.
+// StartQuickChat 注册用于切换快捷聊天窗口的系统级全局快捷键
+// 接收本次调用的上下文、on已按下，返回清理或通知回调及可能发生的错误
 func StartQuickChat(ctx context.Context, onPressed func()) (func(), error) {
 	return StartQuickChatWithShortcut(ctx, onPressed, DefaultQuickChatShortcut())
 }
 
-// StartQuickChatWithShortcut registers a custom OS-level quick chat shortcut.
+// StartQuickChatWithShortcut 注册自定义的系统级快捷聊天快捷键
+// 接收本次调用的上下文、on已按下、快捷键，返回清理或通知回调及可能发生的错误
 func StartQuickChatWithShortcut(ctx context.Context, onPressed func(), shortcut string) (func(), error) {
 	return startQuickChatWithShortcut(ctx, onPressed, shortcut, func(mods []hotkey.Modifier, key hotkey.Key) hotkeyHandle {
+		// 启动快捷聊天带有快捷键时调用的回调，接收mods 对应的数据、键，返回全局快捷键句柄
 		return hotkey.New(mods, key)
 	})
 }
 
-// ProbeQuickChatShortcut temporarily registers a shortcut to detect conflicts.
+// ProbeQuickChatShortcut 通过临时注册快捷键检查是否存在冲突
+// 接收快捷键，返回操作错误
 func ProbeQuickChatShortcut(shortcut string) error {
-	spec, err := hotkeySpecFromShortcut(shortcut)
+	spec, err := hotkeySpecFromShortcut(shortcut) // 规格、处理全局快捷键规格起点快捷键时的错误
 	if err != nil {
 		return err
 	}
-	hk := hotkey.New(spec.modifiers, spec.key)
-	if err := hk.Register(); err != nil {
-		return err
+	hk := hotkey.New(spec.modifiers, spec.key) // 快捷键
+	registerErr := hk.Register()               // 注册当前数据时的错误
+	if registerErr != nil {
+		return registerErr
 	}
 	return hk.Unregister()
 }
 
-// startQuickChat wires a hotkey factory for testable default global shortcut registration.
+// startQuickChat 注入热键工厂，以便测试默认全局快捷键的注册
+// 接收本次调用的上下文、on已按下、工厂，返回清理或通知回调及可能发生的错误
 func startQuickChat(ctx context.Context, onPressed func(), factory hotkeyFactory) (func(), error) {
 	return startQuickChatWithShortcut(ctx, onPressed, DefaultQuickChatShortcut(), factory)
 }
 
-// startQuickChatWithShortcut wires a hotkey factory for testable global shortcut registration.
+// startQuickChatWithShortcut 注入热键工厂，以便测试全局快捷键的注册
+// 接收本次调用的上下文、on已按下、快捷键、工厂，返回清理或通知回调及可能发生的错误
+// 注册当前数据
+// 创建可取消的子上下文
 func startQuickChatWithShortcut(ctx context.Context, onPressed func(), shortcut string, factory hotkeyFactory) (func(), error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	spec, err := hotkeySpecFromShortcut(shortcut)
+	spec, err := hotkeySpecFromShortcut(shortcut) // 规格、处理全局快捷键规格起点快捷键时的错误
 	if err != nil {
 		return nil, err
 	}
-	hk := factory(spec.modifiers, spec.key)
-	if err := hk.Register(); err != nil {
-		return nil, err
+	hk := factory(spec.modifiers, spec.key) // 快捷键
+	registerErr := hk.Register()            // 注册当前数据时的错误
+	if registerErr != nil {
+		return nil, registerErr
 	}
 
-	listenCtx, cancel := context.WithCancel(ctx)
-	done := make(chan struct{})
+	listenCtx, cancel := context.WithCancel(ctx) // 监听上下文、用于取消本次操作的回调
+	done := make(chan struct{})                  // 完成
 
-	go func() {
+	go /* 处理按键按下if是否成功returnifon已按下nilon已按下时调用的回调，无返回值 */ func() {
 		defer close(done)
 		for {
 			select {
 			case <-listenCtx.Done():
 				return
-			case _, ok := <-hk.Keydown():
+			case /* 是否成功取得对应值 */ _, ok := <-hk.Keydown():
 				if !ok {
 					return
 				}
@@ -83,9 +98,11 @@ func startQuickChatWithShortcut(ctx context.Context, onPressed func(), shortcut 
 		}
 	}()
 
+	// 停止单次执行锁
 	var stopOnce sync.Once
-	stop := func() {
-		stopOnce.Do(func() {
+	// 停止
+	stop := /* 实现停止回调，无返回值 */ func() {
+		stopOnce.Do( /* 发送请求并读取响应时调用的回调，无返回值 */ func() {
 			cancel()
 			_ = hk.Unregister()
 			<-done
@@ -95,34 +112,42 @@ func startQuickChatWithShortcut(ctx context.Context, onPressed func(), shortcut 
 	return stop, nil
 }
 
+// 描述快捷聊天全局快捷键规格使用的数据结构
 type quickChatHotkeySpec struct {
+	// 修饰键
 	modifiers []hotkey.Modifier
-	key       hotkey.Key
+	// 键
+	key hotkey.Key
 }
 
+// 处理全局快捷键规格起点快捷键，接收快捷键，返回快捷聊天全局快捷键规格及可能发生的错误
 func hotkeySpecFromShortcut(shortcut string) (quickChatHotkeySpec, error) {
-	parsed, err := ParseQuickChatShortcut(shortcut)
+	parsed, err := ParseQuickChatShortcut(shortcut) // 解析结果、解析快捷聊天快捷键时的错误
 	if err != nil {
 		return quickChatHotkeySpec{}, err
 	}
 
-	modifiers := make([]hotkey.Modifier, 0, len(parsed.Modifiers))
+	modifiers := make([]hotkey.Modifier, 0, len(parsed.Modifiers)) // 修饰键
+	// 遍历修饰键，逐项取得修饰键令牌
 	for _, modifierToken := range parsed.Modifiers {
-		modifier, ok := quickChatModifierForToken(modifierToken)
+		modifier, ok := quickChatModifierForToken(modifierToken) // 修饰键、是否成功取得对应值
 		if !ok {
 			return quickChatHotkeySpec{}, fmt.Errorf("unsupported shortcut modifier %q", modifierToken)
 		}
 		modifiers = append(modifiers, modifier)
 	}
 
-	key, ok := quickChatKeyForToken(parsed.Key)
+	key, ok := quickChatKeyForToken(parsed.Key) // 键、是否成功取得对应值
 	if !ok {
 		return quickChatHotkeySpec{}, fmt.Errorf("unsupported shortcut key %q", parsed.Key)
 	}
 	return quickChatHotkeySpec{modifiers: modifiers, key: key}, nil
 }
 
+// 把快捷键令牌转换为平台热键库的键值，返回键值及是否支持
+// 先查找通用键值映射，未命中时再查找平台扩展键
 func quickChatKeyForToken(token string) (hotkey.Key, bool) {
+	// 键集合
 	keys := map[string]hotkey.Key{
 		"Space":  hotkey.KeySpace,
 		"0":      hotkey.Key0,
@@ -190,6 +215,8 @@ func quickChatKeyForToken(token string) (hotkey.Key, bool) {
 		"F19":    hotkey.KeyF19,
 		"F20":    hotkey.KeyF20,
 	}
-	key, ok := keys[token]
-	return key, ok
+	if /* 键、是否成功取得对应值 */ key, ok := keys[token]; ok {
+		return key, true
+	}
+	return quickChatExtraKeyForToken(token)
 }

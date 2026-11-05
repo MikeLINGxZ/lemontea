@@ -1,13 +1,13 @@
 package runtime
 
-// NodeLTSVersion is the Node.js LTS version pinned by the application.
+// NodeLTSVersion 指定应用固定使用的 Node.js LTS 版本
 const NodeLTSVersion = "v22.11.0"
 
-// NodeDistBaseURL is the base URL for official Node.js distribution downloads.
+// NodeDistBaseURL 是 Node.js 官方发行包的下载基础地址
 const NodeDistBaseURL = "https://nodejs.org/dist"
 
-// RuntimeStateFileName is the file used to persist runtime download state.
+// RuntimeStateFileName 指定保存运行时下载状态的文件名
 const RuntimeStateFileName = "state.json"
 
-// NodeSubdir is the directory under data dir that holds the Node runtime tree.
+// NodeSubdir 指定数据目录中用于保存 Node.js 运行时文件的子目录名
 const NodeSubdir = "runtime/node"

@@ -13,18 +13,22 @@ import (
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/storage"
 )
 
-// Provider manages provider persistence and view-model conversion.
+// Provider 管理模型提供商的持久化及视图模型转换
 type Provider struct {
+	// 存储接口
 	istorage *storage.Storage
 }
 
-// NewProvider creates a provider service bound to a storage handle.
+// NewProvider 使用指定存储创建提供商服务
+// 接收存储接口，返回提供商
 func NewProvider(istorage *storage.Storage) *Provider {
 	return &Provider{istorage: istorage}
 }
 
-// CreateProvider inserts a new provider record, bulk-saves its models, and sets the default model when specified.
+// 新建模型提供商，接收调用上下文和提供商配置，返回操作结果或错误
+// 先保存提供商记录，再为其批量创建模型，最后按请求设置默认项
 func (p *Provider) CreateProvider(ctx context.Context, input provider_dto.CreateProviderInput) (*provider_dto.CreateProviderOutput, error) {
+	// 创建、创建模型提供商时的错误
 	created, err := p.istorage.CreateProvider(data_models.Provider{
 		ProviderName: input.ProviderName,
 		ProviderType: input.ProviderType,
@@ -36,10 +40,12 @@ func (p *Provider) CreateProvider(ctx context.Context, input provider_dto.Create
 		return nil, ierror.Error(ierror.ErrProviderCreate, err)
 	}
 
-	// Use provided model list; auto-fetch from API if none were supplied.
+	// 优先使用传入的模型列表，未提供时通过提供商 API 获取
 	modelsToSave := input.Models
 	if len(modelsToSave) == 0 && input.BaseUrl != "" {
-		if apiModels, fetchErr := pkgProvider.GetModels(input.BaseUrl, input.ApiKey); fetchErr == nil {
+		apiModels, fetchErr := pkgProvider.GetModels(input.BaseUrl, input.ApiKey) // API模型列表、获取模型列表时的错误
+		if fetchErr == nil {
+			// 遍历API模型列表，逐项取得当前条目
 			for _, m := range apiModels {
 				modelsToSave = append(modelsToSave, view_model.Model{
 					Model:   m.ID,
@@ -51,7 +57,8 @@ func (p *Provider) CreateProvider(ctx context.Context, input provider_dto.Create
 		}
 	}
 
-	dbModels := make([]data_models.Model, 0, len(modelsToSave))
+	dbModels := make([]data_models.Model, 0, len(modelsToSave)) // 数据库模型列表
+	// 遍历模型列表终点保存，逐项取得当前条目
 	for _, m := range modelsToSave {
 		dbModels = append(dbModels, data_models.Model{
 			ProviderId: created.ID,
@@ -62,44 +69,58 @@ func (p *Provider) CreateProvider(ctx context.Context, input provider_dto.Create
 			IsCustom:   m.IsCustom,
 		})
 	}
-	if err := p.istorage.CreateModels(&dbModels); err != nil {
-		return nil, ierror.Error(ierror.ErrProviderCreateModels, err)
+	createErr := p.istorage.CreateModels(&dbModels) // 创建模型列表时的错误
+	if createErr != nil {
+		return nil, ierror.Error(ierror.ErrProviderCreateModels, createErr)
 	}
 
-	// Persist the selected default model by name.
+	if readDefaultProviderID() == 0 {
+		writeDefaultProviderIDErr := writeDefaultProviderID(created.ID) // 写入默认提供商编号时的错误
+		if writeDefaultProviderIDErr != nil {
+			return nil, writeDefaultProviderIDErr
+		}
+	}
+
+	// 按模型名称查找并保存选定的默认模型
 	if input.DefaultModel != nil {
+		// 遍历数据库模型列表，逐项取得当前条目
 		for _, m := range dbModels {
 			if m.Model == *input.DefaultModel {
 				_ = p.istorage.UpsertDefaultModel(created.ID, m.ID)
 				break
 			}
 		}
+	} else if len(dbModels) > 0 {
+		_ = p.istorage.UpsertDefaultModel(created.ID, dbModels[0].ID)
 	}
 
 	return &provider_dto.CreateProviderOutput{}, nil
 }
 
-// ListProviders returns all provider view models with per-provider model lists and default-state annotations.
+// ListProviders 返回所有提供商的视图模型，包含各自的模型列表和默认状态
+// 接收调用上下文和请求参数，返回操作结果及可能发生的错误
 func (p *Provider) ListProviders(ctx context.Context, input provider_dto.ListProvidersInput) (*provider_dto.ListProvidersOutput, error) {
-	providers, err := p.istorage.ListProviders()
+	providers, err := p.istorage.ListProviders() // 提供商列表、列出提供商列表时的错误
 	if err != nil {
 		return nil, ierror.Error(ierror.ErrProviderListProviders, err)
 	}
 
-	defaultProviderID := readDefaultProviderID()
+	defaultProviderID := readDefaultProviderID() // 默认提供商编号
 
-	wrappers := make([]provider_dto.ProviderWrapper, 0, len(providers))
+	wrappers := make([]provider_dto.ProviderWrapper, 0, len(providers)) // wrappers 对应的数据
+	// 遍历提供商列表，逐项取得提供商
 	for _, prov := range providers {
-		models, err := p.istorage.ListModelsForProvider(prov.ID)
+		models, err := p.istorage.ListModelsForProvider(prov.ID) // 模型列表、列出模型列表对应提供商时的错误
 		if err != nil {
 			return nil, ierror.Error(ierror.ErrProviderListModels, err)
 		}
 
-		defaultModel, _ := p.istorage.GetDefaultModel(prov.ID)
+		defaultModel, _ := p.istorage.GetDefaultModel(prov.ID) // 默认模型
 
-		vmModels := make([]view_model.Model, 0, len(models))
+		vmModels := make([]view_model.Model, 0, len(models)) // 视图模型模型列表
+		// 遍历模型列表，逐项取得当前条目
 		for _, m := range models {
-			isDefault := defaultModel != nil && defaultModel.ModelId == m.ID
+			isDefault := defaultModel != nil && defaultModel.ModelId == m.ID // 是否默认
 			vmModels = append(vmModels, toModelViewModel(m, isDefault))
 		}
 
@@ -112,42 +133,50 @@ func (p *Provider) ListProviders(ctx context.Context, input provider_dto.ListPro
 	return &provider_dto.ListProvidersOutput{Providers: wrappers}, nil
 }
 
-// DeleteProvider removes the provider, all its models, and the default-model record.
+// DeleteProvider 删除指定提供商、其所有模型和默认模型记录
+// 接收调用上下文和请求参数，返回操作结果及可能发生的错误
 func (p *Provider) DeleteProvider(ctx context.Context, input provider_dto.DeleteProviderInput) (*provider_dto.DeleteProviderOutput, error) {
-	if err := p.istorage.DeleteProviderCascade(uint(input.ProviderId)); err != nil {
+	err := p.istorage.DeleteProviderCascade(uint(input.ProviderId)) // 删除提供商Cascade时的错误
+	if err != nil {
 		return nil, ierror.Error(ierror.ErrProviderDelete, err)
 	}
 	return &provider_dto.DeleteProviderOutput{}, nil
 }
 
-// EditProvider updates the provider's mutable fields and creates any new models (id == 0) in the input list.
+// 编辑指定模型提供商，接收调用上下文和变更参数，返回更新结果或错误
+// 保存可编辑字段及新模型后重新加载该提供商的模型列表，供设置界面同步状态
 func (p *Provider) EditProvider(ctx context.Context, input provider_dto.EditProviderInput) (*provider_dto.EditProviderOutput, error) {
-	id := uint(input.ProviderId)
+	id := uint(input.ProviderId) // 唯一标识
 
-	if err := p.istorage.UpdateProvider(data_models.Provider{
+	// 更新提供商时的错误
+	updateErr := p.istorage.UpdateProvider(data_models.Provider{
 		OrmModel:     data_models.OrmModel{ID: id},
 		ProviderName: input.ProviderName,
 		BaseUrl:      input.BaseUrl,
 		ApiKey:       input.ApiKey,
 		Enable:       input.Enable,
-	}); err != nil {
-		return nil, ierror.Error(ierror.ErrProviderUpdate, err)
+	})
+	if updateErr != nil {
+		return nil, ierror.Error(ierror.ErrProviderUpdate, updateErr)
 	}
 
-	// Collect existing model names to avoid duplicates.
+	// 收集已有模型的名称，避免重复添加
 	existing, err := p.istorage.ListModelsForProvider(id)
 	if err != nil {
 		return nil, ierror.Error(ierror.ErrProviderListModels, err)
 	}
-	existingNames := make(map[string]struct{}, len(existing))
+	existingNames := make(map[string]struct{}, len(existing)) // 已存在名称列表
+	// 遍历已存在，逐项取得当前条目
 	for _, m := range existing {
 		existingNames[m.Model] = struct{}{}
 	}
 
+	// 新模型列表
 	var newModels []data_models.Model
+	// 遍历模型列表，逐项取得当前条目
 	for _, m := range input.Models {
 		if m.ID == 0 {
-			if _, dup := existingNames[m.Model]; !dup {
+			if /* dup 对应的数据 */ _, dup := existingNames[m.Model]; !dup {
 				newModels = append(newModels, data_models.Model{
 					ProviderId: id,
 					Model:      m.Model,
@@ -160,17 +189,19 @@ func (p *Provider) EditProvider(ctx context.Context, input provider_dto.EditProv
 		}
 	}
 	if len(newModels) > 0 {
-		if err := p.istorage.CreateModels(&newModels); err != nil {
-			return nil, ierror.Error(ierror.ErrProviderCreateModels, err)
+		createErr := p.istorage.CreateModels(&newModels) // 创建模型列表时的错误
+		if createErr != nil {
+			return nil, ierror.Error(ierror.ErrProviderCreateModels, createErr)
 		}
 	}
 
-	// Update default model when specified.
+	// 输入指定默认模型时更新默认模型记录
 	if input.DefaultModel != nil {
-		all, err := p.istorage.ListModelsForProvider(id)
+		all, err := p.istorage.ListModelsForProvider(id) // 全部、列出模型列表对应提供商时的错误
 		if err != nil {
 			return nil, ierror.Error(ierror.ErrProviderListModels, err)
 		}
+		// 遍历全部，逐项取得当前条目
 		for _, m := range all {
 			if m.Model == *input.DefaultModel {
 				_ = p.istorage.UpsertDefaultModel(id, m.ID)
@@ -182,24 +213,28 @@ func (p *Provider) EditProvider(ctx context.Context, input provider_dto.EditProv
 	return &provider_dto.EditProviderOutput{}, nil
 }
 
-// DeleteModel soft-deletes a single model record by its ID.
+// DeleteModel 按标识软删除一条模型记录
+// 接收调用上下文和请求参数，返回操作结果及可能发生的错误
 func (p *Provider) DeleteModel(ctx context.Context, input provider_dto.DeleteModelInput) (*provider_dto.DeleteModelOutput, error) {
 	if input.ModelId <= 0 {
 		return nil, ierror.Error(ierror.ErrProviderInvalidModel, fmt.Errorf("invalid model_id: %d", input.ModelId))
 	}
-	if err := p.istorage.DeleteModel(uint(input.ModelId)); err != nil {
+	err := p.istorage.DeleteModel(uint(input.ModelId)) // 删除模型时的错误
+	if err != nil {
 		return nil, ierror.Error(ierror.ErrProviderDeleteModel, err)
 	}
 	return &provider_dto.DeleteModelOutput{}, nil
 }
 
-// SetDefault marks a provider as the global default and sets its default model.
-// When ModelId is nil the first model (sorted by name) is used.
+// SetDefault 将指定提供商设为全局默认提供商，并设置其默认模型
+// ModelId 为 nil 时，使用按名称排序后的第一个模型
+// 接收调用上下文和请求参数，返回操作结果及可能发生的错误
 func (p *Provider) SetDefault(ctx context.Context, input provider_dto.SetDefaultInput) (*provider_dto.SetDefaultOutput, error) {
-	id := uint(input.ProviderId)
+	id := uint(input.ProviderId) // 唯一标识
 
-	if err := writeDefaultProviderID(id); err != nil {
-		return nil, ierror.Error(ierror.ErrProviderSetDefault, err)
+	writeDefaultProviderIDErr := writeDefaultProviderID(id) // 写入默认提供商编号时的错误
+	if writeDefaultProviderIDErr != nil {
+		return nil, ierror.Error(ierror.ErrProviderSetDefault, writeDefaultProviderIDErr)
 	}
 
 	if input.ModelId != nil {
@@ -208,9 +243,9 @@ func (p *Provider) SetDefault(ctx context.Context, input provider_dto.SetDefault
 		}
 		_ = p.istorage.UpsertDefaultModel(id, uint(*input.ModelId))
 	} else {
-		models, err := p.istorage.ListModelsForProvider(id)
+		models, err := p.istorage.ListModelsForProvider(id) // 模型列表、列出模型列表对应提供商时的错误
 		if err == nil && len(models) > 0 {
-			sort.Slice(models, func(i, j int) bool { return models[i].Model < models[j].Model })
+			sort.Slice(models /* 比较两个索引对应的条目，返回前一项是否应排在前面 */, func(i, j int) bool { return models[i].Model < models[j].Model })
 			_ = p.istorage.UpsertDefaultModel(id, models[0].ID)
 		}
 	}
@@ -218,14 +253,16 @@ func (p *Provider) SetDefault(ctx context.Context, input provider_dto.SetDefault
 	return &provider_dto.SetDefaultOutput{}, nil
 }
 
-// RequestProviderModelList fetches the live model list from the provider API.
+// RequestProviderModelList 从提供商 API 获取最新的模型列表
+// 接收调用上下文和请求参数，返回操作结果及可能发生的错误
 func (p *Provider) RequestProviderModelList(ctx context.Context, input provider_dto.RequestProviderModelListInput) (*provider_dto.RequestProviderModelListOutput, error) {
-	apiModels, err := pkgProvider.GetModels(input.BaseUrl, input.ApiKey)
+	apiModels, err := pkgProvider.GetModels(input.BaseUrl, input.ApiKey) // API模型列表、获取模型列表时的错误
 	if err != nil {
 		return nil, ierror.Error(ierror.ErrProviderFetchModels, err)
 	}
 
-	models := make([]view_model.Model, 0, len(apiModels))
+	models := make([]view_model.Model, 0, len(apiModels)) // 模型列表
+	// 遍历API模型列表，逐项取得当前条目
 	for _, m := range apiModels {
 		models = append(models, view_model.Model{
 			Model:   m.ID,
@@ -238,33 +275,36 @@ func (p *Provider) RequestProviderModelList(ctx context.Context, input provider_
 	return &provider_dto.RequestProviderModelListOutput{Models: models}, nil
 }
 
-// ProviderAndModelList returns all providers with their models, both sorted by name ascending.
+// ProviderAndModelList 返回全部提供商及各自的模型列表，两级列表均按名称升序排列
+// 接收调用上下文和请求参数，返回操作结果及可能发生的错误
 func (p *Provider) ProviderAndModelList(ctx context.Context, input provider_dto.ProviderAndModelListInput) (*provider_dto.ProviderAndModelListOutput, error) {
-	providers, err := p.istorage.ListProviders()
+	providers, err := p.istorage.ListProviders() // 提供商列表、列出提供商列表时的错误
 	if err != nil {
 		return nil, ierror.Error(ierror.ErrProviderListProviders, err)
 	}
 
-	sort.Slice(providers, func(i, j int) bool {
+	sort.Slice(providers /* 比较两个索引对应的条目，返回前一项是否应排在前面 */, func(i, j int) bool {
 		return providers[i].ProviderName < providers[j].ProviderName
 	})
 
-	defaultProviderID := readDefaultProviderID()
+	defaultProviderID := readDefaultProviderID() // 默认提供商编号
 
-	result := make([]view_model.ProviderModel, 0, len(providers))
+	result := make([]view_model.ProviderModel, 0, len(providers)) // 处理make 对应的数据得到的结果
+	// 遍历提供商列表，逐项取得提供商
 	for _, prov := range providers {
-		models, err := p.istorage.ListModelsForProvider(prov.ID)
+		models, err := p.istorage.ListModelsForProvider(prov.ID) // 模型列表、列出模型列表对应提供商时的错误
 		if err != nil {
 			return nil, ierror.Error(ierror.ErrProviderListModels, err)
 		}
 
-		sort.Slice(models, func(i, j int) bool {
+		sort.Slice(models /* 比较两个索引对应的条目，返回前一项是否应排在前面 */, func(i, j int) bool {
 			return models[i].Model < models[j].Model
 		})
 
-		defaultModel, _ := p.istorage.GetDefaultModel(prov.ID)
+		defaultModel, _ := p.istorage.GetDefaultModel(prov.ID) // 默认模型
 
-		vmModels := make([]view_model.Model, 0, len(models))
+		vmModels := make([]view_model.Model, 0, len(models)) // 视图模型模型列表
+		// 遍历模型列表，逐项取得当前条目
 		for _, m := range models {
 			vmModels = append(vmModels, toModelViewModel(m, defaultModel != nil && defaultModel.ModelId == m.ID))
 		}

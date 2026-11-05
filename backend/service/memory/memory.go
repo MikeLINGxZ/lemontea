@@ -9,18 +9,22 @@ import (
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/storage"
 )
 
-// Memory exposes long-term memory management operations to the frontend.
+// Memory 向前端提供长期记忆管理操作
 type Memory struct {
+	// 存储
 	stor *storage.Storage
 }
 
-// NewMemory creates a memory service backed by application storage.
+// NewMemory 使用应用存储创建长期记忆服务
+// 接收存储，返回记忆
 func NewMemory(stor *storage.Storage) *Memory {
 	return &Memory{stor: stor}
 }
 
-// ListMemories returns paginated long-term memories for the management page.
+// ListMemories 返回管理页面所需的长期记忆分页结果
+// 接收调用上下文和请求参数，返回操作结果及可能发生的错误
 func (m *Memory) ListMemories(ctx context.Context, input memory_dto.ListMemoriesInput) (*memory_dto.ListMemoriesOutput, error) {
+	// 条目列表、总量、列出记忆列表时的错误
 	items, total, err := m.stor.ListMemories(storage.MemoryListFilter{
 		Query:            input.Query,
 		Type:             input.Type,
@@ -38,17 +42,20 @@ func (m *Memory) ListMemories(ctx context.Context, input memory_dto.ListMemories
 	}, nil
 }
 
-// GetMemory returns one memory by id.
+// GetMemory 根据标识返回一条长期记忆
+// 接收调用上下文和请求参数，返回操作结果及可能发生的错误
 func (m *Memory) GetMemory(ctx context.Context, input memory_dto.GetMemoryInput) (*memory_dto.GetMemoryOutput, error) {
-	memory, err := m.stor.GetMemory(input.ID)
+	memory, err := m.stor.GetMemory(input.ID) // 记忆、获取记忆时的错误
 	if err != nil {
 		return nil, ierror.Error(ierror.ErrMemoryGet, err)
 	}
 	return &memory_dto.GetMemoryOutput{Memory: toMemoryItem(*memory)}, nil
 }
 
-// CreateMemory creates a manual long-term memory.
+// CreateMemory 创建一条用户手动录入的长期记忆
+// 接收调用上下文和请求参数，返回操作结果及可能发生的错误
 func (m *Memory) CreateMemory(ctx context.Context, input memory_dto.CreateMemoryInput) (*memory_dto.CreateMemoryOutput, error) {
+	// 创建、创建记忆时的错误
 	created, err := m.stor.CreateMemory(data_models.Memory{
 		Summary:    input.Summary,
 		Content:    input.Content,
@@ -65,8 +72,10 @@ func (m *Memory) CreateMemory(ctx context.Context, input memory_dto.CreateMemory
 	return &memory_dto.CreateMemoryOutput{Memory: toMemoryItem(*created)}, nil
 }
 
-// UpdateMemory updates editable fields on a long-term memory.
+// UpdateMemory 更新长期记忆的可编辑字段
+// 接收调用上下文和请求参数，返回操作结果及可能发生的错误
 func (m *Memory) UpdateMemory(ctx context.Context, input memory_dto.UpdateMemoryInput) (*memory_dto.UpdateMemoryOutput, error) {
+	// 更新、更新记忆时的错误
 	updated, err := m.stor.UpdateMemory(input.ID, storage.MemoryUpdate{
 		Summary:    &input.Summary,
 		Content:    &input.Content,
@@ -83,25 +92,30 @@ func (m *Memory) UpdateMemory(ctx context.Context, input memory_dto.UpdateMemory
 	return &memory_dto.UpdateMemoryOutput{Memory: toMemoryItem(*updated)}, nil
 }
 
-// ForgetMemory hides a memory from future retrieval without deleting the row.
+// ForgetMemory 保留记忆记录，并将其从后续检索结果中排除
+// 接收调用上下文和请求参数，返回操作结果及可能发生的错误
 func (m *Memory) ForgetMemory(ctx context.Context, input memory_dto.ForgetMemoryInput) (*memory_dto.ForgetMemoryOutput, error) {
-	if err := m.stor.ForgetMemory(input.ID); err != nil {
+	err := m.stor.ForgetMemory(input.ID) // 遗忘记忆时的错误
+	if err != nil {
 		return nil, ierror.Error(ierror.ErrMemoryForget, err)
 	}
 	return &memory_dto.ForgetMemoryOutput{}, nil
 }
 
-// RestoreMemory reactivates a forgotten memory.
+// RestoreMemory 重新启用已遗忘的长期记忆
+// 接收调用上下文和请求参数，返回操作结果及可能发生的错误
 func (m *Memory) RestoreMemory(ctx context.Context, input memory_dto.RestoreMemoryInput) (*memory_dto.RestoreMemoryOutput, error) {
-	if err := m.stor.RestoreMemory(input.ID); err != nil {
+	err := m.stor.RestoreMemory(input.ID) // 恢复记忆时的错误
+	if err != nil {
 		return nil, ierror.Error(ierror.ErrMemoryRestore, err)
 	}
 	return &memory_dto.RestoreMemoryOutput{}, nil
 }
 
-// GetMemoryStats returns aggregate counts for the memory settings page.
+// GetMemoryStats 返回记忆设置页所需的汇总计数
+// 接收调用上下文和请求参数，返回操作结果及可能发生的错误
 func (m *Memory) GetMemoryStats(ctx context.Context, input memory_dto.GetMemoryStatsInput) (*memory_dto.GetMemoryStatsOutput, error) {
-	stats, err := m.stor.MemoryStats()
+	stats, err := m.stor.MemoryStats() // 统计、处理记忆统计时的错误
 	if err != nil {
 		return nil, ierror.Error(ierror.ErrMemoryStats, err)
 	}
@@ -116,24 +130,27 @@ func (m *Memory) GetMemoryStats(ctx context.Context, input memory_dto.GetMemoryS
 	}, nil
 }
 
-// GetMemorySettings loads the persisted memory feature switch.
+// GetMemorySettings 读取已保存的记忆功能开关
+// 接收调用上下文和请求参数，返回操作结果及可能发生的错误
 func (m *Memory) GetMemorySettings(ctx context.Context, input memory_dto.GetMemorySettingsInput) (*memory_dto.GetMemorySettingsOutput, error) {
-	config, err := m.loadConfig()
+	config, err := m.loadConfig() // 配置、加载配置时的错误
 	if err != nil {
 		return nil, ierror.Error(ierror.ErrMemorySettings, err)
 	}
 	return &memory_dto.GetMemorySettingsOutput{Enabled: config.Memory.Enabled}, nil
 }
 
-// SaveMemorySettings persists the memory feature switch.
+// SaveMemorySettings 保存记忆功能开关
+// 接收调用上下文和请求参数，返回操作结果及可能发生的错误
 func (m *Memory) SaveMemorySettings(ctx context.Context, input memory_dto.SaveMemorySettingsInput) (*memory_dto.SaveMemorySettingsOutput, error) {
-	config, err := m.loadConfig()
+	config, err := m.loadConfig() // 配置、加载配置时的错误
 	if err != nil {
 		return nil, ierror.Error(ierror.ErrMemorySettings, err)
 	}
 	config.Memory.Enabled = input.Enabled
-	if err := m.saveConfig(config); err != nil {
-		return nil, ierror.Error(ierror.ErrMemorySettings, err)
+	saveConfigErr := m.saveConfig(config) // 保存配置时的错误
+	if saveConfigErr != nil {
+		return nil, ierror.Error(ierror.ErrMemorySettings, saveConfigErr)
 	}
 	return &memory_dto.SaveMemorySettingsOutput{}, nil
 }

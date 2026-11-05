@@ -5,14 +5,13 @@
 // @ts-ignore: Unused imports
 import { Create as $Create } from "@wailsio/runtime";
 
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore: Unused imports
-import * as time$0 from "../../../../../../../../time/models.js";
-
 /**
- * DismissNotificationInput identifies the notification to remove.
+ * DismissNotificationInput 指定要删除的通知
  */
 export class DismissNotificationInput {
+    /**
+     * 唯一标识
+     */
     "id": number;
 
     /** Creates a new DismissNotificationInput instance. */
@@ -34,7 +33,7 @@ export class DismissNotificationInput {
 }
 
 /**
- * DismissNotificationOutput is returned after deletion.
+ * DismissNotificationOutput 表示通知删除成功
  */
 export class DismissNotificationOutput {
 
@@ -54,9 +53,12 @@ export class DismissNotificationOutput {
 }
 
 /**
- * ListNotificationsInput controls whether resolved notifications are included.
+ * ListNotificationsInput 指定是否包含已处理的通知
  */
 export class ListNotificationsInput {
+    /**
+     * 包含已处理
+     */
     "include_resolved": boolean;
 
     /** Creates a new ListNotificationsInput instance. */
@@ -78,9 +80,12 @@ export class ListNotificationsInput {
 }
 
 /**
- * ListNotificationsOutput wraps the notification list.
+ * ListNotificationsOutput 包含查询得到的通知列表
  */
 export class ListNotificationsOutput {
+    /**
+     * 条目列表
+     */
     "items": NotificationItem[];
 
     /** Creates a new ListNotificationsOutput instance. */
@@ -106,16 +111,43 @@ export class ListNotificationsOutput {
 }
 
 /**
- * NotificationItem is the frontend-facing notification DTO.
+ * NotificationItem 表示返回给前端的通知
  */
 export class NotificationItem {
+    /**
+     * 唯一标识
+     */
     "id": number;
+
+    /**
+     * 会话编号
+     */
     "session_id": number;
+
+    /**
+     * 类别
+     */
     "kind": string;
+
+    /**
+     * 标题
+     */
     "title": string;
+
+    /**
+     * 消息
+     */
     "message": string;
-    "created_at": time$0.Time;
-    "resolved_at"?: time$0.Time | null;
+
+    /**
+     * 创建时间
+     */
+    "created_at": string;
+
+    /**
+     * 已处理时间
+     */
+    "resolved_at"?: string | null;
 
     /** Creates a new NotificationItem instance. */
     constructor($$source: Partial<NotificationItem> = {}) {
@@ -135,7 +167,7 @@ export class NotificationItem {
             this["message"] = "";
         }
         if (!("created_at" in $$source)) {
-            this["created_at"] = null;
+            this["created_at"] = "0001-01-01T00:00:00.000Z";
         }
 
         Object.assign(this, $$source);
@@ -151,12 +183,27 @@ export class NotificationItem {
 }
 
 /**
- * NotifyInput defines the payload for creating a notification.
+ * NotifyInput 包含创建通知所需的数据
  */
 export class NotifyInput {
+    /**
+     * 会话编号
+     */
     "session_id": number;
+
+    /**
+     * 类别
+     */
     "kind": string;
+
+    /**
+     * 标题
+     */
     "title": string;
+
+    /**
+     * 消息
+     */
     "message": string;
 
     /** Creates a new NotifyInput instance. */
@@ -187,9 +234,12 @@ export class NotifyInput {
 }
 
 /**
- * NotifyOutput returns the created notification identifier.
+ * NotifyOutput 返回新建通知的标识
  */
 export class NotifyOutput {
+    /**
+     * 通知编号
+     */
     "notification_id": number;
 
     /** Creates a new NotifyOutput instance. */
@@ -211,9 +261,12 @@ export class NotifyOutput {
 }
 
 /**
- * ResolveNotificationInput identifies the notification to resolve.
+ * ResolveNotificationInput 指定要处理的通知
  */
 export class ResolveNotificationInput {
+    /**
+     * 唯一标识
+     */
     "id": number;
 
     /** Creates a new ResolveNotificationInput instance. */
@@ -235,7 +288,7 @@ export class ResolveNotificationInput {
 }
 
 /**
- * ResolveNotificationOutput is returned after a resolve or reject action completes.
+ * ResolveNotificationOutput 表示通知的接受或拒绝操作已完成
  */
 export class ResolveNotificationOutput {
 

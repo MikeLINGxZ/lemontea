@@ -1,6 +1,7 @@
 import { FileText, Code2, Languages, PenLine } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+/** 快捷起始 */
 const QUICK_STARTS = [
   { icon: FileText, tKey: 'summarize' },
   { icon: Code2, tKey: 'code' },
@@ -8,12 +9,13 @@ const QUICK_STARTS = [
   { icon: PenLine, tKey: 'write' },
 ] as const
 
+/** 渲染欢迎 页面界面，返回组件内容 */
 export function WelcomeScreen() {
-  const { t } = useTranslation()
+  const { t } = useTranslation() // 获取当前语言的翻译方法
 
   return (
     <div className="flex w-full flex-col items-center justify-center px-8 gap-8">
-      {/* Icon */}
+      {/* 欢迎页图标 */}
       <div className="flex flex-col items-center gap-3">
         <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
           <circle cx="26" cy="26" r="22" fill="hsl(var(--primary))" />
@@ -26,7 +28,7 @@ export function WelcomeScreen() {
         </div>
       </div>
 
-      {/* Quick start buttons */}
+      {/* 快速开始选项 */}
       <div className="grid grid-cols-2 gap-3 w-full max-w-2xl">
         {QUICK_STARTS.map(({ icon: Icon, tKey }) => (
           <button

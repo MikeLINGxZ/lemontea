@@ -5,24 +5,30 @@ import { cn } from '@/lib/utils'
 import { useChatStore } from '@/store/chatStore'
 import type { Conversation } from '@/types'
 
+/** 会话条目组件接收的属性 */
 interface Props {
+  /** 会话 */
   conversation: Conversation
+  /** 是否当前 */
   isActive: boolean
+  /** 处理点击事件，无返回值 */
   onClick: () => void
 }
 
+/** 渲染会话条目界面，接收会话、是否当前、on点击，返回组件内容 */
 export function ConversationItem({ conversation, isActive, onClick }: Props) {
-  const { t } = useTranslation()
-  const deleteConversation = useChatStore((state) => state.deleteConversation)
-  const renameConversation = useChatStore((state) => state.renameConversation)
-  const toggleStar = useChatStore((state) => state.toggleStar)
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [isRenaming, setIsRenaming] = useState(false)
-  const [renameValue, setRenameValue] = useState(conversation.title)
+  const { t } = useTranslation() // 获取当前语言的翻译方法
+  const deleteConversation = useChatStore((state) => state.deleteConversation) // 从状态仓库读取删除会话
+  const renameConversation = useChatStore((state) => state.renameConversation) // 从状态仓库读取重命名会话
+  const toggleStar = useChatStore((state) => state.toggleStar) // 从状态仓库读取切换收藏
+  const [menuOpen, setMenuOpen] = useState(false) // 菜单展开及其更新方法
+  const [isRenaming, setIsRenaming] = useState(false) // 是否正在重命名及其更新方法
+  const [renameValue, setRenameValue] = useState(conversation.title) // 重命名值及其更新方法
 
-  const { id, title, status, starred } = conversation
-  const isTask = (conversation.tags ?? []).includes('task') || conversation.kind === 'task'
+  const { id, title, status, starred } = conversation // 取出当前条目的唯一编号、标题、状态、已收藏
+  const isTask = (conversation.tags ?? []).includes('task') || conversation.kind === 'task' // 是否任务
 
+  /** 处理重命名提交，无返回值 */
   const handleRenameSubmit = () => {
     if (renameValue.trim()) renameConversation(id, renameValue.trim())
     setIsRenaming(false)
@@ -47,7 +53,7 @@ export function ConversationItem({ conversation, isActive, onClick }: Props) {
 
       {isRenaming ? (
         <input
-          className="flex-1 min-w-0 bg-transparent border-b border-primary outline-none text-sm text-foreground"
+          className="flex-1 min-w-0 bg-transparent border-b border-primary outline-hidden text-sm text-foreground"
           value={renameValue}
           onChange={e => setRenameValue(e.target.value)}
           onBlur={handleRenameSubmit}

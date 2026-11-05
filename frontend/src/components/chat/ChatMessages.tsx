@@ -12,18 +12,24 @@ import { TerminalSessionPanels } from './TerminalSessionPanels'
 import { WelcomeScreen } from './WelcomeScreen'
 import type { Message, DisplayMessage } from '@/types'
 
+/** 空消息列表 */
 const EMPTY_MESSAGES: DisplayMessage[] = []
 
+/** 快捷no拖动样式 */
 const quickNoDragStyle = {
   '--wails-draggable': 'no-drag',
   WebkitAppRegion: 'no-drag',
 } as CSSProperties & Record<'--wails-draggable', string>
 
+/** 消息分组组件接收的属性 */
 interface MessageGroupProps {
+  /** 语言 */
   language: string
+  /** 消息列表 */
   messages: DisplayMessage[]
 }
 
+/** 按稳定标识渲染已完成的历史消息，接收语言、消息列表，返回组件内容 */
 const HistoricalMessages = memo(function HistoricalMessages({
   language,
   messages,
@@ -48,6 +54,7 @@ const HistoricalMessages = memo(function HistoricalMessages({
 
 HistoricalMessages.displayName = 'HistoricalMessages'
 
+/** 渲染当前会话正在生成的内容和思考文本，接收语言、消息、会话编号、显示时间戳、工具消息列表，返回组件内容 */
 const StreamingMessageRow = memo(function StreamingMessageRow({
   language,
   message,
@@ -55,12 +62,18 @@ const StreamingMessageRow = memo(function StreamingMessageRow({
   showTimestamp,
   toolMessages,
 }: {
+  /** 语言 */
   language: string
+  /** 消息 */
   message: Message
+  /** 会话编号 */
   sessionId: number
+  /** 显示时间戳 */
   showTimestamp: boolean
+  /** 工具消息列表 */
   toolMessages: DisplayMessage[]
 }) {
+  /** 从状态仓库读取流式输出状态、待处理确认、响应终点确认 */
   const { streamingState, pendingConfirm, respondToConfirm } = useChatStore(useShallow((state) => ({
     streamingState: state.streamingMessages[sessionId],
     pendingConfirm: state.pendingConfirms[sessionId] ?? null,
@@ -99,15 +112,20 @@ const StreamingMessageRow = memo(function StreamingMessageRow({
 
 StreamingMessageRow.displayName = 'StreamingMessageRow'
 
+/** 聊天消息列表组件接收的属性 */
 type ChatMessagesProps = {
+  /** 会话编号 */
   sessionId?: number
+  /** 展示变体 */
   variant?: 'default' | 'quick'
 }
 
+/** 组装历史消息、流式消息和工具输出，并在用户停留底部时自动滚动，接收会话编号、展示变体，返回组件内容 */
 export function ChatMessages({ sessionId, variant = 'default' }: ChatMessagesProps) {
-  const { t } = useTranslation()
-  const language = useAppStore(s => s.language)
-  const isQuick = variant === 'quick'
+  const { t } = useTranslation() // 获取当前语言的翻译方法
+  const language = useAppStore(s => s.language) // 从状态仓库读取语言
+  const isQuick = variant === 'quick' // 是否快捷
+  /** 从状态仓库读取当前会话编号、当前消息列表、是否流式输出、流式输出内容、流式输出思考内容、初始化事件监听器 */
   const {
     activeSessionId,
     currentMessages,
@@ -116,13 +134,16 @@ export function ChatMessages({ sessionId, variant = 'default' }: ChatMessagesPro
     streamingThinking,
     initEventListeners,
   } = useChatStore(useShallow((state) => {
-    const resolvedSessionId = sessionId ?? state.currentConversationId
+    const resolvedSessionId = sessionId ?? state.currentConversationId // 已处理会话编号
+    /** 会话 */
     const conversation = resolvedSessionId
       ? state.conversations.find(item => item.id === resolvedSessionId)
       : undefined
+    /** 流式输出状态 */
     const streamingState = resolvedSessionId
       ? state.streamingMessages[resolvedSessionId]
       : undefined
+    /** 会话状态 */
     const sessionStatus = resolvedSessionId
       ? (state.sessionStatuses[resolvedSessionId] ?? conversation?.status)
       : undefined
@@ -139,6 +160,7 @@ export function ChatMessages({ sessionId, variant = 'default' }: ChatMessagesPro
     }
   }))
 
+  /** 最新用户消息 */
   const latestUserMessage = useMemo(
     () => [...currentMessages].reverse().find(
       message => message.role === 'user' && message.contentType === 'text'
@@ -146,23 +168,27 @@ export function ChatMessages({ sessionId, variant = 'default' }: ChatMessagesPro
     [currentMessages]
   )
 
-  const lastMessage = currentMessages[currentMessages.length - 1]
+  const lastMessage = currentMessages[currentMessages.length - 1] // 最后一个消息
+  /** 流式输出消息 */
   const streamingMessage =
     isStreaming && lastMessage?.role === 'assistant' ? lastMessage : undefined
+  /** 是否需显示流式输出时间戳 */
   const shouldShowStreamingTimestamp = Boolean(
     streamingMessage && shouldShowTimestamp(currentMessages, currentMessages.length - 1)
   )
 
+  /** 将末尾的流式占位移出历史消息，避免同一条回复被渲染两次 */
   const historicalMessages = useMemo(
     () => groupMessagesForDisplay(streamingMessage ? currentMessages.slice(0, -1) : currentMessages),
     [currentMessages, streamingMessage]
   )
 
+  /** 按最后一条用户消息划分轮次，记录本轮正在输出的工具调用 */
   const currentTurnToolIds = useMemo(() => {
     if (!isStreaming) return new Set<number>()
-    const slice = currentMessages.slice(0, -1)
-    let lastUserIdx = -1
-    for (let i = slice.length - 1; i >= 0; i--) {
+    const slice = currentMessages.slice(0, -1) // 截取后的消息列表
+    let lastUserIdx = -1 // 最后一个用户索引
+    for (/* 循环索引 */ let i = slice.length - 1; i >= 0; i--) {
       if (slice[i].role === 'user' && slice[i].contentType === 'text') {
         lastUserIdx = i
         break
@@ -176,16 +202,19 @@ export function ChatMessages({ sessionId, variant = 'default' }: ChatMessagesPro
     )
   }, [isStreaming, currentMessages])
 
+  /** 流式输出工具消息列表 */
   const streamToolMessages = useMemo(
     () => isStreaming ? historicalMessages.filter(m => m.contentType === 'tool_call' && currentTurnToolIds.has(m.id)) : EMPTY_MESSAGES,
     [historicalMessages, isStreaming, currentTurnToolIds]
   )
 
+  /** 其余历史项消息列表 */
   const otherHistoricalMessages = useMemo(
     () => isStreaming ? historicalMessages.filter(m => m.contentType !== 'tool_call' || !currentTurnToolIds.has(m.id)) : historicalMessages,
     [historicalMessages, isStreaming, currentTurnToolIds]
   )
 
+  /** 使用消息内容变化驱动滚动，并在收到下一轮用户输入时恢复跟随 */
   const { containerRef, isAtBottom, scrollToBottom } = useAutoScroll([
     currentMessages.length,
     isStreaming,
@@ -193,14 +222,16 @@ export function ChatMessages({ sessionId, variant = 'default' }: ChatMessagesPro
     streamingThinking,
   ], latestUserMessage?.id)
 
-  const isNewChat = currentMessages.length === 0
+  const isNewChat = currentMessages.length === 0 // 是否新聊天
 
+  /** 会话切换后等待布局完成，再将新会话滚动到底部 */
   useEffect(() => {
-    const frame = requestAnimationFrame(() => scrollToBottom(false))
+    const frame = requestAnimationFrame(() => scrollToBottom(false)) // 帧
 
     return () => cancelAnimationFrame(frame)
   }, [activeSessionId, scrollToBottom])
 
+  /** 进入聊天时订阅后端事件，卸载时解除订阅 */
   useEffect(() => initEventListeners(), [initEventListeners])
 
   return (

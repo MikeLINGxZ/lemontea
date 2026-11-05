@@ -9,8 +9,18 @@ import { Create as $Create } from "@wailsio/runtime";
 // @ts-ignore: Unused imports
 import * as provider$0 from "../../pkg/provider/models.js";
 
+/**
+ * 描述语言使用的数据结构
+ */
 export class Language {
+    /**
+     * 唯一标识
+     */
     "id": string;
+
+    /**
+     * 名称
+     */
     "name": string;
 
     /** Creates a new Language instance. */
@@ -34,14 +44,48 @@ export class Language {
     }
 }
 
+/**
+ * 描述模型使用的数据结构
+ */
 export class Model {
+    /**
+     * 唯一标识
+     */
     "id": number;
+
+    /**
+     * 提供商编号
+     */
     "provider_id": number;
+
+    /**
+     * 模型
+     */
     "model": string;
+
+    /**
+     * 所属按
+     */
     "owned_by": string;
+
+    /**
+     * 对象
+     */
     "object": string;
+
+    /**
+     * 启用
+     */
     "enable": boolean;
+
+    /**
+     * 别名
+     */
     "alias": string | null;
+
+    /**
+     * 是否自定义
+     */
     "is_custom": boolean;
 
     /**
@@ -92,15 +136,42 @@ export class Model {
 }
 
 /**
- * Provider is the provider list/detail payload returned to the frontend.
+ * Provider 是返回给前端的供应商列表项和详情数据
  */
 export class Provider {
+    /**
+     * 唯一标识
+     */
     "id": number;
+
+    /**
+     * 图标
+     */
     "icon": string;
+
+    /**
+     * 类型
+     */
     "provider_type": provider$0.Type;
+
+    /**
+     * 名称
+     */
     "provider_name": string;
+
+    /**
+     * 服务基础地址
+     */
     "base_url": string;
+
+    /**
+     * 启用状态
+     */
     "enabled": boolean;
+
+    /**
+     * API 密钥
+     */
     "api_key": string;
 
     /**
@@ -147,8 +218,18 @@ export class Provider {
     }
 }
 
+/**
+ * 描述提供商模型使用的数据结构
+ */
 export class ProviderModel {
+    /**
+     * 提供商
+     */
     "provider": Provider;
+
+    /**
+     * 模型列表
+     */
     "models": Model[];
 
     /** Creates a new ProviderModel instance. */
@@ -180,9 +261,23 @@ export class ProviderModel {
     }
 }
 
+/**
+ * 描述区域使用的数据结构
+ */
 export class Region {
+    /**
+     * 图标
+     */
     "icon": string;
+
+    /**
+     * 唯一标识
+     */
     "id": string;
+
+    /**
+     * 名称
+     */
     "name": string;
 
     /** Creates a new Region instance. */
@@ -210,16 +305,47 @@ export class Region {
 }
 
 /**
- * SettingsBootstrap contains the initial settings payload required by the frontend settings window.
+ * SettingsBootstrap 包含前端设置窗口初始化所需的数据
  */
 export class SettingsBootstrap {
+    /**
+     * 地区
+     */
     "locale": string;
+
+    /**
+     * 语言
+     */
     "language": string;
+
+    /**
+     * 字体尺寸
+     */
     "font_size": string;
+
+    /**
+     * 数据目录
+     */
     "data_dir": string;
+
+    /**
+     * 日志级别
+     */
     "log_level": string;
+
+    /**
+     * 快捷聊天快捷键
+     */
     "quick_chat_shortcut": string;
+
+    /**
+     * 默认提供商编号
+     */
     "default_provider_id": number;
+
+    /**
+     * 版本
+     */
     "version": string;
 
     /** Creates a new SettingsBootstrap instance. */
@@ -261,11 +387,33 @@ export class SettingsBootstrap {
     }
 }
 
+/**
+ * 描述受支持提供商使用的数据结构
+ */
 export class SupportedProvider {
+    /**
+     * 类型
+     */
     "type": provider$0.Type;
+
+    /**
+     * 图标
+     */
     "icon": string;
+
+    /**
+     * 名称
+     */
     "name": string;
+
+    /**
+     * 描述
+     */
     "description": string;
+
+    /**
+     * 服务基础地址
+     */
     "base_url": string;
 
     /** Creates a new SupportedProvider instance. */

@@ -7,31 +7,37 @@ import { isH5Width } from '@/lib/responsive'
 import { isMac } from '@/lib/utils'
 import { useChatStore } from '@/store/chatStore'
 
+/** 快捷聊天选中项事件 */
 const QUICK_CHAT_SELECTED_EVENT = 'quick_chat:selected'
 
+/** 组合会话侧栏和聊天区域，并根据窗口宽度管理侧栏状态，返回组件内容 */
 export function MainLayout() {
-  const loadSessions = useChatStore((state) => state.loadSessions)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [isNarrow, setIsNarrow] = useState(false)
-  const [windowFocused, setWindowFocused] = useState(true)
-  const [animateWindowControlSpace, setAnimateWindowControlSpace] = useState(false)
-  const autoCollapsedRef = useRef(false)
-  const wasNarrowRef = useRef(false)
-  const showWindowControlSpace = isMac && windowFocused
+  const loadSessions = useChatStore((state) => state.loadSessions) // 按游标加载会话列表，重置时从第一页开始
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false) // 侧栏折叠及其更新方法
+  const [isNarrow, setIsNarrow] = useState(false) // 是否窄屏及其更新方法
+  const [windowFocused, setWindowFocused] = useState(true) // 窗口获得焦点及其更新方法
+  const [animateWindowControlSpace, setAnimateWindowControlSpace] = useState(false) // 动画窗口控制区域及其更新方法
+  const autoCollapsedRef = useRef(false) // 自动折叠引用，供后续读取当前值
+  const wasNarrowRef = useRef(false) // 曾经窄屏引用，供后续读取当前值
+  const showWindowControlSpace = isMac && windowFocused // 显示窗口控制区域
 
+  /** 收起侧栏，接收自动，无返回值 */
   const collapseSidebar = (auto = false) => {
     autoCollapsedRef.current = auto
     setSidebarCollapsed(true)
   }
 
+  /** 展开侧栏，无返回值 */
   const expandSidebar = () => {
     autoCollapsedRef.current = false
     setSidebarCollapsed(false)
   }
 
+  /** 同步外部状态并管理本次副作用的生命周期 */
   useEffect(() => {
+    /** 处理调整尺寸，无返回值 */
     const handleResize = () => {
-      const isNarrow = isH5Width(window.innerWidth)
+      const isNarrow = isH5Width(window.innerWidth) // 是否窄屏
 
       setIsNarrow(isNarrow)
 
@@ -53,13 +59,16 @@ export function MainLayout() {
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
+  /** 同步外部状态并管理本次副作用的生命周期 */
   useEffect(() => {
     void loadSessions(true)
   }, [loadSessions])
 
+  /** 同步外部状态并管理本次副作用的生命周期 */
   useEffect(() => {
-    const offQuickChatSelected = Events.On(QUICK_CHAT_SELECTED_EVENT, (event: { data?: { sessionId?: number } }) => {
-      const sessionId = event.data?.sessionId
+    /** 保存事件解绑方法 */
+    const offQuickChatSelected = Events.On(QUICK_CHAT_SELECTED_EVENT, (event: { /* 事件携带的数据 */ data?: { /* 会话编号 */ sessionId?: number } }) => {
+      const sessionId = event.data?.sessionId // 会话编号
       if (typeof sessionId !== 'number' || sessionId <= 0) return
       startTransition(() => {
         useChatStore.getState().setCurrentConversation(sessionId)
@@ -73,10 +82,12 @@ export function MainLayout() {
     }
   }, [])
 
+  /** 同步外部状态并管理本次副作用的生命周期 */
   useEffect(() => {
     if (!isMac) return
 
-    let timeoutId: number | undefined
+    let timeoutId: number | undefined // 超时编号
+    /** 处理焦点变更，接收获得焦点，无返回值 */
     const handleFocusChange = (focused: boolean) => {
       if (timeoutId) window.clearTimeout(timeoutId)
       setAnimateWindowControlSpace(true)
@@ -84,7 +95,9 @@ export function MainLayout() {
       timeoutId = window.setTimeout(() => setAnimateWindowControlSpace(false), 320)
     }
 
+    /** 保存事件解绑方法 */
     const offFocus = Events.On(Events.Types.Common.WindowFocus, () => handleFocusChange(true))
+    /** 保存事件解绑方法 */
     const offLostFocus = Events.On(Events.Types.Common.WindowLostFocus, () => handleFocusChange(false))
 
     return () => {

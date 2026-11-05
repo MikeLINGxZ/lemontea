@@ -12,58 +12,79 @@ import (
 	"time"
 )
 
-// DefaultStdoutLimit is the per-stream byte cap when RunParams.StdoutLimit/StderrLimit is zero.
+// DefaultStdoutLimit 是 RunParams.StdoutLimit 或 StderrLimit 为零时对应输出流的字节上限
 const DefaultStdoutLimit = 32 * 1024
 
-// DefaultTimeoutSeconds is the per-call wall-clock cap when RunParams.TimeoutSec is zero.
+// DefaultTimeoutSeconds 是 RunParams.TimeoutSec 为零时单次调用的默认实际耗时上限
 const DefaultTimeoutSeconds = 60
 
-// MaxTimeoutSeconds is the hard ceiling regardless of manifest overrides.
+// MaxTimeoutSeconds 是超时硬上限，清单配置无法突破该值
 const MaxTimeoutSeconds = 600
 
-// RunParams describes one CLI subprocess invocation.
+// RunParams 描述一次 CLI 子进程调用
 type RunParams struct {
-	Executable  string
-	Argv        []string
-	Env         []string
-	WorkingDir  string
-	OutputMode  OutputMode
-	TimeoutSec  int
+	// 可执行文件
+	Executable string
+	// 命令参数
+	Argv []string
+	// 环境变量
+	Env []string
+	// 当前工作项目录
+	WorkingDir string
+	// 输出模式
+	OutputMode OutputMode
+	// 超时秒
+	TimeoutSec int
+	// 标准输出上限
 	StdoutLimit int
+	// 标准错误上限
 	StderrLimit int
-	UsePTY      bool
+	// UsePTY 对应的是否满足条件
+	UsePTY bool
 }
 
-// RunResult captures the outcome of a CLI invocation in a format suitable for forwarding to the LLM.
+// RunResult 保存 CLI 调用结果，供转发给模型
 type RunResult struct {
-	ExitCode        int
-	Stdout          string
-	Stderr          string
-	Parsed          json.RawMessage // populated when OutputMode==OutputJSON and stdout is valid JSON
-	ParsedLines     []string        // populated when OutputMode==OutputLines
+	// 退出代码
+	ExitCode int
+	// 标准输出
+	Stdout string
+	// 标准错误
+	Stderr      string
+	Parsed      json.RawMessage // OutputMode 为 OutputJSON 且标准输出为有效 JSON 时填充
+	ParsedLines []string        // OutputMode 为 OutputLines 时填充
+	// 已截断标准输出
 	TruncatedStdout bool
+	// 已截断标准错误
 	TruncatedStderr bool
-	DurationMS      int64
+	// 时长毫秒
+	DurationMS int64
 }
 
-// RunProgress is a cumulative snapshot of streaming subprocess output.
+// RunProgress 表示子进程流式输出的累计快照
 type RunProgress struct {
-	Stdout          string
-	Stderr          string
+	// 标准输出
+	Stdout string
+	// 标准错误
+	Stderr string
+	// 已截断标准输出
 	TruncatedStdout bool
+	// 已截断标准错误
 	TruncatedStderr bool
 }
 
-// ErrRunTimeout is returned by Run when the wall-clock timeout fires before the process exits.
+// ErrRunTimeout 表示 Run 中的子进程在实际耗时达到上限前未退出
 var ErrRunTimeout = errors.New("cli: run timed out")
 
-// Run executes one CLI subprocess applying timeout, output truncation, and OutputMode parsing.
-// A non-zero exit code is reported via RunResult.ExitCode, not as a Go error.
+// Run 执行一次 CLI 子进程，应用超时和输出截断，并按 OutputMode 解析输出
+// 非零退出码通过 RunResult.ExitCode 返回，Go 错误保留给执行过程中的故障
+// 接收本次调用的上下文、运行参数，返回运行结果及可能发生的错误
 func Run(ctx context.Context, p RunParams) (RunResult, error) {
 	return RunWithProgress(ctx, p, nil)
 }
 
-// RunWithProgress executes one CLI subprocess and emits cumulative output snapshots as stdout/stderr arrive.
+// RunWithProgress 执行一次 CLI 子进程，随标准输出和标准错误到达持续发送累计快照
+// 接收本次调用的上下文、运行参数、on进度，返回运行结果及可能发生的错误
 func RunWithProgress(ctx context.Context, p RunParams, onProgress func(RunProgress)) (RunResult, error) {
 	if p.UsePTY {
 		return runWithProgressPTY(ctx, p, onProgress)
@@ -71,16 +92,18 @@ func RunWithProgress(ctx context.Context, p RunParams, onProgress func(RunProgre
 	return runWithProgressPipe(ctx, p, onProgress)
 }
 
+// 通过标准输出和标准错误管道运行 CLI，接收上下文、运行参数与进度回调
+// 并发采集两路输出并发布累计快照，等待进程和读管道结束后返回结果及错误
 func runWithProgressPipe(ctx context.Context, p RunParams, onProgress func(RunProgress)) (RunResult, error) {
-	stdoutLimit := p.StdoutLimit
+	stdoutLimit := p.StdoutLimit // 标准输出上限
 	if stdoutLimit <= 0 {
 		stdoutLimit = DefaultStdoutLimit
 	}
-	stderrLimit := p.StderrLimit
+	stderrLimit := p.StderrLimit // 标准错误上限
 	if stderrLimit <= 0 {
 		stderrLimit = DefaultStdoutLimit
 	}
-	timeoutSec := p.TimeoutSec
+	timeoutSec := p.TimeoutSec // 超时秒
 	if timeoutSec <= 0 {
 		timeoutSec = DefaultTimeoutSeconds
 	}
@@ -88,45 +111,47 @@ func runWithProgressPipe(ctx context.Context, p RunParams, onProgress func(RunPr
 		timeoutSec = MaxTimeoutSeconds
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, time.Duration(timeoutSec)*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, time.Duration(timeoutSec)*time.Second) // 用于取消本次操作的回调
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, p.Executable, p.Argv...)
+	cmd := exec.CommandContext(ctx, p.Executable, p.Argv...) // 命令
 	if p.Env != nil {
 		cmd.Env = p.Env
 	}
 	if p.WorkingDir != "" {
 		cmd.Dir = p.WorkingDir
 	}
-	// Put the child in its own process group and, on cancel, signal the whole group so
-	// shell children (e.g. `bash -c "sleep 5"`) do not outlive the immediate child.
+	// 让子进程在独立进程组中运行，并在取消时向整个进程组发送信号
+	// 使 Shell 启动的进程（如 `bash -c "sleep 5"` 中的 sleep）随直接子进程一同退出
 	applyProcessGroup(cmd)
-	// WaitDelay is a safety net: even if a grandchild keeps the stdout pipe open after
-	// the cancel signal, Wait will return at most this long after Cancel ran.
+	// WaitDelay 限制调用 Cancel 后 Wait 的等待时长
+	// 即使后代进程收到取消信号后仍保持标准输出管道打开，也会在该时限内返回
 	cmd.WaitDelay = 2 * time.Second
 
-	stdoutBuf := &cappedBuffer{limit: stdoutLimit}
-	stderrBuf := &cappedBuffer{limit: stderrLimit}
-	stdoutPipe, err := cmd.StdoutPipe()
+	stdoutBuf := &cappedBuffer{limit: stdoutLimit} // 标准输出缓冲区
+	stderrBuf := &cappedBuffer{limit: stderrLimit} // 标准错误缓冲区
+	stdoutPipe, err := cmd.StdoutPipe()            // 标准输出管道、处理标准输出管道时的错误
 	if err != nil {
 		return RunResult{}, err
 	}
-	stderrPipe, err := cmd.StderrPipe()
+	stderrPipe, err := cmd.StderrPipe() // 标准错误管道
 	if err != nil {
 		return RunResult{}, err
 	}
 
-	start := time.Now()
-	if err := cmd.Start(); err != nil {
-		return RunResult{}, err
+	start := time.Now()     // 开始
+	startErr := cmd.Start() // 启动任务时的错误
+	if startErr != nil {
+		return RunResult{}, startErr
 	}
 
-	chunks := make(chan cliOutputChunk, 32)
+	chunks := make(chan cliOutputChunk, 32) // 分片列表
+	// 等待所有并发任务结束的等待组
 	var wg sync.WaitGroup
 	wg.Add(2)
 	go readCLIOutputPipe(&wg, stdoutPipe, stdoutBuf, true, chunks)
 	go readCLIOutputPipe(&wg, stderrPipe, stderrBuf, false, chunks)
-	go func() {
+	go /* 等待关闭分片列表时调用的回调，无返回值 */ func() {
 		wg.Wait()
 		close(chunks)
 	}()
@@ -143,6 +168,7 @@ func runWithProgressPipe(ctx context.Context, p RunParams, onProgress func(RunPr
 	}
 
 	err = cmd.Wait()
+	// 结果
 	res := RunResult{
 		Stdout:          stdoutBuf.String(),
 		Stderr:          stderrBuf.String(),
@@ -157,6 +183,7 @@ func runWithProgressPipe(ctx context.Context, p RunParams, onProgress func(RunPr
 	}
 
 	if err != nil {
+		// 退出错误
 		var exitErr *exec.ExitError
 		if !errors.As(err, &exitErr) {
 			return res, err
@@ -167,15 +194,17 @@ func runWithProgressPipe(ctx context.Context, p RunParams, onProgress func(RunPr
 	return res, nil
 }
 
+// 描述CLI输出分片使用的数据结构
 type cliOutputChunk struct{}
 
+// 读取CLI输出管道，接收等待所有并发任务结束的等待组、读取源、缓冲区、发布、分片列表，无返回值
 func readCLIOutputPipe(wg *sync.WaitGroup, r io.ReadCloser, buf *cappedBuffer, emit bool, chunks chan<- cliOutputChunk) {
 	defer wg.Done()
 	defer r.Close()
 
-	tmp := make([]byte, 2048)
+	tmp := make([]byte, 2048) // 临时
 	for {
-		n, err := r.Read(tmp)
+		n, err := r.Read(tmp) // 数量、读取当前数据时的错误
 		if n > 0 {
 			_, _ = buf.Write(tmp[:n])
 			if emit {
@@ -190,16 +219,19 @@ func readCLIOutputPipe(wg *sync.WaitGroup, r io.ReadCloser, buf *cappedBuffer, e
 	}
 }
 
-// parseOutputs populates Parsed / ParsedLines based on OutputMode and stdout content.
+// parseOutputs 根据 OutputMode 和标准输出填充 Parsed 或 ParsedLines
+// 接收结果、模式，无返回值
 func parseOutputs(res *RunResult, mode OutputMode) {
 	switch mode {
 	case OutputJSON:
-		trimmed := strings.TrimSpace(res.Stdout)
+		trimmed := strings.TrimSpace(res.Stdout) // 已去除空白
 		if trimmed == "" {
 			return
 		}
+		// 探测
 		var probe interface{}
-		if err := json.Unmarshal([]byte(trimmed), &probe); err == nil {
+		err := json.Unmarshal([]byte(trimmed), &probe) // 解析序列化内容时的错误
+		if err == nil {
 			res.Parsed = json.RawMessage(trimmed)
 		}
 	case OutputLines:
@@ -211,20 +243,24 @@ func parseOutputs(res *RunResult, mode OutputMode) {
 	}
 }
 
-// cappedBuffer is an io.Writer that stops appending past limit and remembers it was capped.
+// cappedBuffer 实现 io.Writer，写满 limit 字节后停止追加，并记录是否发生截断
 type cappedBuffer struct {
-	buf       bytes.Buffer
-	limit     int
+	// 缓冲区
+	buf bytes.Buffer
+	// 上限
+	limit int
+	// 已截断
 	truncated bool
 }
 
-// Write appends up to limit bytes; further writes are silently dropped and truncated is set.
+// Write 最多累计 limit 字节，后续数据直接丢弃并设置 truncated
+// 接收数据字节，返回整数及可能发生的错误
 func (c *cappedBuffer) Write(b []byte) (int, error) {
 	if c.buf.Len() >= c.limit {
 		c.truncated = true
 		return len(b), nil
 	}
-	remaining := c.limit - c.buf.Len()
+	remaining := c.limit - c.buf.Len() // 剩余
 	if len(b) > remaining {
 		c.buf.Write(b[:remaining])
 		c.truncated = true
@@ -233,5 +269,5 @@ func (c *cappedBuffer) Write(b []byte) (int, error) {
 	return c.buf.Write(b)
 }
 
-// String returns the accumulated bytes as a string.
+// String 返回累计字节对应的字符串
 func (c *cappedBuffer) String() string { return c.buf.String() }

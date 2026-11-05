@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/models/view_model"
 	pkgProvider "gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/provider"
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/service/provider/provider_dto"
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/storage"
@@ -15,6 +16,7 @@ import (
 // newTestProviderService creates an isolated provider service backed by an in-memory SQLite database.
 func newTestProviderService(t *testing.T) *Provider {
 	t.Helper()
+	t.Setenv("LEMONTEA_DATA_DIR", t.TempDir())
 
 	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("file:%s?mode=memory&cache=shared", t.Name())), &gorm.Config{})
 	if err != nil {
@@ -152,5 +154,36 @@ func TestEditProviderUpdatesFields(t *testing.T) {
 	}
 	if got.Enabled {
 		t.Error("expected enabled=false, got true")
+	}
+}
+
+func TestCreateProviderMarksFirstProviderAndModelDefault(t *testing.T) {
+	svc := newTestProviderService(t)
+	ctx := context.Background()
+
+	_, err := svc.CreateProvider(ctx, provider_dto.CreateProviderInput{
+		ProviderName: "First",
+		ProviderType: pkgProvider.Deepseek,
+		Enable:       true,
+		Models: []view_model.Model{
+			{Model: "deepseek-chat", Enable: true},
+		},
+	})
+	if err != nil {
+		t.Fatalf("CreateProvider: %v", err)
+	}
+
+	out, err := svc.ProviderAndModelList(ctx, provider_dto.ProviderAndModelListInput{})
+	if err != nil {
+		t.Fatalf("ProviderAndModelList: %v", err)
+	}
+	if len(out.ProviderModels) != 1 {
+		t.Fatalf("expected 1 provider model wrapper, got %d", len(out.ProviderModels))
+	}
+	if !out.ProviderModels[0].Provider.IsDefault {
+		t.Fatal("expected first provider to be marked default")
+	}
+	if len(out.ProviderModels[0].Models) != 1 || !out.ProviderModels[0].Models[0].IsDefault {
+		t.Fatalf("expected first model to be marked default, got %+v", out.ProviderModels[0].Models)
 	}
 }

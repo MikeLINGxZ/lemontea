@@ -1,10 +1,12 @@
 package terminal_dto
 
-// WriteTerminalInputInput carries user input destined for an active terminal.
+// WriteTerminalInputInput 携带要发送给活动终端的用户输入
 type WriteTerminalInputInput struct {
+	// 终端编号
 	TerminalID string `json:"terminal_id"`
-	Data       string `json:"data"`
+	// 数据
+	Data string `json:"data"`
 }
 
-// WriteTerminalInputOutput acknowledges that terminal input was accepted.
+// WriteTerminalInputOutput 表示终端输入已接收
 type WriteTerminalInputOutput struct{}

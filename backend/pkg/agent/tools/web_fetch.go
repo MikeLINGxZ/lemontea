@@ -18,33 +18,37 @@ import (
 )
 
 const (
+	// 拉取超时
 	fetchTimeout = 60 * time.Second
 
-	// maxHTMLBodySize caps the HTTP response body read to prevent hanging on
-	// huge pages (matches Claude Code's 10MB limit).
+	// maxHTMLBodySize 限制读取的 HTTP 响应体大小
+	// 防止读取超大网页时卡住，沿用 Claude Code 的 10 MB 上限
 	maxHTMLBodySize = 10 * 1024 * 1024
 
-	// maxMarkdownLength is the character limit after HTML→Markdown conversion,
-	// keeping token usage reasonable (matches Claude Code's 100k cap).
+	// maxMarkdownLength 限制 HTML 转换为 Markdown 后的字符数
+	// 控制 token 用量，沿用 Claude Code 的 10 万字符上限
 	maxMarkdownLength = 50_000
 
-	// maxTextLength is the character limit for plain-text extraction.
+	// maxTextLength 限制提取的纯文本字符数
 	maxTextLength = 20_000
 )
 
-// type aliases for testability
+// 为便于测试提供类型别名
 type htmlNode = html.Node
 
+// 元素节点
 const elementNode = html.ElementNode
 
+// 拉取HTTP客户端
 var fetchHTTPClient = newFetchHTTPClient()
 
+// 构建拉取HTTP客户端，返回客户端
 func newFetchHTTPClient() *http.Client {
-	jar, _ := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
+	jar, _ := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List}) // Cookie容器
 	return &http.Client{
 		Timeout: fetchTimeout,
 		Jar:     jar,
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		CheckRedirect: /* 执行当前步骤的回调，接收待发送的请求、via 对应的数据，返回操作错误 */ func(req *http.Request, via []*http.Request) error {
 			if len(via) >= 10 {
 				return fmt.Errorf("too many redirects")
 			}
@@ -53,21 +57,32 @@ func newFetchHTTPClient() *http.Client {
 	}
 }
 
+// 封装处理网页拉取所需的请求参数
 type webFetchInput struct {
-	URL    string `json:"url"    jsonschema:"description=The URL to fetch (must start with http:// or https://),required"`
+	// 地址
+	URL string `json:"url"    jsonschema:"description=The URL to fetch (must start with http:// or https://),required"`
+	// 格式化
 	Format string `json:"format" jsonschema:"description=Output format: text (default) or markdown"`
 }
 
+// 封装处理网页拉取返回给调用方的数据
 type webFetchOutput struct {
-	URL     string `json:"url"`
+	// 地址
+	URL string `json:"url"`
+	// 内容
 	Content string `json:"content"`
-	Error   string `json:"error,omitempty"`
+	// 错误
+	Error string `json:"error,omitempty"`
 }
 
-// fetchContent fetches the URL and returns the decoded body and Content-Type.
-// It caps the body to maxHTMLBodySize and converts non-UTF-8 charsets to UTF-8.
+// fetchContent 请求指定 URL，返回解码后的响应体和 Content-Type
+// 最多读取 maxHTMLBodySize 字节，并将非 UTF-8 编码转换为 UTF-8
+// 接收本次调用的上下文、客户端、目标地址，返回正文、内容类型、操作错误
+// 构造带上下文的网络请求
+// 结束时关闭当前资源
+// 读取全部内容
 func fetchContent(ctx context.Context, client *http.Client, targetURL string) (body string, contentType string, err error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, targetURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, targetURL, nil) // 待发送的请求
 	if err != nil {
 		return "", "", fmt.Errorf("create request: %w", err)
 	}
@@ -75,26 +90,28 @@ func fetchContent(ctx context.Context, client *http.Client, targetURL string) (b
 	req.Header.Set("Accept", "text/markdown, text/html, application/xhtml+xml, application/xml;q=0.9, */*;q=0.8")
 	req.Header.Set("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8")
 
-	resp, err := client.Do(req)
+	resp, err := client.Do(req) // 远程服务响应
 	if err != nil {
 		return "", "", fmt.Errorf("fetch %s: %w", targetURL, err)
 	}
+
+	// 结束时关闭当前资源
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		return "", "", fmt.Errorf("status %d from %s", resp.StatusCode, targetURL)
 	}
 
-	ct := resp.Header.Get("Content-Type")
-	rawBytes, err := io.ReadAll(io.LimitReader(resp.Body, maxHTMLBodySize))
+	ct := resp.Header.Get("Content-Type")                                   // ct 对应的数据
+	rawBytes, err := io.ReadAll(io.LimitReader(resp.Body, maxHTMLBodySize)) // 原始值字节
 	if err != nil {
 		return "", "", fmt.Errorf("read body: %w", err)
 	}
 
-	// Decode charset for HTML responses (handles GBK, GB2312, etc.)
+	// 按字符集解码 HTML 响应，兼容 GBK、GB2312 等编码
 	if strings.Contains(ct, "text/html") {
-		enc, _, _ := charset.DetermineEncoding(rawBytes, ct)
-		decoded, _, decErr := transform.Bytes(enc.NewDecoder(), rawBytes)
+		enc, _, _ := charset.DetermineEncoding(rawBytes, ct)              // 编码器
+		decoded, _, decErr := transform.Bytes(enc.NewDecoder(), rawBytes) // 解码结果、处理字节时的错误
 		if decErr == nil {
 			return string(decoded), ct, nil
 		}
@@ -103,33 +120,38 @@ func fetchContent(ctx context.Context, client *http.Client, targetURL string) (b
 	return string(rawBytes), ct, nil
 }
 
-// --- HTML parsing helpers ---
+// HTML 解析辅助逻辑
 
+// 将输入文本解析成 HTML 节点树，接收HTML文本，返回节点及可能发生的错误
 func parseHTML(htmlStr string) (*html.Node, error) {
 	return html.Parse(strings.NewReader(htmlStr))
 }
 
+// 遍历 HTML 节点并调用传入的访问函数，接收数量、fn 对应的数据，无返回值
 func walkHTML(n *html.Node, fn func(*html.Node) bool) {
 	if !fn(n) {
 		return
 	}
-	for c := n.FirstChild; c != nil; c = c.NextSibling {
+	for /* 当前条目 */ c := n.FirstChild; c != nil; c = c.NextSibling {
 		walkHTML(c, fn)
 	}
 }
 
+// 提取文本，接收数量，返回文本
 func extractText(n *html.Node) string {
 	if n.Type == html.TextNode {
 		return n.Data
 	}
+	// 文本构建器
 	var sb strings.Builder
-	for c := n.FirstChild; c != nil; c = c.NextSibling {
+	for /* 当前条目 */ c := n.FirstChild; c != nil; c = c.NextSibling {
 		sb.WriteString(extractText(c))
 	}
 	return sb.String()
 }
 
-// isSkippedElement returns true for elements whose subtrees should be ignored.
+// isSkippedElement 判断是否应跳过该元素及其子树
+// 接收当前标签，返回是否满足条件
 func isSkippedElement(tag string) bool {
 	switch tag {
 	case "script", "style", "nav", "header", "footer", "aside", "noscript":
@@ -138,17 +160,19 @@ func isSkippedElement(tag string) bool {
 	return false
 }
 
-// extractMainText extracts visible text from an HTML page as plain text.
-// It includes headings, paragraphs, list items, and table cells.
-// Falls back to all body text if no structured elements are found.
+// extractMainText 将 HTML 页面中的可见文本提取为纯文本
+// 提取标题、段落、列表项和表格单元格
+// 找不到结构化元素时，回退到整个 body 的文本
+// 接收HTML文本，返回文本
 func extractMainText(htmlStr string) string {
-	doc, err := parseHTML(htmlStr)
+	doc, err := parseHTML(htmlStr) // 文档、将输入文本解析成 HTML 节点树时的错误
 	if err != nil {
 		return ""
 	}
 
+	// 组成部分
 	var parts []string
-	walkHTML(doc, func(n *html.Node) bool {
+	walkHTML(doc /* 遍历 HTML 节点并调用传入的访问函数时调用的回调，接收数量，返回是否满足条件 */, func(n *html.Node) bool {
 		if n.Type != html.ElementNode {
 			return true
 		}
@@ -157,7 +181,7 @@ func extractMainText(htmlStr string) string {
 		}
 		switch n.Data {
 		case "p", "li", "td", "th", "dt", "dd", "h1", "h2", "h3", "h4", "h5", "h6":
-			text := strings.TrimSpace(extractText(n))
+			text := strings.TrimSpace(extractText(n)) // 文本
 			if text != "" {
 				parts = append(parts, text)
 			}
@@ -166,9 +190,9 @@ func extractMainText(htmlStr string) string {
 		return true
 	})
 
-	content := strings.Join(parts, "\n")
+	content := strings.Join(parts, "\n") // 内容
 
-	// Fallback: if no structured elements found, return all body text
+	// 找不到结构化元素时返回整个 body 的文本
 	if content == "" {
 		content = strings.TrimSpace(extractText(doc))
 	}
@@ -179,25 +203,29 @@ func extractMainText(htmlStr string) string {
 	return content
 }
 
-// --- Markdown conversion ---
+// Markdown 转换
 
-// toMarkdown converts an HTML string to Markdown.
-// Headings, paragraphs, lists, and inline links are preserved.
-// Script, style, nav, header, footer, aside subtrees are skipped.
+// toMarkdown 将 HTML 字符串转换为 Markdown
+// 保留标题、段落、列表和行内链接
+// 跳过 script、style、nav、header、footer 和 aside 元素及其子树
+// 接收HTML文本，返回文本
 func toMarkdown(htmlStr string) string {
-	doc, err := parseHTML(htmlStr)
+	doc, err := parseHTML(htmlStr) // 文档、将输入文本解析成 HTML 节点树时的错误
 	if err != nil {
 		return ""
 	}
+	// 文本构建器
 	var sb strings.Builder
 	renderMarkdownNode(doc, &sb)
-	result := strings.TrimSpace(sb.String())
+	result := strings.TrimSpace(sb.String()) // 去掉首尾空白得到的结果
 	if len(result) > maxMarkdownLength {
 		result = result[:maxMarkdownLength] + "..."
 	}
 	return result
 }
 
+// 按 HTML 节点类型向构建器写入 Markdown，无返回值
+// 标题、段落、列表和链接按对应语法转换，脚本与导航等无关节点在遍历时跳过
 func renderMarkdownNode(n *htmlNode, sb *strings.Builder) {
 	if n.Type == elementNode {
 		if isSkippedElement(n.Data) {
@@ -205,50 +233,53 @@ func renderMarkdownNode(n *htmlNode, sb *strings.Builder) {
 		}
 		switch n.Data {
 		case "h1":
-			if text := strings.TrimSpace(extractText(n)); text != "" {
+			if /* 文本 */ text := strings.TrimSpace(extractText(n)); text != "" {
 				sb.WriteString("# " + text + "\n\n")
 			}
 			return
 		case "h2":
-			if text := strings.TrimSpace(extractText(n)); text != "" {
+			if /* 文本 */ text := strings.TrimSpace(extractText(n)); text != "" {
 				sb.WriteString("## " + text + "\n\n")
 			}
 			return
 		case "h3":
-			if text := strings.TrimSpace(extractText(n)); text != "" {
+			if /* 文本 */ text := strings.TrimSpace(extractText(n)); text != "" {
 				sb.WriteString("### " + text + "\n\n")
 			}
 			return
 		case "h4", "h5", "h6":
-			if text := strings.TrimSpace(extractText(n)); text != "" {
+			if /* 文本 */ text := strings.TrimSpace(extractText(n)); text != "" {
 				sb.WriteString("#### " + text + "\n\n")
 			}
 			return
 		case "p":
+			// 行内
 			var inline strings.Builder
 			renderInlineNode(n, &inline)
-			if text := strings.TrimSpace(inline.String()); text != "" {
+			if /* 文本 */ text := strings.TrimSpace(inline.String()); text != "" {
 				sb.WriteString(text + "\n\n")
 			}
 			return
 		case "li":
+			// 行内
 			var inline strings.Builder
 			renderInlineNode(n, &inline)
-			if text := strings.TrimSpace(inline.String()); text != "" {
+			if /* 文本 */ text := strings.TrimSpace(inline.String()); text != "" {
 				sb.WriteString("- " + text + "\n")
 			}
 			return
 		case "ul", "ol":
 			sb.WriteString("\n")
-			for c := n.FirstChild; c != nil; c = c.NextSibling {
+			for /* 当前条目 */ c := n.FirstChild; c != nil; c = c.NextSibling {
 				renderMarkdownNode(c, sb)
 			}
 			sb.WriteString("\n")
 			return
 		case "a":
+			// 行内
 			var inline strings.Builder
 			renderInlineNode(n, &inline)
-			if text := strings.TrimSpace(inline.String()); text != "" {
+			if /* 文本 */ text := strings.TrimSpace(inline.String()); text != "" {
 				sb.WriteString(text + "\n\n")
 			}
 			return
@@ -257,12 +288,13 @@ func renderMarkdownNode(n *htmlNode, sb *strings.Builder) {
 			return
 		}
 	}
-	for c := n.FirstChild; c != nil; c = c.NextSibling {
+	for /* 当前条目 */ c := n.FirstChild; c != nil; c = c.NextSibling {
 		renderMarkdownNode(c, sb)
 	}
 }
 
-// renderInlineNode renders a node's content inline, converting <a> to markdown links.
+// renderInlineNode 将节点内容渲染为行内文本，并将 <a> 转换为 Markdown 链接
+// 接收数量、文本构建器，无返回值
 func renderInlineNode(n *htmlNode, sb *strings.Builder) {
 	if n.Type == html.TextNode {
 		sb.WriteString(n.Data)
@@ -273,14 +305,16 @@ func renderInlineNode(n *htmlNode, sb *strings.Builder) {
 			return
 		}
 		if n.Data == "a" {
+			// 链接地址
 			var href string
+			// 遍历属性，逐项取得属性
 			for _, attr := range n.Attr {
 				if attr.Key == "href" {
 					href = attr.Val
 					break
 				}
 			}
-			text := strings.TrimSpace(extractText(n))
+			text := strings.TrimSpace(extractText(n)) // 文本
 			if href != "" && text != "" {
 				sb.WriteString("[" + text + "](" + href + ")")
 			} else {
@@ -293,13 +327,14 @@ func renderInlineNode(n *htmlNode, sb *strings.Builder) {
 			return
 		}
 	}
-	for c := n.FirstChild; c != nil; c = c.NextSibling {
+	for /* 当前条目 */ c := n.FirstChild; c != nil; c = c.NextSibling {
 		renderInlineNode(c, sb)
 	}
 }
 
-// --- Main function ---
+// 网页内容获取入口
 
+// 获取网页内容并按指定格式转换输出，接收调用上下文和请求参数，返回操作结果及可能发生的错误
 func webFetchFunc(ctx context.Context, input webFetchInput) (webFetchOutput, error) {
 	if !strings.HasPrefix(input.URL, "http://") && !strings.HasPrefix(input.URL, "https://") {
 		return webFetchOutput{
@@ -308,12 +343,13 @@ func webFetchFunc(ctx context.Context, input webFetchInput) (webFetchOutput, err
 		}, nil
 	}
 
+	// 正文、内容类型、拉取内容时的错误
 	body, contentType, err := fetchContent(ctx, fetchHTTPClient, input.URL)
 	if err != nil {
 		return webFetchOutput{URL: input.URL, Error: err.Error()}, nil
 	}
 
-	// Non-HTML responses (JSON, plain text, markdown) are returned directly.
+	// 直接返回 JSON、纯文本和 Markdown 等非 HTML 响应
 	if !strings.Contains(contentType, "text/html") {
 		if len(body) > maxMarkdownLength {
 			body = body[:maxMarkdownLength] + "..."
@@ -321,6 +357,7 @@ func webFetchFunc(ctx context.Context, input webFetchInput) (webFetchOutput, err
 		return webFetchOutput{URL: input.URL, Content: body}, nil
 	}
 
+	// 内容
 	var content string
 	if strings.ToLower(input.Format) == "markdown" {
 		content = toMarkdown(body)
@@ -331,6 +368,7 @@ func webFetchFunc(ctx context.Context, input webFetchInput) (webFetchOutput, err
 	return webFetchOutput{URL: input.URL, Content: content}, nil
 }
 
+// 构建网页拉取工具，返回Function工具网页拉取输入网页拉取输出
 func NewWebFetchTool() *function.FunctionTool[webFetchInput, webFetchOutput] {
 	return function.NewFunctionTool(
 		webFetchFunc,
@@ -339,13 +377,15 @@ func NewWebFetchTool() *function.FunctionTool[webFetchInput, webFetchOutput] {
 	)
 }
 
+// 构造网页拉取工具的展示信息，返回工具元信息
 func WebFetchMeta() ToolMeta {
 	return ToolMeta{
 		Name:            "web_fetch",
 		Description:     "Fetch any URL and read its content",
 		Category:        CategoryBuiltin,
 		RequiresConfirm: false,
-		FormatPurpose: func(args json.RawMessage) string {
+		FormatPurpose: /* 执行当前步骤的回调，接收参数，返回文本 */ func(args json.RawMessage) string {
+			// 请求参数
 			var input webFetchInput
 			_ = json.Unmarshal(args, &input)
 			return fmt.Sprintf("Fetch: %s", input.URL)

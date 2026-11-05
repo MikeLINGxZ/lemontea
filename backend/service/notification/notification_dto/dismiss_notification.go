@@ -1,9 +1,10 @@
 package notification_dto
 
-// DismissNotificationInput identifies the notification to remove.
+// DismissNotificationInput 指定要删除的通知
 type DismissNotificationInput struct {
+	// 唯一标识
 	ID uint `json:"id"`
 }
 
-// DismissNotificationOutput is returned after deletion.
+// DismissNotificationOutput 表示通知删除成功
 type DismissNotificationOutput struct{}

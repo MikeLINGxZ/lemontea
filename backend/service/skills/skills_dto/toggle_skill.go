@@ -1,12 +1,15 @@
 package skills_dto
 
-// ToggleSkillInput identifies the skill and desired disabled state.
+// ToggleSkillInput 指定技能及其目标禁用状态
 type ToggleSkillInput struct {
-	Name     string `json:"name"`
-	Disabled bool   `json:"disabled"`
+	// 名称
+	Name string `json:"name"`
+	// 禁用状态
+	Disabled bool `json:"disabled"`
 }
 
-// ToggleSkillOutput returns the skill after toggling its disabled state.
+// ToggleSkillOutput 返回禁用状态更新后的技能
 type ToggleSkillOutput struct {
+	// 技能
 	Skill SkillItem `json:"skill"`
 }

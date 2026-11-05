@@ -12,6 +12,9 @@ import * as view_model$0 from "../../../models/view_model/models.js";
 // @ts-ignore: Unused imports
 import * as provider$0 from "../../../pkg/provider/models.js";
 
+/**
+ * 封装处理进入主界面所需的请求参数
+ */
 export class EnterHomeInput {
 
     /** Creates a new EnterHomeInput instance. */
@@ -29,6 +32,9 @@ export class EnterHomeInput {
     }
 }
 
+/**
+ * 封装处理进入主界面返回给调用方的数据
+ */
 export class EnterHomeOutput {
 
     /** Creates a new EnterHomeOutput instance. */
@@ -46,6 +52,9 @@ export class EnterHomeOutput {
     }
 }
 
+/**
+ * 封装处理退出应用所需的请求参数
+ */
 export class ExitAppInput {
 
     /** Creates a new ExitAppInput instance. */
@@ -63,6 +72,9 @@ export class ExitAppInput {
     }
 }
 
+/**
+ * 封装处理退出应用返回给调用方的数据
+ */
 export class ExitAppOutput {
 
     /** Creates a new ExitAppOutput instance. */
@@ -81,7 +93,7 @@ export class ExitAppOutput {
 }
 
 /**
- * IsInitializedInput is the empty input for IsInitialized.
+ * IsInitializedInput 是初始化状态查询的空请求
  */
 export class IsInitializedInput {
 
@@ -101,9 +113,12 @@ export class IsInitializedInput {
 }
 
 /**
- * IsInitializedOutput carries whether the application has finished onboarding.
+ * IsInitializedOutput 返回应用是否已完成首次启动引导
  */
 export class IsInitializedOutput {
+    /**
+     * 已初始化
+     */
     "initialized": boolean;
 
     /** Creates a new IsInitializedOutput instance. */
@@ -125,15 +140,42 @@ export class IsInitializedOutput {
 }
 
 /**
- * SaveProviderAndMarkInitializedInput mirrors provider_dto.CreateProviderInput plus onboarding intent.
+ * SaveProviderAndMarkInitializedInput 复用 provider_dto.CreateProviderInput 的字段，用于首次启动引导
  */
 export class SaveProviderAndMarkInitializedInput {
+    /**
+     * 提供商名称
+     */
     "provider_name": string;
+
+    /**
+     * 提供商类型
+     */
     "provider_type": provider$0.Type;
+
+    /**
+     * 服务基础地址
+     */
     "base_url": string;
+
+    /**
+     * API 密钥
+     */
     "api_key": string;
+
+    /**
+     * 启用
+     */
     "enable": boolean;
+
+    /**
+     * 默认模型
+     */
     "default_model": string | null;
+
+    /**
+     * 模型列表
+     */
     "models": view_model$0.Model[];
 
     /** Creates a new SaveProviderAndMarkInitializedInput instance. */
@@ -177,7 +219,7 @@ export class SaveProviderAndMarkInitializedInput {
 }
 
 /**
- * SaveProviderAndMarkInitializedOutput is an empty acknowledgement.
+ * SaveProviderAndMarkInitializedOutput 是初始化成功后的空响应
  */
 export class SaveProviderAndMarkInitializedOutput {
 

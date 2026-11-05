@@ -78,9 +78,9 @@ Lemontea 从设计上支持扩展：
 
 ## 技术栈
 
-- 桌面框架：Wails 3
-- 后端：Go 1.25
-- 前端：React 18、TypeScript、Vite、Tailwind CSS
+- 桌面框架：Wails v3.1.0
+- 后端：Go 1.26+
+- 前端：React 19.3、TypeScript 7.0、Vite 8.3、Tailwind CSS 4.3
 - 状态管理：Zustand
 - 数据存储：SQLite / GORM
 - 测试：Go test、Vitest、Testing Library
@@ -90,9 +90,12 @@ Lemontea 从设计上支持扩展：
 
 请先安装：
 
-- Go 1.25 或兼容版本
+- Go 1.26 或更高版本
 - Node.js 与 npm
-- Wails 3 CLI
+- Wails v3.1.0 CLI（`go install github.com/wailsapp/wails/v3/cmd/wails3@v3.1.0`）
+
+如需构建可在 macOS 12 上运行的版本，请使用 Go 1.26。使用 Go 1.27 构建的版本需要 macOS 13 或更高版本。
+Tailwind CSS 4 要求 macOS 的 WebView 使用 Safari 16.4 或更高版本对应的 WebKit。
 
 可用以下命令确认环境：
 
@@ -131,10 +134,10 @@ wails3 dev -config ./build/config.yml -port 9246
 wails3 dev -config ./build/config.yml
 
 # 构建当前平台桌面应用
-wails3 build -config ./build/config.yml
+wails3 build
 
 # 打包当前平台产物
-wails3 package -config ./build/config.yml
+wails3 package
 
 # 生成前端 Wails 绑定
 wails3 generate bindings -clean=true -ts

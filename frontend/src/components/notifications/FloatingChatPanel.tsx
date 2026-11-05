@@ -7,20 +7,27 @@ import { ChatInput } from '@/components/chat/ChatInput'
 import { ChatMessages } from '@/components/chat/ChatMessages'
 import type { NotificationItem } from '@/types/notifications'
 
+/** 浮动聊天面板组件接收的属性 */
 type FloatingChatPanelProps = {
+  /** 通知 */
   notification: NotificationItem
+  /** 处理关闭事件，无返回值 */
   onClose: () => void
 }
 
+/** 在通知面板中嵌入选中会话的聊天区域，接收通知、on关闭，返回组件内容 */
 export function FloatingChatPanel({ notification, onClose }: FloatingChatPanelProps) {
-  const { t } = useTranslation()
-  const loadMessages = useChatStore((state) => state.loadMessages)
+  const { t } = useTranslation() // 获取当前语言的翻译方法
+  const loadMessages = useChatStore((state) => state.loadMessages) // 读取指定会话的历史消息并恢复附件与流式占位
 
+  /** 同步外部状态并管理本次副作用的生命周期 */
   useEffect(() => {
     void loadMessages(notification.session_id)
   }, [loadMessages, notification.session_id])
 
+  /** 同步外部状态并管理本次副作用的生命周期 */
   useEffect(() => {
+    /** 处理键向下，接收触发本次回调的事件，无返回值 */
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose()
     }
@@ -28,11 +35,13 @@ export function FloatingChatPanel({ notification, onClose }: FloatingChatPanelPr
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [onClose])
 
+  /** 处理解析，完成后结束异步任务 */
   const handleResolve = async () => {
     await NotificationBinding.ResolveNotification({ id: notification.id })
     onClose()
   }
 
+  /** 处理拒绝，完成后结束异步任务 */
   const handleReject = async () => {
     await NotificationBinding.RejectNotification({ id: notification.id })
     onClose()

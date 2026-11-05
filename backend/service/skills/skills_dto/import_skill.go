@@ -1,11 +1,13 @@
 package skills_dto
 
-// ImportSkillInput provides a local file path to a SKILL.md for importing.
+// ImportSkillInput 提供待导入的 SKILL.md 本地路径
 type ImportSkillInput struct {
+	// 路径
 	Path string `json:"path"`
 }
 
-// ImportSkillOutput returns the imported skill.
+// ImportSkillOutput 返回导入的技能
 type ImportSkillOutput struct {
+	// 技能
 	Skill SkillItem `json:"skill"`
 }

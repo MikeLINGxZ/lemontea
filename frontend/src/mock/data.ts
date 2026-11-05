@@ -1,8 +1,11 @@
 import type { Conversation, Message, Tool, ModelProvider } from '../types'
 
+/** 当前时间 */
 const now = new Date()
+/** 小时之前处理，接收小时，返回表达式结果 */
 const hoursAgo = (hours: number) => new Date(now.getTime() - hours * 3600000).toISOString()
 
+/** 模拟会话列表 */
 export const mockConversations: Conversation[] = [
   {
     id: 101,
@@ -15,6 +18,7 @@ export const mockConversations: Conversation[] = [
   },
 ]
 
+/** 模拟消息列表 */
 export const mockMessages: Record<number, Message[]> = {
   101: [
     {
@@ -62,6 +66,7 @@ export const mockMessages: Record<number, Message[]> = {
   ],
 }
 
+/** 模拟工具列表 */
 export const mockTools: Tool[] = [
   { id: 'web_fetch', name: '网页抓取', description: '访问任意 URL 并获取页面内容', enabled: true },
   { id: 'code_exec', name: '代码执行', description: '执行代码片段', enabled: true },
@@ -69,6 +74,7 @@ export const mockTools: Tool[] = [
   { id: 'shell', name: 'Shell 命令', description: '执行 Shell 命令（需审批）', enabled: false },
 ]
 
+/** 模拟服务商列表 */
 export const mockProviders: ModelProvider[] = [
   {
     id: 'anthropic',
@@ -79,4 +85,5 @@ export const mockProviders: ModelProvider[] = [
   },
 ]
 
+/** 默认模型编号 */
 export const DEFAULT_MODEL_ID = 'claude-sonnet-4-5'

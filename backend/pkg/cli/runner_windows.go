@@ -4,7 +4,8 @@ package cli
 
 import "os/exec"
 
-// applyProcessGroup is a no-op on Windows. The default exec.CommandContext cancel
-// handler calls Process.Kill which already terminates the child; future work can
-// extend this to use Job Objects if grandchild containment is required.
+// applyProcessGroup 在 Windows 上无需额外配置进程组
+// exec.CommandContext 的默认取消处理会通过 Process.Kill 终止直接子进程
+// 若还需管理后代进程，可扩展为使用 Job Objects
+// 接收命令，无返回值
 func applyProcessGroup(cmd *exec.Cmd) {}

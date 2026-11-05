@@ -124,3 +124,22 @@ func TestStartQuickChatReturnsRegisterError(t *testing.T) {
 		t.Fatal("expected registration error")
 	}
 }
+
+func TestStartQuickChatSupportsExtendedShortcutKeys(t *testing.T) {
+	fake := newFakeHotkey()
+
+	stop, err := startQuickChatWithShortcut(context.Background(), func() {}, "Ctrl+Alt+Slash", func(mods []hotkey.Modifier, key hotkey.Key) hotkeyHandle {
+		if key == 0 {
+			t.Fatal("extended key was not mapped")
+		}
+		return fake
+	})
+	if err != nil {
+		t.Fatalf("startQuickChatWithShortcut returned error: %v", err)
+	}
+	defer stop()
+
+	if !fake.registered.Load() {
+		t.Fatal("hotkey was not registered")
+	}
+}

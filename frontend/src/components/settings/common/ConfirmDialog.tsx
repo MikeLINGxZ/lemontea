@@ -1,18 +1,29 @@
 import { Loader2 } from 'lucide-react'
 import type { ReactNode } from 'react'
 
+/** 确认对话框组件接收的属性 */
 type ConfirmDialogProps = {
+  /** 展开 */
   open: boolean
+  /** 标题 */
   title: string
+  /** 描述 */
   description?: ReactNode
+  /** 确认标签 */
   confirmLabel: string
+  /** 取消标签 */
   cancelLabel: string
+  /** 确认语气 */
   confirmTone?: 'default' | 'danger'
+  /** 处理中 */
   busy?: boolean
+  /** 处理确认事件，无返回值 */
   onConfirm: () => void
+  /** 处理取消事件，无返回值 */
   onCancel: () => void
 }
 
+/** 确认对话框，接收组件输入属性，返回组件内容 */
 export function ConfirmDialog(props: ConfirmDialogProps) {
   if (!props.open) return null
 

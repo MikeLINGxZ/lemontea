@@ -1,7 +1,7 @@
 package window_dto
 
-// ToggleQuickChatInput carries no fields for toggling the quick chat window.
+// ToggleQuickChatInput 是切换快捷聊天窗口可见性的空请求
 type ToggleQuickChatInput struct{}
 
-// ToggleQuickChatOutput carries no fields after toggling the quick chat window.
+// ToggleQuickChatOutput 是切换快捷聊天窗口可见性后的空响应
 type ToggleQuickChatOutput struct{}

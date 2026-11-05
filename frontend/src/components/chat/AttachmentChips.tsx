@@ -4,21 +4,28 @@ import { cn } from '@/lib/utils'
 import { isImageMime, isPdfMime } from '@/lib/attachments'
 import type { Attachment } from '@/types'
 
+/** 附件标签条组件接收的属性 */
 interface Props {
+  /** 条目列表 */
   items: Attachment[]
+  /** 展示变体 */
   variant: 'input' | 'message'
+  /** 处理移除事件，接收索引，无返回值 */
   onRemove?: (index: number) => void
+  /** 处理展开事件，接收当前条目，无返回值 */
   onOpen?: (item: Attachment) => void
 }
 
+/** 标签条图标处理，接收当前附件，返回对应的处理结果 */
 function chipIcon(att: Attachment) {
   if (isImageMime(att.mime)) return <ImageIcon size={12} />
   if (isPdfMime(att.mime)) return <FileText size={12} />
   return <Paperclip size={12} />
 }
 
+/** 渲染附件标签条界面，接收条目列表、展示变体、on移除、on展开，返回组件内容 */
 export function AttachmentChips({ items, variant, onRemove, onOpen }: Props) {
-  const { t } = useTranslation()
+  const { t } = useTranslation() // 获取当前语言的翻译方法
 
   if (items.length === 0) return null
 

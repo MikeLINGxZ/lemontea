@@ -6,11 +6,22 @@
 import { Create as $Create } from "@wailsio/runtime";
 
 /**
- * CreateSkillInput provides the fields needed to create a new user skill.
+ * CreateSkillInput 包含新建用户技能所需的字段
  */
 export class CreateSkillInput {
+    /**
+     * 名称
+     */
     "name": string;
+
+    /**
+     * 描述
+     */
     "description": string;
+
+    /**
+     * 正文
+     */
     "body": string;
 
     /** Creates a new CreateSkillInput instance. */
@@ -38,9 +49,12 @@ export class CreateSkillInput {
 }
 
 /**
- * CreateSkillOutput returns the newly created skill.
+ * CreateSkillOutput 返回新建的技能
  */
 export class CreateSkillOutput {
+    /**
+     * 技能
+     */
     "skill": SkillItem;
 
     /** Creates a new CreateSkillOutput instance. */
@@ -66,9 +80,12 @@ export class CreateSkillOutput {
 }
 
 /**
- * DeleteSkillInput identifies the skill to delete by name.
+ * DeleteSkillInput 按名称指定要删除的技能
  */
 export class DeleteSkillInput {
+    /**
+     * 名称
+     */
     "name": string;
 
     /** Creates a new DeleteSkillInput instance. */
@@ -90,7 +107,7 @@ export class DeleteSkillInput {
 }
 
 /**
- * DeleteSkillOutput is returned on successful deletion.
+ * DeleteSkillOutput 表示指定技能已删除
  */
 export class DeleteSkillOutput {
 
@@ -110,9 +127,12 @@ export class DeleteSkillOutput {
 }
 
 /**
- * GetSkillInput requests a single skill by name.
+ * GetSkillInput 按名称指定要查询的技能
  */
 export class GetSkillInput {
+    /**
+     * 名称
+     */
     "name": string;
 
     /** Creates a new GetSkillInput instance. */
@@ -134,9 +154,12 @@ export class GetSkillInput {
 }
 
 /**
- * GetSkillOutput returns the requested skill.
+ * GetSkillOutput 返回查询到的技能
  */
 export class GetSkillOutput {
+    /**
+     * 技能
+     */
     "skill": SkillItem;
 
     /** Creates a new GetSkillOutput instance. */
@@ -162,9 +185,12 @@ export class GetSkillOutput {
 }
 
 /**
- * ImportSkillInput provides a local file path to a SKILL.md for importing.
+ * ImportSkillInput 提供待导入的 SKILL.md 本地路径
  */
 export class ImportSkillInput {
+    /**
+     * 路径
+     */
     "path": string;
 
     /** Creates a new ImportSkillInput instance. */
@@ -186,9 +212,12 @@ export class ImportSkillInput {
 }
 
 /**
- * ImportSkillOutput returns the imported skill.
+ * ImportSkillOutput 返回导入的技能
  */
 export class ImportSkillOutput {
+    /**
+     * 技能
+     */
     "skill": SkillItem;
 
     /** Creates a new ImportSkillOutput instance. */
@@ -214,7 +243,7 @@ export class ImportSkillOutput {
 }
 
 /**
- * ListSkillsInput is the request payload for listing all skills.
+ * ListSkillsInput 是查询所有技能的请求
  */
 export class ListSkillsInput {
 
@@ -234,9 +263,12 @@ export class ListSkillsInput {
 }
 
 /**
- * ListSkillsOutput returns all known skills.
+ * ListSkillsOutput 返回所有已知技能
  */
 export class ListSkillsOutput {
+    /**
+     * 技能列表
+     */
     "skills": SkillItem[];
 
     /** Creates a new ListSkillsOutput instance. */
@@ -262,13 +294,32 @@ export class ListSkillsOutput {
 }
 
 /**
- * SkillItem is the view-model representation of one skill returned to the frontend.
+ * SkillItem 表示返回给前端的一项技能
  */
 export class SkillItem {
+    /**
+     * 名称
+     */
     "name": string;
+
+    /**
+     * 描述
+     */
     "description": string;
+
+    /**
+     * 正文
+     */
     "body"?: string;
+
+    /**
+     * 来源
+     */
     "source": string;
+
+    /**
+     * 禁用状态
+     */
     "disabled": boolean;
 
     /** Creates a new SkillItem instance. */
@@ -299,10 +350,17 @@ export class SkillItem {
 }
 
 /**
- * ToggleSkillInput identifies the skill and desired disabled state.
+ * ToggleSkillInput 指定技能及其目标禁用状态
  */
 export class ToggleSkillInput {
+    /**
+     * 名称
+     */
     "name": string;
+
+    /**
+     * 禁用状态
+     */
     "disabled": boolean;
 
     /** Creates a new ToggleSkillInput instance. */
@@ -327,9 +385,12 @@ export class ToggleSkillInput {
 }
 
 /**
- * ToggleSkillOutput returns the skill after toggling its disabled state.
+ * ToggleSkillOutput 返回禁用状态更新后的技能
  */
 export class ToggleSkillOutput {
+    /**
+     * 技能
+     */
     "skill": SkillItem;
 
     /** Creates a new ToggleSkillOutput instance. */
@@ -355,12 +416,27 @@ export class ToggleSkillOutput {
 }
 
 /**
- * UpdateSkillInput provides the fields needed to update an existing user skill.
+ * UpdateSkillInput 包含更新已有用户技能所需的字段
  */
 export class UpdateSkillInput {
+    /**
+     * 名称
+     */
     "name": string;
+
+    /**
+     * 新名称
+     */
     "new_name"?: string;
+
+    /**
+     * 描述
+     */
     "description": string;
+
+    /**
+     * 正文
+     */
     "body": string;
 
     /** Creates a new UpdateSkillInput instance. */
@@ -388,9 +464,12 @@ export class UpdateSkillInput {
 }
 
 /**
- * UpdateSkillOutput returns the updated skill.
+ * UpdateSkillOutput 返回更新后的技能
  */
 export class UpdateSkillOutput {
+    /**
+     * 技能
+     */
     "skill": SkillItem;
 
     /** Creates a new UpdateSkillOutput instance. */
