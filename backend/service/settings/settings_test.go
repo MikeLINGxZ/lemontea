@@ -19,6 +19,20 @@ func newTestSettingsService(t *testing.T) *Settings {
 	return &Settings{}
 }
 
+func writeTestConfig(t *testing.T, dir string, cfg data_models.Config) {
+	t.Helper()
+	if cfg.DataDir == "" {
+		cfg.DataDir = dir
+	}
+	content, err := json.Marshal(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "config.json"), content, 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
 type fakeShortcutController struct {
 	current string
 	status  global_hotkey.ShortcutValidationStatus
@@ -60,13 +74,12 @@ func TestApplyFileSettingsMigratesDataAndWritesLocator(t *testing.T) {
 	targetDir := filepath.Join(t.TempDir(), "custom-target")
 
 	t.Setenv("HOME", tempHome)
+	t.Setenv("USERPROFILE", tempHome)
 	t.Setenv("LEMONTEA_DATA_DIR", sourceDir)
 
 	svc := newTestSettingsService(t)
 
-	if err := os.WriteFile(filepath.Join(sourceDir, "config.json"), []byte(`{"language":"zh-CN","data_dir":"`+sourceDir+`"}`), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeTestConfig(t, sourceDir, data_models.Config{Language: "zh-CN"})
 	if err := os.WriteFile(filepath.Join(sourceDir, "data.db"), []byte("sqlite"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -106,9 +119,7 @@ func TestSaveLocaleSettingsPersistsLocaleAndLanguage(t *testing.T) {
 	t.Setenv("LEMONTEA_DATA_DIR", tempDataDir)
 
 	svc := newTestSettingsService(t)
-	if err := os.WriteFile(filepath.Join(tempDataDir, "config.json"), []byte(`{"locale":"zh-CN","language":"zh-CN","font_size":"md","data_dir":"`+tempDataDir+`","log_level":"info"}`), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeTestConfig(t, tempDataDir, data_models.Config{Locale: "zh-CN", Language: "zh-CN", FontSize: "md", LogLevel: "info"})
 
 	_, err := svc.SaveLocaleSettings(context.Background(), settings_dto.SaveLocaleSettingsInput{
 		Locale:   "en-US",
@@ -141,9 +152,7 @@ func TestSaveDisplaySettingsPersistsFontSize(t *testing.T) {
 	t.Setenv("LEMONTEA_DATA_DIR", tempDataDir)
 
 	svc := newTestSettingsService(t)
-	if err := os.WriteFile(filepath.Join(tempDataDir, "config.json"), []byte(`{"locale":"zh-CN","language":"zh-CN","font_size":"md","data_dir":"`+tempDataDir+`","log_level":"info"}`), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeTestConfig(t, tempDataDir, data_models.Config{Locale: "zh-CN", Language: "zh-CN", FontSize: "md", LogLevel: "info"})
 
 	_, err := svc.SaveDisplaySettings(context.Background(), settings_dto.SaveDisplaySettingsInput{FontSize: "lg"})
 	if err != nil {
@@ -169,9 +178,7 @@ func TestLoadBootstrapIncludesDefaultQuickChatShortcut(t *testing.T) {
 	t.Setenv("LEMONTEA_DATA_DIR", tempDataDir)
 
 	svc := newTestSettingsService(t)
-	if err := os.WriteFile(filepath.Join(tempDataDir, "config.json"), []byte(`{"locale":"zh-CN","language":"zh-CN","font_size":"md","data_dir":"`+tempDataDir+`","log_level":"info"}`), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeTestConfig(t, tempDataDir, data_models.Config{Locale: "zh-CN", Language: "zh-CN", FontSize: "md", LogLevel: "info"})
 
 	result, err := svc.LoadBootstrap(context.Background(), settings_dto.LoadBootstrapInput{})
 	if err != nil {
@@ -202,9 +209,13 @@ func TestSaveShortcutSettingsPersistsAndAppliesQuickChatShortcut(t *testing.T) {
 	tempDataDir := t.TempDir()
 	t.Setenv("LEMONTEA_DATA_DIR", tempDataDir)
 
-	if err := os.WriteFile(filepath.Join(tempDataDir, "config.json"), []byte(`{"locale":"zh-CN","language":"zh-CN","font_size":"md","data_dir":"`+tempDataDir+`","log_level":"info","quick_chat_shortcut":"CmdOrCtrl+Shift+Space"}`), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeTestConfig(t, tempDataDir, data_models.Config{
+		Locale:            "zh-CN",
+		Language:          "zh-CN",
+		FontSize:          "md",
+		LogLevel:          "info",
+		QuickChatShortcut: "CmdOrCtrl+Shift+Space",
+	})
 
 	controller := &fakeShortcutController{current: "CmdOrCtrl+Shift+Space"}
 	svc := NewSettings(Dependencies{QuickChatShortcuts: controller})

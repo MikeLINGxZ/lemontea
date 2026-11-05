@@ -10,55 +10,59 @@ import (
 )
 
 const (
-	// SkillFileName is the conventional filename for a skill's markdown manifest.
+	// SkillFileName 是技能 Markdown 清单的约定文件名
 	SkillFileName = "SKILL.md"
-	// SidecarFileName is the JSON sidecar stored alongside each on-disk skill.
+	// SidecarFileName 是随每项磁盘技能保存的 JSON 元数据文件名
 	SidecarFileName = ".lemontea.json"
 )
 
-// LoadFromDir scans root for skill subdirectories and returns them sorted by name.
-// Subdirs without a parseable SKILL.md are silently skipped so that a single
-// corrupt entry never blocks the rest of the library from loading.
+// LoadFromDir 扫描 root 下的技能子目录，并按名称排序后返回技能
+// 缺少可解析 SKILL.md 的子目录会被静默跳过，
+// 以免一项损坏的技能阻止其余技能加载
+// 接收根目录，返回技能列表及可能发生的错误
 func LoadFromDir(root string) ([]Skill, error) {
-	entries, err := os.ReadDir(root)
+	entries, err := os.ReadDir(root) // 条目列表、读取目录时的错误
 	if err != nil {
-		// A missing root simply means "no user skills yet" — not an error.
+		// 根目录不存在表示用户尚无技能，无需报错
 		if errors.Is(err, os.ErrNotExist) {
 			return nil, nil
 		}
 		return nil, err
 	}
+	// 技能列表
 	var skills []Skill
+	// 遍历条目列表，逐项取得条目
 	for _, entry := range entries {
 		if !entry.IsDir() {
 			continue
 		}
-		dir := filepath.Join(root, entry.Name())
-		skill, err := loadOneDir(dir)
+		dir := filepath.Join(root, entry.Name()) // 目录
+		skill, err := loadOneDir(dir)            // 技能、加载One目录时的错误
 		if err != nil {
-			// Skip unreadable / malformed skill dirs rather than aborting the scan.
+			// 跳过无法读取或格式无效的技能目录，继续扫描
 			continue
 		}
 		skills = append(skills, skill)
 	}
-	sort.Slice(skills, func(i, j int) bool { return skills[i].Name < skills[j].Name })
+	sort.Slice(skills /* 比较两个索引对应的条目，返回前一项是否应排在前面 */, func(i, j int) bool { return skills[i].Name < skills[j].Name })
 	return skills, nil
 }
 
-// loadOneDir reads SKILL.md + optional sidecar from a single skill directory
-// and returns the populated Skill. Disabled is always false at load time.
+// loadOneDir 从单个技能目录读取 SKILL.md 和可选元数据文件并返回 Skill，
+// 加载时 Disabled 一律为 false
+// 接收目录，返回技能及可能发生的错误
 func loadOneDir(dir string) (Skill, error) {
-	raw, err := os.ReadFile(filepath.Join(dir, SkillFileName))
+	raw, err := os.ReadFile(filepath.Join(dir, SkillFileName)) // 尚未解析的原始数据、读取文件内容时的错误
 	if err != nil {
 		return Skill{}, err
 	}
-	skill, err := Parse(raw)
+	skill, err := Parse(raw) // 技能
 	if err != nil {
 		return Skill{}, err
 	}
-	// Default to user source; the sidecar can override it.
+	// 默认来源为用户，可由元数据文件覆盖
 	skill.Source = SourceUser
-	sidecar, sErr := ReadSidecar(dir)
+	sidecar, sErr := ReadSidecar(dir) // 辅助进程、读取辅助进程时的错误
 	if sErr == nil {
 		if sidecar.Source != "" {
 			skill.Source = sidecar.Source
@@ -67,67 +71,77 @@ func loadOneDir(dir string) (Skill, error) {
 			skill.UpdatedAt = sidecar.UpdatedAt
 		}
 	} else {
-		// No sidecar — fall back to the SKILL.md file mtime.
-		if info, statErr := os.Stat(filepath.Join(dir, SkillFileName)); statErr == nil {
+		// 没有元数据文件时，使用 SKILL.md 的修改时间
+		info, statErr := os.Stat(filepath.Join(dir, SkillFileName))
+		if statErr == nil {
 			skill.UpdatedAt = info.ModTime()
 		}
 	}
 	return skill, nil
 }
 
-// ReadSidecar reads the optional .lemontea.json sidecar from dir.
-// Returns an error if the file is missing or malformed so callers can decide
-// whether to fall back to defaults.
+// ReadSidecar 从 dir 读取可选的 .lemontea.json 元数据文件
+// 文件缺失或格式无效时返回错误，
+// 由调用方决定是否使用默认值
+// 接收目录，返回辅助进程清单及可能发生的错误
 func ReadSidecar(dir string) (SidecarManifest, error) {
-	raw, err := os.ReadFile(filepath.Join(dir, SidecarFileName))
+	raw, err := os.ReadFile(filepath.Join(dir, SidecarFileName)) // 尚未解析的原始数据、读取文件内容时的错误
 	if err != nil {
 		return SidecarManifest{}, err
 	}
+	// sc 对应的数据
 	var sc SidecarManifest
-	if err := json.Unmarshal(raw, &sc); err != nil {
-		return SidecarManifest{}, err
+	decodeErr := json.Unmarshal(raw, &sc) // 解析序列化内容时的错误
+	if decodeErr != nil {
+		return SidecarManifest{}, decodeErr
 	}
 	return sc, nil
 }
 
-// WriteSidecar persists a sidecar as pretty-printed JSON inside dir.
-// UpdatedAt is auto-filled with time.Now() when zero so callers can omit it.
+// WriteSidecar 将元数据以缩进的 JSON 格式保存到 dir
+// 调用方可省略 UpdatedAt，零值会自动填入 time.Now()
+// 接收目录、sc 对应的数据，返回操作错误
 func WriteSidecar(dir string, sc SidecarManifest) error {
 	if sc.UpdatedAt.IsZero() {
 		sc.UpdatedAt = time.Now()
 	}
-	raw, err := json.MarshalIndent(sc, "", "  ")
+	raw, err := json.MarshalIndent(sc, "", "  ") // 尚未解析的原始数据、序列化Indent 对应的数据时的错误
 	if err != nil {
 		return err
 	}
 	return os.WriteFile(filepath.Join(dir, SidecarFileName), raw, 0o644)
 }
 
-// WriteSkill writes both SKILL.md and the sidecar inside `{root}/{skill.Name}/`.
-// The directory is created if it does not already exist. An existing sidecar's
-// CreatedAt is preserved so repeated writes don't reset the creation timestamp.
+// WriteSkill 将 SKILL.md 和元数据文件写入 {root}/{skill.Name}/
+// 目录不存在时会创建，并保留现有元数据文件中的 CreatedAt，
+// 以免重复写入时重置创建时间
+// 接收根目录、技能，返回操作错误
 func WriteSkill(root string, s Skill) error {
-	if err := Validate(s); err != nil {
-		return err
+	validateErr := Validate(s) // 校验当前数据时的错误
+	if validateErr != nil {
+		return validateErr
 	}
-	dir := filepath.Join(root, s.Name)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return err
+	dir := filepath.Join(root, s.Name)  // 目录
+	mkdirErr := os.MkdirAll(dir, 0o755) // 创建所需目录时的错误
+	if mkdirErr != nil {
+		return mkdirErr
 	}
-	rendered, err := Render(s)
+	rendered, err := Render(s) // rendered 对应的数据、渲染当前数据时的错误
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(filepath.Join(dir, SkillFileName), rendered, 0o644); err != nil {
-		return err
+	writeErr := os.WriteFile(filepath.Join(dir, SkillFileName), rendered, 0o644) // 写入文件内容时的错误
+	if writeErr != nil {
+		return writeErr
 	}
-	source := s.Source
+	source := s.Source // 来源
 	if source == "" {
 		source = SourceUser
 	}
-	sc := SidecarManifest{Source: source, UpdatedAt: time.Now()}
-	// Preserve the original CreatedAt if a sidecar already exists.
-	if existing, err := ReadSidecar(dir); err == nil {
+	sc := SidecarManifest{Source: source, UpdatedAt: time.Now()} // sc 对应的数据
+	// 已有元数据文件时保留原始 CreatedAt
+	existing, readErr := ReadSidecar(dir)
+	if readErr == nil {
 		sc.CreatedAt = existing.CreatedAt
 	}
 	if sc.CreatedAt.IsZero() {
@@ -136,8 +150,9 @@ func WriteSkill(root string, s Skill) error {
 	return WriteSidecar(dir, sc)
 }
 
-// DeleteSkill removes the entire skill directory `{root}/{name}/`.
-// Returns nil if the directory does not exist.
+// DeleteSkill 删除整个技能目录 {root}/{name}/
+// 目录不存在时返回 nil
+// 接收根目录、当前名称，返回操作错误
 func DeleteSkill(root, name string) error {
 	return os.RemoveAll(filepath.Join(root, name))
 }

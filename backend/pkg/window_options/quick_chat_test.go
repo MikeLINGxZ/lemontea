@@ -1,6 +1,7 @@
 package window_options
 
 import (
+	"runtime"
 	"testing"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -29,8 +30,9 @@ func TestDefaultQuickChat(t *testing.T) {
 	if !opts.Hidden {
 		t.Fatalf("Hidden = false, want true so the popup can be preloaded without flashing on startup")
 	}
-	if opts.Frameless {
-		t.Fatalf("Frameless = true, want false so the hidden titlebar configuration is used")
+	wantFrameless := runtime.GOOS == "windows"
+	if opts.Frameless != wantFrameless {
+		t.Fatalf("Frameless = %v, want %v for platform hidden titlebar configuration", opts.Frameless, wantFrameless)
 	}
 	if opts.Mac.InvisibleTitleBarHeight != 54 {
 		t.Fatalf("Mac.InvisibleTitleBarHeight = %d, want 54", opts.Mac.InvisibleTitleBarHeight)

@@ -1,5 +1,6 @@
 package i18n
 
+// 英文美国
 var enUS = map[string]string{
 	"app.window.settings_title":                 "Settings",
 	"select.folder":                             "Select Folder",
@@ -18,7 +19,7 @@ var enUS = map[string]string{
 	"select.file":                               "Select File",
 	"ierror.unknown_error":                      "Unknown error occurred",
 
-	// Agent
+	// 智能体消息
 	"ierror.agent.send_message":          "Failed to send message",
 	"ierror.agent.no_confirm":            "No active confirmation for session",
 	"ierror.agent.create_session":        "Failed to create session",
@@ -47,13 +48,13 @@ var enUS = map[string]string{
 	"ierror.memory.stats":                "Failed to load memory stats",
 	"ierror.memory.settings":             "Failed to save memory settings",
 
-	// File
+	// 文件消息
 	"ierror.file.select_folder":  "Failed to select folder",
 	"ierror.file.select_file":    "Failed to select file",
 	"ierror.file.open":           "Failed to open file",
 	"ierror.file.save_temp_file": "Failed to save temporary file",
 
-	// Settings
+	// 设置消息
 	"ierror.settings.load_config":         "Failed to load configuration",
 	"ierror.settings.save_config":         "Failed to save configuration",
 	"ierror.settings.create_dir":          "Failed to create directory",
@@ -63,7 +64,7 @@ var enUS = map[string]string{
 	"ierror.settings.write_locator":       "Failed to write data directory locator",
 	"ierror.settings.target_dir_required": "Target data directory is required",
 
-	// Provider
+	// 供应商消息
 	"ierror.provider.create":           "Failed to create provider",
 	"ierror.provider.create_models":    "Failed to create models",
 	"ierror.provider.list_providers":   "Failed to list providers",
@@ -75,12 +76,12 @@ var enUS = map[string]string{
 	"ierror.provider.set_default":      "Failed to set default provider",
 	"ierror.provider.fetch_model_list": "Failed to fetch model list",
 
-	// Onboarding
+	// 首次启动引导消息
 	"ierror.onboarding.read_init":  "Failed to read initialization state",
 	"ierror.onboarding.write_init": "Failed to write initialization state",
 	"ierror.onboarding.complete":   "Failed to complete initialization",
 
-	// Runtime
+	// 运行时消息
 	"ierror.runtime.unsupported_os":    "Unsupported operating system or architecture",
 	"ierror.runtime.fetch_sums":        "Failed to fetch checksums",
 	"ierror.runtime.checksum_mismatch": "Runtime archive checksum mismatch",
@@ -89,7 +90,7 @@ var enUS = map[string]string{
 	"ierror.runtime.write_state":       "Failed to write runtime state",
 	"ierror.runtime.read_state":        "Failed to read runtime state",
 
-	// CLI
+	// CLI 插件消息
 	"ierror.cli.runtime_unavailable":      "Plugin runtime not ready; finish onboarding first",
 	"ierror.cli.install_failed":           "CLI install failed",
 	"ierror.cli.reset_data_failed":        "Reset CLI data failed",
@@ -98,19 +99,19 @@ var enUS = map[string]string{
 	"ierror.cli.manifest_generate_failed": "Generate manifest failed",
 	"ierror.cli.tool_not_found":           "CLI tool not found",
 
-	// CLI login
+	// CLI 登录消息
 	"cli.login.session_conflict": "A login session is already running for this CLI.",
 	"cli.login.not_found":        "No active login session for this CLI.",
 	"cli.login.no_command":       "This CLI's manifest has no login_command.",
 	"cli.login.start_failed":     "Failed to start CLI login: {detail}",
 
-	// Terminal
+	// 终端消息
 	"ierror.terminal.list":        "Failed to list terminals",
 	"ierror.terminal.read_output": "Failed to read terminal output",
 	"ierror.terminal.write_input": "Failed to write terminal input",
 	"ierror.terminal.resize":      "Failed to resize terminal",
 
-	// Skills
+	// 技能消息
 	"ierror.skills.load_failed":     "Failed to load skill",
 	"ierror.skills.not_found":       "Skill not found",
 	"ierror.skills.invalid_name":    "Invalid skill name",

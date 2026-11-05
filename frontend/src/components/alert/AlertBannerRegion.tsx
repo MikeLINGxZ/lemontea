@@ -1,8 +1,9 @@
 import { useAlertStore } from '@/alert/store'
 import { AlertCard } from '@/components/alert/AlertCard'
 
+/** 按队列展示页面顶部的横幅提醒，返回组件内容 */
 export function AlertBannerRegion() {
-  const banners = useAlertStore((state) => state.banners)
+  const banners = useAlertStore((state) => state.banners) // 从状态仓库读取横幅提醒列表
 
   return (
     <section

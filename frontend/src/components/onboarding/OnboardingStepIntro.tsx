@@ -1,13 +1,17 @@
 import { useTranslation } from 'react-i18next'
 import { Onboarding } from '@bindings/gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/service/onboarding/index'
 
+/** 首次引导步骤介绍组件接收的属性 */
 type Props = {
+	/** 处理开始事件，无返回值 */
 	onStart: () => void
 }
 
+/** 渲染首次引导步骤介绍界面，接收组件输入属性，返回组件内容 */
 export function OnboardingStepIntro(props: Props) {
-	const { t } = useTranslation()
+	const { t } = useTranslation() // 获取当前语言的翻译方法
 
+	/** 处理退出，无返回值 */
 	const handleExit = () => {
 		void Onboarding.ExitApp({})
 	}
@@ -49,8 +53,9 @@ export function OnboardingStepIntro(props: Props) {
 	)
 }
 
-function IntroCard(props: { titleKey: string; textKey: string }) {
-	const { t } = useTranslation()
+/** 渲染介绍卡片界面，接收组件输入属性，返回组件内容 */
+function IntroCard(props: { /* 标题键 */ titleKey: string; /* 文本键 */ textKey: string }) {
+	const { t } = useTranslation() // 获取当前语言的翻译方法
 
 	return (
 		<div className="rounded-2xl border border-border bg-card px-4 py-4">

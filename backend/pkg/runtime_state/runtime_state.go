@@ -9,35 +9,43 @@ import (
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/dir"
 )
 
-// StateSnapshot represents the persisted Node runtime install state.
+// StateSnapshot 表示已保存的 Node 运行时安装状态
 type StateSnapshot struct {
-	State       string    `json:"state"`
-	Version     string    `json:"version"`
-	InstallDir  string    `json:"install_dir"`
-	NodePath    string    `json:"node_path"`
-	NpmPath     string    `json:"npm_path"`
-	ErrorMsg    string    `json:"error_msg"`
+	// 当前状态
+	State string `json:"state"`
+	// 版本
+	Version string `json:"version"`
+	// 安装目录
+	InstallDir string `json:"install_dir"`
+	// Node.js 可执行文件路径
+	NodePath string `json:"node_path"`
+	// npm 可执行文件路径
+	NpmPath string `json:"npm_path"`
+	// 错误消息
+	ErrorMsg string `json:"error_msg"`
+	// 已安装时间
 	InstalledAt time.Time `json:"installed_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	// 更新时间
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 const (
-	// StateMissing indicates the runtime has not been downloaded yet.
+	// StateMissing 表示运行时尚未下载
 	StateMissing = "missing"
-	// NodeSubdir is the directory under data dir that holds the Node runtime tree.
+	// NodeSubdir 是数据目录下存放 Node 运行时文件的子目录名称
 	NodeSubdir = "runtime/node"
-	// RuntimeStateFileName is the file used to persist runtime download state.
+	// RuntimeStateFileName 是保存运行时下载状态的文件名
 	RuntimeStateFileName = "state.json"
 )
 
-// LoadPersistedState reads runtime/node/state.json. Missing file yields a fresh missing state.
+// LoadPersistedState 读取 runtime/node/state.json，文件不存在时返回初始的未安装状态
 func LoadPersistedState() (StateSnapshot, error) {
-	dataDir, err := dir.GetDataDir()
+	dataDir, err := dir.GetDataDir() // 应用数据目录、获取数据目录时的错误
 	if err != nil {
 		return StateSnapshot{}, err
 	}
-	path := filepath.Join(dataDir, NodeSubdir, RuntimeStateFileName)
-	bytes, err := os.ReadFile(path)
+	path := filepath.Join(dataDir, NodeSubdir, RuntimeStateFileName) // 文件路径
+	bytes, err := os.ReadFile(path)                                  // 原始字节内容
 	if err != nil {
 		if os.IsNotExist(err) {
 			return StateSnapshot{State: StateMissing}, nil
@@ -45,9 +53,11 @@ func LoadPersistedState() (StateSnapshot, error) {
 		return StateSnapshot{}, err
 	}
 
+	// 状态
 	var state StateSnapshot
-	if err := json.Unmarshal(bytes, &state); err != nil {
-		return StateSnapshot{}, err
+	decodeErr := json.Unmarshal(bytes, &state) // 解析序列化内容时的错误
+	if decodeErr != nil {
+		return StateSnapshot{}, decodeErr
 	}
 	if state.State == "" {
 		state.State = StateMissing

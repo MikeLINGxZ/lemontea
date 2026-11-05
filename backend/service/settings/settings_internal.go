@@ -13,29 +13,34 @@ import (
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/ierror"
 )
 
-// loadConfig reads the current config file and returns default values when it does not exist yet.
+// loadConfig 读取当前配置文件，文件尚不存在时返回默认值
+// 获取数据目录
+// 读取文件内容
+// 解析序列化内容
 func (s *Settings) loadConfig() (*data_models.Config, error) {
-	dataDir, err := dir.GetDataDir()
+	dataDir, err := dir.GetDataDir() // 应用数据目录、获取数据目录时的错误
 	if err != nil {
 		return nil, ierror.Error(ierror.ErrSettingsLoadConfig, err)
 	}
 
-	configPath := filepath.Join(dataDir, dir.ConfigFileName)
-	bytes, err := os.ReadFile(configPath)
+	configPath := filepath.Join(dataDir, dir.ConfigFileName) // 配置路径
+	bytes, err := os.ReadFile(configPath)                    // 原始字节内容
 	if err != nil {
 		if os.IsNotExist(err) {
-			config := defaultConfig(dataDir)
-			if err := s.saveConfigToDir(dataDir, config); err != nil {
-				return nil, ierror.Error(ierror.ErrSettingsSaveConfig, err)
+			config := defaultConfig(dataDir)                         // 配置
+			saveConfigToDirErr := s.saveConfigToDir(dataDir, config) // 保存配置终点目录时的错误
+			if saveConfigToDirErr != nil {
+				return nil, ierror.Error(ierror.ErrSettingsSaveConfig, saveConfigToDirErr)
 			}
 			return config, nil
 		}
 		return nil, ierror.Error(ierror.ErrSettingsReadConfig, err)
 	}
 
-	config := defaultConfig(dataDir)
-	if err := json.Unmarshal(bytes, config); err != nil {
-		return nil, ierror.Error(ierror.ErrSettingsParseConfig, err)
+	config := defaultConfig(dataDir)           // 配置
+	decodeErr := json.Unmarshal(bytes, config) // 解析序列化内容时的错误
+	if decodeErr != nil {
+		return nil, ierror.Error(ierror.ErrSettingsParseConfig, decodeErr)
 	}
 	if !strings.Contains(string(bytes), `"memory"`) {
 		config.Memory.Enabled = true
@@ -61,13 +66,15 @@ func (s *Settings) loadConfig() (*data_models.Config, error) {
 	return config, nil
 }
 
-// saveConfigToDir writes a config file into the provided directory.
+// saveConfigToDir 将配置文件写入指定目录
+// 接收目标目录、配置，返回操作错误
 func (s *Settings) saveConfigToDir(targetDir string, config *data_models.Config) error {
-	if err := os.MkdirAll(targetDir, 0o755); err != nil {
-		return ierror.Error(ierror.ErrSettingsCreateDir, err)
+	mkdirErr := os.MkdirAll(targetDir, 0o755) // 创建所需目录时的错误
+	if mkdirErr != nil {
+		return ierror.Error(ierror.ErrSettingsCreateDir, mkdirErr)
 	}
 
-	content, err := json.MarshalIndent(config, "", "  ")
+	content, err := json.MarshalIndent(config, "", "  ") // 内容、序列化Indent 对应的数据时的错误
 	if err != nil {
 		return ierror.Error(ierror.ErrSettingsSaveConfig, err)
 	}
@@ -75,7 +82,8 @@ func (s *Settings) saveConfigToDir(targetDir string, config *data_models.Config)
 	return ierror.Error(ierror.ErrSettingsSaveConfig, os.WriteFile(filepath.Join(targetDir, dir.ConfigFileName), content, 0o644))
 }
 
-// defaultConfig builds the baseline config values used for first-time startup.
+// defaultConfig 构造首次启动时使用的默认配置
+// 接收应用数据目录，返回配置
 func defaultConfig(dataDir string) *data_models.Config {
 	return &data_models.Config{
 		Locale:            "zh-CN",
@@ -90,15 +98,16 @@ func defaultConfig(dataDir string) *data_models.Config {
 	}
 }
 
-// copyFile copies one file to another path, creating the target file with standard app permissions.
+// copyFile 将源文件复制到目标路径，以应用的常规权限创建目标文件
+// 接收来源路径、目标路径，返回操作错误
 func copyFile(sourcePath string, targetPath string) error {
-	sourceFile, err := os.Open(sourcePath)
+	sourceFile, err := os.Open(sourcePath) // 来源文件、打开当前数据时的错误
 	if err != nil {
 		return ierror.Error(ierror.ErrSettingsCopyFile, err)
 	}
 	defer sourceFile.Close()
 
-	targetFile, err := os.OpenFile(targetPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o644)
+	targetFile, err := os.OpenFile(targetPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o644) // 目标文件
 	if err != nil {
 		return ierror.Error(ierror.ErrSettingsCopyFile, err)
 	}

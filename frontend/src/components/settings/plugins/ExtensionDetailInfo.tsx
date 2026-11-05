@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 import { PluginToolConfigEditor } from '@/components/settings/plugins/PluginToolConfigEditor'
 import type { ExtensionItem } from '@/types/settings'
 
+/** 运行环境状态类名处理，接收状态，返回对应的处理结果 */
 const runtimeStatusClass = (status: string) => {
   switch (status) {
     case 'ready':
@@ -16,6 +17,7 @@ const runtimeStatusClass = (status: string) => {
   }
 }
 
+/** 运行环境状态圆点处理，接收状态，返回对应的处理结果 */
 const runtimeStatusDot = (status: string) => {
   switch (status) {
     case 'ready':
@@ -27,16 +29,22 @@ const runtimeStatusDot = (status: string) => {
   }
 }
 
+/** 渲染扩展详情信息界面，接收组件输入属性，返回组件内容 */
 export function ExtensionDetailInfo(props: {
+  /** 扩展 */
   extension: ExtensionItem
+  /** 草稿 */
   draft: string
+  /** JSON有效 */
   jsonValid: boolean
+  /** 错误行 */
   errorLine: number | null
+  /** 处理草稿变更事件，接收值，无返回值 */
   onDraftChange: (value: string) => void
 }) {
-  const { t } = useTranslation()
-  const ext = props.extension
-  const [configExpanded, setConfigExpanded] = useState(false)
+  const { t } = useTranslation() // 获取当前语言的翻译方法
+  const ext = props.extension // 扩展名
+  const [configExpanded, setConfigExpanded] = useState(false) // 配置展开及其更新方法
 
   if (ext.kind === 'cli') {
     return (

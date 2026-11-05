@@ -5,78 +5,69 @@ import { Plugin as PluginBinding } from '@bindings/gitlab.linhf.cn/project/lemon
 import { ResizeLoginCliInput, SendLoginStdinInput } from '@bindings/gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/service/plugin/plugin_dto/models'
 import 'xterm/css/xterm.css'
 
-type TerminalCtor = {
-  new (options: {
-    convertEol: boolean
-    fontFamily: string
-    fontSize: number
-    theme: {
-      background: string
-      foreground: string
-    }
-  }): {
-    open: (element: HTMLElement) => void
-    loadAddon: (addon: unknown) => void
-    write: (data: string) => void
-    focus: () => void
-    onData: (listener: (data: string) => void) => { dispose: () => void }
-    dispose: () => void
-  }
-}
-
-type FitAddonCtor = {
-  new (): {
-    fit: () => void
-    readonly cols: number
-    readonly rows: number
-  }
-}
-
-type WebLinksAddonCtor = {
-  new (): unknown
-}
-
+/** 登录输出事件的数据 */
 type LoginOutputEvent = {
+  /** 事件携带的数据 */
   data: {
+    /** 当前条目的唯一编号 */
     id: string
+    /** 事件携带的数据 */
     data: string
   }
 }
 
+/** 登录完成事件的数据 */
 type LoginDoneEvent = {
+  /** 事件携带的数据 */
   data: {
+    /** 当前条目的唯一编号 */
     id: string
+    /** 退出代码 */
     exit_code: number
+    /** 错误 */
     error: string
   }
 }
 
+/** 完成的状态数据 */
 type DoneState = {
+  /** 退出代码 */
   exitCode: number
+  /** 错误 */
   error: string
 }
 
+/** CLI登录对话框组件接收的属性 */
 export type CliLoginDialogProps = {
+  /** 展开 */
   open: boolean
+  /** 扩展编号 */
   extensionId: string
+  /** 标题 */
   title: string
+  /** 处理开始事件，完成后结束异步任务 */
   onStart: () => Promise<void>
+  /** 处理关闭事件，无返回值 */
   onClose: () => void
+  /** 处理取消事件，无返回值 */
   onCancel: () => void
+  /** 处理完成事件，接收退出代码，无返回值 */
   onDone?: (exitCode: number) => void
+  /** 处理开始错误事件，接收错误，无返回值 */
   onStartError?: (error: unknown) => void
 }
 
-// CliLoginDialog renders a PTY-backed terminal modal for interactive CLI login flows.
+/** 展示交互式 CLI 登录终端，转发终端输入、输出、尺寸和退出状态，接收组件输入属性，返回组件内容 */
 export function CliLoginDialog(props: CliLoginDialogProps) {
-  const { t } = useTranslation()
-  const terminalHostRef = useRef<HTMLDivElement | null>(null)
-  const onStartRef = useRef(props.onStart)
-  const onCloseRef = useRef(props.onClose)
-  const onDoneRef = useRef(props.onDone)
-  const onStartErrorRef = useRef(props.onStartError)
-  const [doneState, setDoneState] = useState<DoneState | null>(null)
+  const { t } = useTranslation() // 获取当前语言的翻译方法
+  const terminalHostRef = useRef<HTMLDivElement | null>(null) // 终端宿主引用，供后续读取当前值
+  const onStartRef = useRef(props.onStart) // on开始引用，供后续读取当前值
+  const onCloseRef = useRef(props.onClose) // on关闭引用，供后续读取当前值
+  const onDoneRef = useRef(props.onDone) // on完成引用，供后续读取当前值
+  const onStartErrorRef = useRef(props.onStartError) // on开始错误引用，供后续读取当前值
+  const [doneState, setDoneState] = useState<DoneState | null>(null) // 完成状态及其更新方法
 
+  /** 同步外部状态并管理本次副作用的生命周期 */
   useEffect(() => {
     onStartRef.current = props.onStart
     onCloseRef.current = props.onClose
@@ -84,17 +75,19 @@ export function CliLoginDialog(props: CliLoginDialogProps) {
     onStartErrorRef.current = props.onStartError
   }, [props.onClose, props.onDone, props.onStart, props.onStartError])
 
+  /** 同步外部状态并管理本次副作用的生命周期 */
   useEffect(() => {
     if (!props.open || !terminalHostRef.current) {
       return
     }
 
-    let disposed = false
-    let terminalDispose: (() => void) | null = null
-    let doneTimer: number | null = null
-    let terminalWriter: ((data: string) => void) | null = null
-    const pendingOutput: string[] = []
+    let disposed = false // 已销毁
+    let terminalDispose: (() => void) | null = null // 终端销毁
+    let doneTimer: number | null = null // 完成定时器
+    let terminalWriter: ((data: string) => void) | null = null // 将收到的输出数据写入终端
+    const pendingOutput: string[] = [] // 等待终端初始化后写入的输出
 
+    /** 订阅 cli.login.output 并保存解绑方法 */
     const offOutput = Events.On('cli.login.output', (event: LoginOutputEvent) => {
       if (event.data.id !== props.extensionId) {
         return
@@ -106,6 +99,7 @@ export function CliLoginDialog(props: CliLoginDialogProps) {
       pendingOutput.push(event.data.data)
     })
 
+    /** 订阅 cli.login.done 并保存解绑方法 */
     const offDone = Events.On('cli.login.done', (event: LoginDoneEvent) => {
       if (event.data.id !== props.extensionId) {
         return
@@ -120,7 +114,9 @@ export function CliLoginDialog(props: CliLoginDialogProps) {
       }, 3000)
     })
 
+    /** 初始化终端处理，完成后结束异步任务 */
     const setupTerminal = async (): Promise<void> => {
+      /** 保存终端、适配扩展模块、网页链接扩展模块 */
       const [{ Terminal }, { FitAddon }, { WebLinksAddon }] = await Promise.all([
         import('xterm'),
         import('xterm-addon-fit'),
@@ -131,7 +127,8 @@ export function CliLoginDialog(props: CliLoginDialogProps) {
         return
       }
 
-      const terminal = new (Terminal as unknown as TerminalCtor)({
+      /** 终端 */
+      const terminal = new Terminal({
         convertEol: true,
         fontFamily: 'Menlo, Consolas, monospace',
         fontSize: 13,
@@ -140,8 +137,8 @@ export function CliLoginDialog(props: CliLoginDialogProps) {
           foreground: '#f8fafc',
         },
       })
-      const fitAddon = new (FitAddon as unknown as FitAddonCtor)()
-      const webLinksAddon = new (WebLinksAddon as unknown as WebLinksAddonCtor)()
+      const fitAddon = new FitAddon() // 适配扩展模块
+      const webLinksAddon = new WebLinksAddon() // 网页链接扩展模块
 
       terminal.open(terminalHostRef.current)
       terminal.loadAddon(fitAddon)
@@ -150,22 +147,24 @@ export function CliLoginDialog(props: CliLoginDialogProps) {
       terminal.focus()
       terminalWriter = (data: string) => terminal.write(data)
 
-      for (const chunk of pendingOutput.splice(0)) {
+      for (/* 分片 */ const chunk of pendingOutput.splice(0)) {
         terminal.write(chunk)
       }
 
+      /** 通知调整尺寸，无返回值 */
       const emitResize = (): void => {
         void Promise.resolve(
           PluginBinding.ResizeLoginCli(new ResizeLoginCliInput({
             id: props.extensionId,
-            rows: Math.max(fitAddon.rows, 1),
-            cols: Math.max(fitAddon.cols, 1),
+            rows: Math.max(terminal.rows, 1),
+            cols: Math.max(terminal.cols, 1),
           })),
         ).catch(() => undefined)
       }
 
       emitResize()
 
+      /** 数据订阅 */
       const dataSubscription = terminal.onData((data: string) => {
         void Promise.resolve(
           PluginBinding.SendLoginStdin(new SendLoginStdinInput({
@@ -175,7 +174,7 @@ export function CliLoginDialog(props: CliLoginDialogProps) {
         ).catch(() => undefined)
       })
 
-      let resizeObserver: ResizeObserver | null = null
+      let resizeObserver: ResizeObserver | null = null // 调整尺寸观察器
       if (typeof ResizeObserver !== 'undefined' && terminalHostRef.current) {
         resizeObserver = new ResizeObserver(() => {
           fitAddon.fit()
@@ -210,6 +209,7 @@ export function CliLoginDialog(props: CliLoginDialogProps) {
     }
   }, [props.extensionId, props.open])
 
+  /** 同步外部状态并管理本次副作用的生命周期 */
   useEffect(() => {
     if (!props.open) {
       setDoneState(null)
@@ -220,7 +220,7 @@ export function CliLoginDialog(props: CliLoginDialogProps) {
     return null
   }
 
-  const doneSuccess = doneState?.exitCode === 0
+  const doneSuccess = doneState?.exitCode === 0 // 完成成功
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">

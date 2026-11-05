@@ -5,18 +5,26 @@ import { PluginToolListItem } from '@/components/settings/plugins/PluginToolList
 import { useCliInstallStore } from '@/store/cliInstallStore'
 import type { ExtensionItem } from '@/types/settings'
 
+/** 渲染插件工具列表界面，接收组件输入属性，返回组件内容 */
 export function PluginToolList(props: {
+  /** 条目列表 */
   items: ExtensionItem[]
+  /** 当前选中项编号 */
   selectedId: string | null
+  /** 处理选择事件，接收当前条目的唯一编号，无返回值 */
   onSelect: (id: string) => void
+  /** 处理创建事件，接收类别标识，无返回值 */
   onCreate: (kind: 'mcp' | 'plugin' | 'cli') => void
+  /** 处理切换启用事件，接收当前条目，无返回值 */
   onToggleEnable: (item: ExtensionItem) => void
+  /** 处理重新加载事件，接收当前条目的唯一编号，无返回值 */
   onReload: (id: string) => void
+  /** 处理删除事件，接收当前条目的唯一编号，无返回值 */
   onDelete: (id: string) => void
 }) {
-  const { t } = useTranslation()
-  const [menuOpen, setMenuOpen] = useState(false)
-  const pendingInstalls = useCliInstallStore((s) => s.items)
+  const { t } = useTranslation() // 获取当前语言的翻译方法
+  const [menuOpen, setMenuOpen] = useState(false) // 菜单展开及其更新方法
+  const pendingInstalls = useCliInstallStore((s) => s.items) // 从状态仓库读取待处理安装记录
 
   return (
     <div className="flex h-full flex-col">
@@ -41,13 +49,10 @@ export function PluginToolList(props: {
               >
                 {t('settingsPage.plugins.addMcp')}
               </button>
-              {/*<button*/}
               {/*  type="button"*/}
               {/*  className="flex w-full items-center px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent"*/}
               {/*  onClick={() => { props.onCreate('plugin'); setMenuOpen(false) }}*/}
-              {/*>*/}
               {/*  {t('settingsPage.plugins.addPlugin')}*/}
-              {/*</button>*/}
               <button
                 type="button"
                 className="flex w-full items-center px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent"

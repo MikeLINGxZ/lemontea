@@ -4,48 +4,54 @@ import { useTranslation } from 'react-i18next'
 import { SettingsMenuContext } from '@/components/settings/SettingsShell'
 import { ConfirmDialog } from '@/components/settings/common/ConfirmDialog'
 import { SettingsPanelHeader } from '@/components/settings/common/SettingsPanelHeader'
-import { toSkillName } from '@/lib/skills'
+import { normalizeSkill, toSkillName } from '@/lib/skills'
 import { useSettingsStore } from '@/store/settingsStore'
 import { Skills as SkillsBinding } from '@bindings/gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/service/skills'
 import { DeleteSkillInput, GetSkillInput, UpdateSkillInput } from '@bindings/gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/service/skills/skills_dto/models'
 import { SkillEditor } from './SkillEditor'
 import { cn } from '@/lib/utils'
-import type { SkillFull, SkillItem } from '@/types/skills'
+import type { SkillFull } from '@/types/skills'
 
+/** 加载当前技能详情并处理保存、改名和删除，返回组件内容 */
 export function SkillsDetailPane() {
-  const { t } = useTranslation()
-  const { isH5 } = useContext(SettingsMenuContext)
-  const selectedSkillName = useSettingsStore((s) => s.selectedSkillName)
-  const updateSkill = useSettingsStore((s) => s.updateSkill)
-  const removeSkill = useSettingsStore((s) => s.removeSkill)
-  const setSelectedSkillName = useSettingsStore((s) => s.setSelectedSkillName)
-  const [fullSkill, setFullSkill] = useState<SkillFull | null>(null)
-  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
-  const [deleting, setDeleting] = useState(false)
-  const [nameError, setNameError] = useState<string | null>(null)
+  const { t } = useTranslation() // 获取当前语言的翻译方法
+  const { isH5 } = useContext(SettingsMenuContext) // 是否采用窄屏布局
+  const selectedSkillName = useSettingsStore((s) => s.selectedSkillName) // 从状态仓库读取选中项技能名称
+  const updateSkill = useSettingsStore((s) => s.updateSkill) // 从状态仓库读取更新技能
+  const removeSkill = useSettingsStore((s) => s.removeSkill) // 从状态仓库读取移除技能
+  const setSelectedSkillName = useSettingsStore((s) => s.setSelectedSkillName) // 从状态仓库读取集合选中项技能名称
+  const [fullSkill, setFullSkill] = useState<SkillFull | null>(null) // 完整技能及其更新方法
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false) // 确认删除展开及其更新方法
+  const [deleting, setDeleting] = useState(false) // 删除中及其更新方法
+  const [nameError, setNameError] = useState<string | null>(null) // 名称错误及其更新方法
 
+  /** 刷新处理，完成后结束异步任务 */
   const refresh = useCallback(async () => {
     if (!selectedSkillName) {
       setFullSkill(null)
       return
     }
+    /** 保存本次调用的结果 */
     const result = await SkillsBinding.GetSkill(new GetSkillInput({ name: selectedSkillName }))
     if (result?.skill) {
-      setFullSkill(result.skill as unknown as SkillFull)
+      setFullSkill(normalizeSkill(result.skill))
       setNameError(null)
     }
   }, [selectedSkillName])
 
+  /** 同步外部状态并管理本次副作用的生命周期 */
   useEffect(() => { void refresh() }, [refresh])
 
-  const handleUpdate = useCallback(async (draft: { name: string; description: string; body: string }) => {
+  /** 处理更新，接收草稿，完成后结束异步任务 */
+  const handleUpdate = useCallback(async (draft: { /* 名称 */ name: string; /* 描述 */ description: string; /* 正文 */ body: string }) => {
     if (!fullSkill) return
-    const nextName = toSkillName(draft.name)
+    const nextName = toSkillName(draft.name) // 下一项名称
     if (!nextName) {
       setNameError(t('settingsPage.skills.editor.nameInvalid'))
       return
     }
     setNameError(null)
+    /** 保存本次调用的结果 */
     const result = await SkillsBinding.UpdateSkill(new UpdateSkillInput({
       name: fullSkill.name,
       new_name: nextName,
@@ -53,16 +59,17 @@ export function SkillsDetailPane() {
       body: draft.body,
     }))
     if (result?.skill) {
-      const nextSkill = result.skill as unknown as SkillFull
+      const nextSkill = normalizeSkill(result.skill) // 下一项技能
       if (nextSkill.name !== fullSkill.name) {
         removeSkill(fullSkill.name)
       }
-      updateSkill(nextSkill as SkillItem)
+      updateSkill(nextSkill)
       setFullSkill(nextSkill)
       setSelectedSkillName(nextSkill.name)
     }
   }, [fullSkill, removeSkill, setSelectedSkillName, t, updateSkill])
 
+  /** 处理删除，完成后结束异步任务 */
   const handleDelete = useCallback(async () => {
     if (!fullSkill) return
     if (deleting) return
@@ -85,7 +92,8 @@ export function SkillsDetailPane() {
     )
   }
 
-  const readOnly = fullSkill.source === 'builtin'
+  const readOnly = fullSkill.source === 'builtin' // 已读仅
+  /** 来源标签 */
   const sourceLabel = t(`settingsPage.skills.source${fullSkill.source === 'builtin' ? 'Builtin' : fullSkill.source === 'user' ? 'User' : 'AI'}`)
 
   return (

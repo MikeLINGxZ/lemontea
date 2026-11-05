@@ -5,14 +5,48 @@
 // @ts-ignore: Unused imports
 import { Create as $Create } from "@wailsio/runtime";
 
+/**
+ * 封装创建记忆所需的请求参数
+ */
 export class CreateMemoryInput {
+    /**
+     * 摘要
+     */
     "summary": string;
+
+    /**
+     * 内容
+     */
     "content": string;
+
+    /**
+     * 类型
+     */
     "type": string;
+
+    /**
+     * 目标
+     */
     "target": string;
+
+    /**
+     * 来源
+     */
     "source": string;
+
+    /**
+     * 重要度
+     */
     "importance": number;
+
+    /**
+     * 置信度
+     */
     "confidence": number;
+
+    /**
+     * 已置顶
+     */
     "pinned": boolean;
 
     /** Creates a new CreateMemoryInput instance. */
@@ -54,7 +88,13 @@ export class CreateMemoryInput {
     }
 }
 
+/**
+ * 封装创建记忆返回给调用方的数据
+ */
 export class CreateMemoryOutput {
+    /**
+     * 记忆
+     */
     "memory": MemoryItem;
 
     /** Creates a new CreateMemoryOutput instance. */
@@ -79,7 +119,13 @@ export class CreateMemoryOutput {
     }
 }
 
+/**
+ * 封装遗忘记忆所需的请求参数
+ */
 export class ForgetMemoryInput {
+    /**
+     * 唯一标识
+     */
     "id": number;
 
     /** Creates a new ForgetMemoryInput instance. */
@@ -100,6 +146,9 @@ export class ForgetMemoryInput {
     }
 }
 
+/**
+ * 封装遗忘记忆返回给调用方的数据
+ */
 export class ForgetMemoryOutput {
 
     /** Creates a new ForgetMemoryOutput instance. */
@@ -117,7 +166,13 @@ export class ForgetMemoryOutput {
     }
 }
 
+/**
+ * 封装获取记忆所需的请求参数
+ */
 export class GetMemoryInput {
+    /**
+     * 唯一标识
+     */
     "id": number;
 
     /** Creates a new GetMemoryInput instance. */
@@ -138,7 +193,13 @@ export class GetMemoryInput {
     }
 }
 
+/**
+ * 封装获取记忆返回给调用方的数据
+ */
 export class GetMemoryOutput {
+    /**
+     * 记忆
+     */
     "memory": MemoryItem;
 
     /** Creates a new GetMemoryOutput instance. */
@@ -163,6 +224,9 @@ export class GetMemoryOutput {
     }
 }
 
+/**
+ * 封装获取记忆设置所需的请求参数
+ */
 export class GetMemorySettingsInput {
 
     /** Creates a new GetMemorySettingsInput instance. */
@@ -180,7 +244,13 @@ export class GetMemorySettingsInput {
     }
 }
 
+/**
+ * 封装获取记忆设置返回给调用方的数据
+ */
 export class GetMemorySettingsOutput {
+    /**
+     * 启用状态
+     */
     "enabled": boolean;
 
     /** Creates a new GetMemorySettingsOutput instance. */
@@ -201,6 +271,9 @@ export class GetMemorySettingsOutput {
     }
 }
 
+/**
+ * 封装获取记忆统计所需的请求参数
+ */
 export class GetMemoryStatsInput {
 
     /** Creates a new GetMemoryStatsInput instance. */
@@ -218,7 +291,13 @@ export class GetMemoryStatsInput {
     }
 }
 
+/**
+ * 封装获取记忆统计返回给调用方的数据
+ */
 export class GetMemoryStatsOutput {
+    /**
+     * 统计
+     */
     "stats": MemoryStatsItem;
 
     /** Creates a new GetMemoryStatsOutput instance. */
@@ -243,12 +322,38 @@ export class GetMemoryStatsOutput {
     }
 }
 
+/**
+ * 封装列出记忆列表所需的请求参数
+ */
 export class ListMemoriesInput {
+    /**
+     * 搜索词
+     */
     "query": string;
+
+    /**
+     * 类型
+     */
     "type": string;
+
+    /**
+     * 目标
+     */
     "target": string;
+
+    /**
+     * 包含已遗忘
+     */
     "include_forgotten": boolean;
+
+    /**
+     * 偏移
+     */
     "offset": number;
+
+    /**
+     * 上限
+     */
     "limit": number;
 
     /** Creates a new ListMemoriesInput instance. */
@@ -284,8 +389,18 @@ export class ListMemoriesInput {
     }
 }
 
+/**
+ * 封装列出记忆列表返回给调用方的数据
+ */
 export class ListMemoriesOutput {
+    /**
+     * 条目列表
+     */
     "items": MemoryItem[];
+
+    /**
+     * 总量
+     */
     "total": number;
 
     /** Creates a new ListMemoriesOutput instance. */
@@ -314,25 +429,92 @@ export class ListMemoriesOutput {
 }
 
 /**
- * MemoryItem is the frontend-facing representation of a long-term memory.
+ * MemoryItem 表示返回给前端的长期记忆
  */
 export class MemoryItem {
+    /**
+     * 唯一标识
+     */
     "id": number;
+
+    /**
+     * 摘要
+     */
     "summary": string;
+
+    /**
+     * 内容
+     */
     "content": string;
+
+    /**
+     * 类型
+     */
     "type": string;
+
+    /**
+     * 目标
+     */
     "target": string;
+
+    /**
+     * 来源
+     */
     "source": string;
+
+    /**
+     * 字符数量
+     */
     "char_count": number;
+
+    /**
+     * 向量编号
+     */
     "embedding_id": number | null;
+
+    /**
+     * 是否已遗忘
+     */
     "is_forgotten": boolean;
+
+    /**
+     * 回忆数量
+     */
     "recall_count": number;
+
+    /**
+     * 最后一个已检索时间
+     */
     "last_recalled_at": string | null;
+
+    /**
+     * 最后一个已使用时间
+     */
     "last_used_at": string | null;
+
+    /**
+     * 重要度
+     */
     "importance": number;
+
+    /**
+     * 置信度
+     */
     "confidence": number;
+
+    /**
+     * 已置顶
+     */
     "pinned": boolean;
+
+    /**
+     * 创建
+     */
     "created": string;
+
+    /**
+     * 更新
+     */
     "updated": string;
 
     /** Creates a new MemoryItem instance. */
@@ -402,13 +584,32 @@ export class MemoryItem {
 }
 
 /**
- * MemoryStatsItem contains aggregate memory counts.
+ * MemoryStatsItem 包含长期记忆的汇总计数
  */
 export class MemoryStatsItem {
+    /**
+     * 总量
+     */
     "total": number;
+
+    /**
+     * 当前
+     */
     "active": number;
+
+    /**
+     * 已遗忘
+     */
     "forgotten": number;
+
+    /**
+     * 按目标
+     */
     "by_target": { [_ in string]?: number };
+
+    /**
+     * 按类型
+     */
     "by_type": { [_ in string]?: number };
 
     /** Creates a new MemoryStatsItem instance. */
@@ -449,7 +650,13 @@ export class MemoryStatsItem {
     }
 }
 
+/**
+ * 封装恢复记忆所需的请求参数
+ */
 export class RestoreMemoryInput {
+    /**
+     * 唯一标识
+     */
     "id": number;
 
     /** Creates a new RestoreMemoryInput instance. */
@@ -470,6 +677,9 @@ export class RestoreMemoryInput {
     }
 }
 
+/**
+ * 封装恢复记忆返回给调用方的数据
+ */
 export class RestoreMemoryOutput {
 
     /** Creates a new RestoreMemoryOutput instance. */
@@ -487,7 +697,13 @@ export class RestoreMemoryOutput {
     }
 }
 
+/**
+ * 封装保存记忆设置所需的请求参数
+ */
 export class SaveMemorySettingsInput {
+    /**
+     * 启用状态
+     */
     "enabled": boolean;
 
     /** Creates a new SaveMemorySettingsInput instance. */
@@ -508,6 +724,9 @@ export class SaveMemorySettingsInput {
     }
 }
 
+/**
+ * 封装保存记忆设置返回给调用方的数据
+ */
 export class SaveMemorySettingsOutput {
 
     /** Creates a new SaveMemorySettingsOutput instance. */
@@ -525,15 +744,53 @@ export class SaveMemorySettingsOutput {
     }
 }
 
+/**
+ * 封装更新记忆所需的请求参数
+ */
 export class UpdateMemoryInput {
+    /**
+     * 唯一标识
+     */
     "id": number;
+
+    /**
+     * 摘要
+     */
     "summary": string;
+
+    /**
+     * 内容
+     */
     "content": string;
+
+    /**
+     * 类型
+     */
     "type": string;
+
+    /**
+     * 目标
+     */
     "target": string;
+
+    /**
+     * 来源
+     */
     "source": string;
+
+    /**
+     * 重要度
+     */
     "importance": number;
+
+    /**
+     * 置信度
+     */
     "confidence": number;
+
+    /**
+     * 已置顶
+     */
     "pinned": boolean;
 
     /** Creates a new UpdateMemoryInput instance. */
@@ -578,7 +835,13 @@ export class UpdateMemoryInput {
     }
 }
 
+/**
+ * 封装更新记忆返回给调用方的数据
+ */
 export class UpdateMemoryOutput {
+    /**
+     * 记忆
+     */
     "memory": MemoryItem;
 
     /** Creates a new UpdateMemoryOutput instance. */

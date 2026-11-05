@@ -1,16 +1,23 @@
 import { useTranslation } from 'react-i18next'
 import type { ExtensionToolItem } from '@/types/settings'
 
+/** CLI工具列表区块组件接收的属性 */
 type CliToolsSectionProps = {
+  /** 工具列表 */
   tools: ExtensionToolItem[]
+  /** 处理中 */
   busy: boolean
+  /** JSON有效 */
   jsonValid: boolean
+  /** 处理切换启用状态事件，接收工具名称、是否启用，无返回值 */
   onToggleEnabled: (toolName: string, enabled: boolean) => void
+  /** 处理切换需要确认事件，接收工具名称、需要确认，无返回值 */
   onToggleRequiresConfirm: (toolName: string, requiresConfirm: boolean) => void
 }
 
+/** 渲染CLI工具列表区块界面，接收组件输入属性，返回组件内容 */
 export function CliToolsSection(props: CliToolsSectionProps) {
-  const { t } = useTranslation()
+  const { t } = useTranslation() // 获取当前语言的翻译方法
 
   return (
     <section className="mt-6 space-y-3 border-t border-border pt-4">

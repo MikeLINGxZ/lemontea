@@ -1,15 +1,22 @@
 import { type ReactNode, useContext } from 'react'
 import { SettingsMenuContext } from '@/components/settings/SettingsShell'
 import { cn } from '@/lib/utils'
+import type { GeneralSettingsTab } from '@/types/settings'
 
-export function SettingsSubmenuList<T extends string | number>(props: {
+/** 渲染常规设置二级菜单，选择后在窄屏收起侧栏，接收组件输入属性，返回组件内容 */
+export function SettingsSubmenuList(props: {
+  /** 标题 */
   title: string
-  items: { key: T; label: string; icon?: ReactNode }[]
-  value: T
-  onChange: (value: T) => void
+  /** 条目列表 */
+  items: { /* 键 */ key: GeneralSettingsTab; /* 标签 */ label: string; /* 图标 */ icon?: ReactNode }[]
+  /** 值 */
+  value: GeneralSettingsTab
+  /** 处理本次变更事件，接收值，无返回值 */
+  onChange: (value: GeneralSettingsTab) => void
+  /** 操作 */
   action?: ReactNode
 }) {
-  const { isH5, onCollapseSubmenu } = useContext(SettingsMenuContext)
+  const { isH5, onCollapseSubmenu } = useContext(SettingsMenuContext) // 取出是否采用窄屏布局、on折叠二级菜单
 
   return (
     <div className="flex h-full flex-col">
@@ -21,7 +28,7 @@ export function SettingsSubmenuList<T extends string | number>(props: {
       <div className="space-y-1">
         {props.items.map((item) => (
           <button
-            key={String(item.key)}
+            key={item.key}
             type="button"
             onClick={() => { props.onChange(item.key); onCollapseSubmenu() }}
             className={cn(

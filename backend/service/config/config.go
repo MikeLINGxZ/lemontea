@@ -10,18 +10,23 @@ import (
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/service/config/config_dto"
 )
 
+// 应用版本
 var applicationVersion string = "v0.3.0-beta"
 
+// 描述配置使用的数据结构
 type Config struct {
+	// Wails 应用实例
 	wailsApp *application.App
 }
 
-// ApplicationVersion get application version
+// ApplicationVersion 返回应用版本
+// 接收本次调用的上下文，返回文本
 func (c *Config) ApplicationVersion(ctx context.Context) string {
 	return applicationVersion
 }
 
-// LanguageList get a language list
+// LanguageList 返回语言列表
+// 接收调用上下文和请求参数，返回操作结果及可能发生的错误
 func (c *Config) LanguageList(ctx context.Context, input config_dto.LanguageListInput) (*config_dto.LanguageListOutput, error) {
 	return &config_dto.LanguageListOutput{
 		Languages: []view_model.Language{
@@ -31,7 +36,8 @@ func (c *Config) LanguageList(ctx context.Context, input config_dto.LanguageList
 	}, nil
 }
 
-// RegionList get a region list
+// RegionList 返回地区列表
+// 接收调用上下文和请求参数，返回操作结果及可能发生的错误
 func (c *Config) RegionList(ctx context.Context, input config_dto.RegionListInput) (*config_dto.RegionListOutput, error) {
 	return &config_dto.RegionListOutput{Regions: []view_model.Region{
 		{ID: "CN", Name: "中国", Icon: "🇨🇳"},
@@ -83,7 +89,8 @@ func (c *Config) RegionList(ctx context.Context, input config_dto.RegionListInpu
 	}}, nil
 }
 
-// SupportedProviderList get a supported provider list
+// SupportedProviderList 返回支持的服务提供商列表
+// 接收调用上下文和请求参数，返回操作结果及可能发生的错误
 func (c *Config) SupportedProviderList(ctx context.Context, input config_dto.SupportedProviderListInput) (*config_dto.SupportedProviderListOutput, error) {
 	return &config_dto.SupportedProviderListOutput{
 		SupportedProviders: []view_model.SupportedProvider{

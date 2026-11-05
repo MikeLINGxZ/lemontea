@@ -2,17 +2,27 @@ import { useState } from 'react'
 import { ShieldAlert, Check, X, Sparkles } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+/** 工具确认卡片组件接收的属性 */
 type Props = {
+  /** 工具名称 */
   toolName: string
+  /** 用途 */
   purpose: string
+  /** 参数 */
   args: string
+  /** 处理确认事件，接收消息，无返回值 */
   onConfirm: (message: string) => void
+  /** 处理拒绝事件，接收消息，无返回值 */
   onReject: (message: string) => void
+  /** 处理提交备注事件，接收消息，无返回值 */
   onSubmitComment: (message: string) => void
+  /** 已处理 */
   resolved: boolean
+  /** 已同意 */
   approved: boolean
 }
 
+/** 渲染工具确认卡片界面，接收组件属性，返回组件内容 */
 export function ToolConfirmCard({
   toolName,
   purpose,
@@ -23,9 +33,9 @@ export function ToolConfirmCard({
   resolved,
   approved,
 }: Props) {
-  const { t } = useTranslation()
-  const [feedback, setFeedback] = useState('')
-  const [commentOpen, setCommentOpen] = useState(false)
+  const { t } = useTranslation() // 获取当前语言的翻译方法
+  const [feedback, setFeedback] = useState('') // 反馈及其更新方法
+  const [commentOpen, setCommentOpen] = useState(false) // 备注展开及其更新方法
   void resolved
   void approved
 
@@ -73,7 +83,7 @@ export function ToolConfirmCard({
                 value={feedback}
                 onChange={(event) => setFeedback(event.target.value)}
                 placeholder={t('toolCall.inputPlaceholder')}
-                className="min-w-0 max-w-sm flex-1 rounded border border-input bg-transparent px-2 py-1 text-xs outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground"
+                className="min-w-0 max-w-sm flex-1 rounded border border-input bg-transparent px-2 py-1 text-xs outline-hidden focus:ring-1 focus:ring-ring placeholder:text-muted-foreground"
               />
               <button
                 onClick={() => onSubmitComment(feedback)}

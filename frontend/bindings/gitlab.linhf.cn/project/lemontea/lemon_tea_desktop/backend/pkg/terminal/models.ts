@@ -9,19 +9,73 @@ import { Create as $Create } from "@wailsio/runtime";
 // @ts-ignore: Unused imports
 import * as data_models$0 from "../../models/data_models/models.js";
 
+/**
+ * 描述信息使用的数据结构
+ */
 export class Info {
+    /**
+     * 唯一标识
+     */
     "id": string;
+
+    /**
+     * 会话编号
+     */
     "session_id": number;
+
+    /**
+     * 消息编号
+     */
     "message_id"?: number | null;
+
+    /**
+     * 工具调用编号
+     */
     "tool_call_id"?: string;
+
+    /**
+     * 标题
+     */
     "title": string;
+
+    /**
+     * 命令
+     */
     "command": string;
+
+    /**
+     * 参数
+     */
     "args": string;
+
+    /**
+     * 工作目录
+     */
     "cwd": string;
+
+    /**
+     * 当前状态
+     */
     "status": string;
+
+    /**
+     * 可见
+     */
     "visible": boolean;
+
+    /**
+     * 进程号
+     */
     "pid": number;
+
+    /**
+     * 退出代码
+     */
     "exit_code"?: number | null;
+
+    /**
+     * 当前游标
+     */
     "current_cursor": number;
 
     /** Creates a new Info instance. */
@@ -69,5 +123,12 @@ export class Info {
     }
 }
 
+/**
+ * 定义终端输出分片的类型
+ */
 export const TerminalOutputChunk = data_models$0.TerminalOutputChunk;
+
+/**
+ * 定义终端输出分片的类型
+ */
 export type TerminalOutputChunk = data_models$0.TerminalOutputChunk;

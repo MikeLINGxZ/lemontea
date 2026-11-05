@@ -1,9 +1,10 @@
 package skills_dto
 
-// DeleteSkillInput identifies the skill to delete by name.
+// DeleteSkillInput 按名称指定要删除的技能
 type DeleteSkillInput struct {
+	// 名称
 	Name string `json:"name"`
 }
 
-// DeleteSkillOutput is returned on successful deletion.
+// DeleteSkillOutput 表示指定技能已删除
 type DeleteSkillOutput struct{}

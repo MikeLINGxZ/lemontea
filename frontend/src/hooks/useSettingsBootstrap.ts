@@ -6,6 +6,7 @@ import { useEffect } from 'react'
 import { useSettingsStore } from '@/store/settingsStore'
 import type { ProviderItem, SettingsBootstrap } from '@/types/settings'
 
+/** 回退初始化数据 */
 const fallbackBootstrap: SettingsBootstrap = {
   locale: 'zh-CN',
   language: 'zh-CN',
@@ -26,6 +27,7 @@ const fallbackBootstrap: SettingsBootstrap = {
   ],
 }
 
+/** 转换包装终点模型服务商条目列表，接收包装对象列表，返回对应的处理结果 */
 function mapWrapperToProviderItems(wrappers: ProviderWrapper[]): ProviderItem[] {
   return wrappers.map((w) => ({
     id: w.providers.id,
@@ -51,15 +53,19 @@ function mapWrapperToProviderItems(wrappers: ProviderWrapper[]): ProviderItem[] 
   }))
 }
 
+/** 加载设置窗口所需的初始数据，绑定不可用时使用本地默认值，无返回值 */
 export function useSettingsBootstrap() {
-  const hydrate = useSettingsStore((state) => state.hydrate)
-  const setLocaleOptions = useSettingsStore((state) => state.setLocaleOptions)
+  const hydrate = useSettingsStore((state) => state.hydrate) // 从状态仓库读取恢复
+  const setLocaleOptions = useSettingsStore((state) => state.setLocaleOptions) // 从状态仓库读取集合地区选项列表
 
+  /** 同步外部状态并管理本次副作用的生命周期 */
   useEffect(() => {
-    let cancelled = false
+    let cancelled = false // 已取消
 
+    /** 加载处理，完成后结束异步任务 */
     const load = async () => {
       try {
+        /** 保存载荷结果、语言列表结果、地区列表结果、服务商列表结果 */
         const [payloadResult, languagesResult, regionsResult, providersResult] = await Promise.all([
           Settings.LoadBootstrap({}),
           Config.LanguageList({}),
@@ -67,6 +73,7 @@ export function useSettingsBootstrap() {
           Provider.ListProviders({}),
         ])
         if (!cancelled && payloadResult?.bootstrap) {
+          /** 服务商列表 */
           const providers = providersResult?.providers
             ? mapWrapperToProviderItems(providersResult.providers)
             : []
@@ -83,7 +90,7 @@ export function useSettingsBootstrap() {
           return
         }
       } catch {
-        // Fall back to a local bootstrap payload when backend bindings are unavailable.
+        // 后端绑定不可用时回退到本地初始设置
       }
 
       if (!cancelled) {

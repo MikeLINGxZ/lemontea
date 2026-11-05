@@ -2,14 +2,19 @@ import { useTranslation } from 'react-i18next'
 import { AddProviderStepForm } from '@/components/settings/providers/AddProviderStepForm'
 import type { SupportedProvider } from '@/types/settings'
 
+/** 首次引导步骤表单组件接收的属性 */
 type Props = {
+	/** 模型服务商 */
 	provider: SupportedProvider
+	/** 处理返回事件，无返回值 */
 	onBack: () => void
+	/** 处理完成事件，无返回值 */
 	onDone: () => void
 }
 
+/** 渲染首次引导步骤表单界面，接收组件输入属性，返回组件内容 */
 export function OnboardingStepForm(props: Props) {
-	const { t } = useTranslation()
+	const { t } = useTranslation() // 获取当前语言的翻译方法
 
 	return (
 		<div className="flex h-full min-h-0 flex-col gap-4">

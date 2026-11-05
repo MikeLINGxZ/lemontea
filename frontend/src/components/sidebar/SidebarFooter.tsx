@@ -8,34 +8,38 @@ import { useAppStore } from '@/store/appStore'
 import { cn } from '@/lib/utils'
 import type { Theme } from '@/types'
 
+/** 渲染侧栏页尾界面，返回组件内容 */
 export function SidebarFooter() {
-  const { t } = useTranslation()
-  const { theme, setTheme } = useAppStore()
-  const [open, setOpen] = useState(false)
-  const [menuStyle, setMenuStyle] = useState<CSSProperties | null>(null)
-  const [themeMenuStyle, setThemeMenuStyle] = useState<CSSProperties | null>(null)
-  const settingsButtonRef = useRef<HTMLButtonElement>(null)
-  const themeItemRef = useRef<HTMLDivElement>(null)
+  const { t } = useTranslation() // 获取当前语言的翻译方法
+  const { theme, setTheme } = useAppStore() // 从状态仓库读取主题、集合主题
+  const [open, setOpen] = useState(false) // 展开及其更新方法
+  const [menuStyle, setMenuStyle] = useState<CSSProperties | null>(null) // 菜单样式及其更新方法
+  const [themeMenuStyle, setThemeMenuStyle] = useState<CSSProperties | null>(null) // 主题菜单样式及其更新方法
+  const settingsButtonRef = useRef<HTMLButtonElement>(null) // 设置按钮引用，供后续读取当前值
+  const themeItemRef = useRef<HTMLDivElement>(null) // 主题条目引用，供后续读取当前值
 
-  const themeOptions: { value: Theme; label: string; icon: ReactNode }[] = [
+  /** 主题选项列表 */
+  const themeOptions: { /* 值 */ value: Theme; /* 标签 */ label: string; /* 图标 */ icon: ReactNode }[] = [
     { value: 'auto', label: t('settings.themeAuto'), icon: <Monitor size={14} /> },
     { value: 'light', label: t('settings.themeLight'), icon: <Sun size={14} /> },
     { value: 'dark', label: t('settings.themeDark'), icon: <Moon size={14} /> },
   ]
 
+  /** 关闭处理，无返回值 */
   const close = () => {
     setOpen(false)
     setMenuStyle(null)
     setThemeMenuStyle(null)
   }
 
+  /** 切换菜单，无返回值 */
   const toggleMenu = () => {
     if (open) {
       close()
       return
     }
 
-    const rect = settingsButtonRef.current?.getBoundingClientRect()
+    const rect = settingsButtonRef.current?.getBoundingClientRect() // 矩形区域
     if (!rect) return
 
     setMenuStyle({
@@ -45,10 +49,11 @@ export function SidebarFooter() {
     setOpen(true)
   }
 
+  /** 打开主题菜单，无返回值 */
   const openThemeMenu = () => {
     if (typeof document === 'undefined') return
 
-    const rect = themeItemRef.current?.getBoundingClientRect()
+    const rect = themeItemRef.current?.getBoundingClientRect() // 矩形区域
     if (!rect) return
 
     setThemeMenuStyle({

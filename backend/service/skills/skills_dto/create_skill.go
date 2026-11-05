@@ -1,13 +1,17 @@
 package skills_dto
 
-// CreateSkillInput provides the fields needed to create a new user skill.
+// CreateSkillInput 包含新建用户技能所需的字段
 type CreateSkillInput struct {
-	Name        string `json:"name"`
+	// 名称
+	Name string `json:"name"`
+	// 描述
 	Description string `json:"description"`
-	Body        string `json:"body"`
+	// 正文
+	Body string `json:"body"`
 }
 
-// CreateSkillOutput returns the newly created skill.
+// CreateSkillOutput 返回新建的技能
 type CreateSkillOutput struct {
+	// 技能
 	Skill SkillItem `json:"skill"`
 }

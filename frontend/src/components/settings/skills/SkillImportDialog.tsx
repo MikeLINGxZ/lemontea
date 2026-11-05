@@ -5,28 +5,35 @@ import { File as FileBinding } from '@bindings/gitlab.linhf.cn/project/lemontea/
 import { ImportSkillInput } from '@bindings/gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/service/skills/skills_dto/models'
 import { SelectFileInput } from '@bindings/gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/service/file/file_dto/models'
 
+/** 技能导入对话框组件接收的属性 */
 type Props = {
+  /** 展开 */
   open: boolean
+  /** 处理关闭事件，无返回值 */
   onClose: () => void
+  /** 处理已导入事件，无返回值 */
   onImported: () => void
 }
 
+/** 渲染技能导入对话框界面，接收展开、on关闭、on已导入，返回组件内容 */
 export function SkillImportDialog({ open, onClose, onImported }: Props) {
-  const { t } = useTranslation()
-  const [filePath, setFilePath] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
+  const { t } = useTranslation() // 获取当前语言的翻译方法
+  const [filePath, setFilePath] = useState('') // 文件路径及其更新方法
+  const [error, setError] = useState<string | null>(null) // 错误及其更新方法
+  const [submitting, setSubmitting] = useState(false) // 正在提交及其更新方法
 
   if (!open) return null
 
+  /** 处理选择文件，完成后结束异步任务 */
   const handleSelectFile = async () => {
-    const result = await FileBinding.SelectFile(new SelectFileInput())
+    const result = await FileBinding.SelectFile(new SelectFileInput()) // 保存本次调用的结果
     if (result?.file_path) {
       setFilePath(result.file_path)
       setError(null)
     }
   }
 
+  /** 处理提交，完成后结束异步任务 */
   const handleSubmit = async () => {
     setSubmitting(true)
     setError(null)

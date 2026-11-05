@@ -10,9 +10,12 @@ import { Create as $Create } from "@wailsio/runtime";
 import * as data_models$0 from "../../../models/data_models/models.js";
 
 /**
- * CancelLoginCliInput terminates a running login session.
+ * CancelLoginCliInput 指定要终止的登录会话
  */
 export class CancelLoginCliInput {
+    /**
+     * 唯一标识
+     */
     "id": string;
 
     /** Creates a new CancelLoginCliInput instance. */
@@ -33,7 +36,13 @@ export class CancelLoginCliInput {
     }
 }
 
+/**
+ * 封装删除扩展所需的请求参数
+ */
 export class DeleteExtensionInput {
+    /**
+     * 唯一标识
+     */
     "id": string;
 
     /** Creates a new DeleteExtensionInput instance. */
@@ -54,6 +63,9 @@ export class DeleteExtensionInput {
     }
 }
 
+/**
+ * 封装删除扩展返回给调用方的数据
+ */
 export class DeleteExtensionOutput {
 
     /** Creates a new DeleteExtensionOutput instance. */
@@ -72,9 +84,12 @@ export class DeleteExtensionOutput {
 }
 
 /**
- * GenerateCliManifestInput identifies which CLI plugin to regenerate the manifest for.
+ * GenerateCliManifestInput 指定要重新生成清单的 CLI 插件
  */
 export class GenerateCliManifestInput {
+    /**
+     * 唯一标识
+     */
     "id": string;
 
     /** Creates a new GenerateCliManifestInput instance. */
@@ -96,9 +111,12 @@ export class GenerateCliManifestInput {
 }
 
 /**
- * GenerateCliManifestOutput returns the refreshed extension after a successful generation.
+ * GenerateCliManifestOutput 返回清单生成成功后的扩展条目
  */
 export class GenerateCliManifestOutput {
+    /**
+     * 扩展
+     */
     "extension": data_models$0.ExtensionItem;
 
     /** Creates a new GenerateCliManifestOutput instance. */
@@ -123,7 +141,13 @@ export class GenerateCliManifestOutput {
     }
 }
 
+/**
+ * 封装获取扩展详情所需的请求参数
+ */
 export class GetExtensionDetailInput {
+    /**
+     * 唯一标识
+     */
     "id": string;
 
     /** Creates a new GetExtensionDetailInput instance. */
@@ -144,8 +168,18 @@ export class GetExtensionDetailInput {
     }
 }
 
+/**
+ * 封装获取扩展详情返回给调用方的数据
+ */
 export class GetExtensionDetailOutput {
+    /**
+     * 扩展
+     */
     "extension": data_models$0.ExtensionItem;
+
+    /**
+     * 配置文本
+     */
     "config_text": string;
 
     /** Creates a new GetExtensionDetailOutput instance. */
@@ -173,8 +207,18 @@ export class GetExtensionDetailOutput {
     }
 }
 
+/**
+ * 封装处理导入扩展所需的请求参数
+ */
 export class ImportExtensionInput {
+    /**
+     * 类别
+     */
     "kind": string;
+
+    /**
+     * 路径
+     */
     "path": string;
 
     /** Creates a new ImportExtensionInput instance. */
@@ -198,7 +242,13 @@ export class ImportExtensionInput {
     }
 }
 
+/**
+ * 封装处理导入扩展返回给调用方的数据
+ */
 export class ImportExtensionOutput {
+    /**
+     * 扩展
+     */
     "extension": data_models$0.ExtensionItem;
 
     /** Creates a new ImportExtensionOutput instance. */
@@ -224,10 +274,17 @@ export class ImportExtensionOutput {
 }
 
 /**
- * InstallCliFromNpmInput is the request to install a CLI plugin from a published npm package.
+ * InstallCliFromNpmInput 包含从已发布的 npm 包安装 CLI 插件所需的参数
  */
 export class InstallCliFromNpmInput {
+    /**
+     * npm包名
+     */
     "npm_package": string;
+
+    /**
+     * 名称
+     */
     "name": string;
 
     /** Creates a new InstallCliFromNpmInput instance. */
@@ -252,9 +309,12 @@ export class InstallCliFromNpmInput {
 }
 
 /**
- * InstallCliFromNpmOutput returns the persisted ExtensionItem after a successful install.
+ * InstallCliFromNpmOutput 返回安装成功后保存的 ExtensionItem
  */
 export class InstallCliFromNpmOutput {
+    /**
+     * 扩展
+     */
     "extension": data_models$0.ExtensionItem;
 
     /** Creates a new InstallCliFromNpmOutput instance. */
@@ -279,6 +339,9 @@ export class InstallCliFromNpmOutput {
     }
 }
 
+/**
+ * 封装列出可用项工具列表所需的请求参数
+ */
 export class ListAvailableToolsInput {
 
     /** Creates a new ListAvailableToolsInput instance. */
@@ -296,7 +359,13 @@ export class ListAvailableToolsInput {
     }
 }
 
+/**
+ * 封装列出可用项工具列表返回给调用方的数据
+ */
 export class ListAvailableToolsOutput {
+    /**
+     * 工具列表
+     */
     "tools": ToolItem[];
 
     /** Creates a new ListAvailableToolsOutput instance. */
@@ -321,6 +390,9 @@ export class ListAvailableToolsOutput {
     }
 }
 
+/**
+ * 封装列出扩展列表所需的请求参数
+ */
 export class ListExtensionsInput {
 
     /** Creates a new ListExtensionsInput instance. */
@@ -338,7 +410,13 @@ export class ListExtensionsInput {
     }
 }
 
+/**
+ * 封装列出扩展列表返回给调用方的数据
+ */
 export class ListExtensionsOutput {
+    /**
+     * 扩展列表
+     */
     "extensions": data_models$0.ExtensionItem[];
 
     /** Creates a new ListExtensionsOutput instance. */
@@ -364,9 +442,12 @@ export class ListExtensionsOutput {
 }
 
 /**
- * LoginCliInput identifies the CLI plugin to start a login session for.
+ * LoginCliInput 指定要启动登录会话的 CLI 插件
  */
 export class LoginCliInput {
+    /**
+     * 唯一标识
+     */
     "id": string;
 
     /** Creates a new LoginCliInput instance. */
@@ -388,7 +469,7 @@ export class LoginCliInput {
 }
 
 /**
- * LoginCliOutput is empty; actual output is delivered via "cli.login.output" and "cli.login.done" events.
+ * LoginCliOutput 是空响应，登录输出和结束状态分别通过 cli.login.output 和 cli.login.done 事件返回
  */
 export class LoginCliOutput {
 
@@ -407,7 +488,13 @@ export class LoginCliOutput {
     }
 }
 
+/**
+ * 封装处理重新加载扩展所需的请求参数
+ */
 export class ReloadExtensionInput {
+    /**
+     * 唯一标识
+     */
     "id": string;
 
     /** Creates a new ReloadExtensionInput instance. */
@@ -428,7 +515,13 @@ export class ReloadExtensionInput {
     }
 }
 
+/**
+ * 封装处理重新加载扩展返回给调用方的数据
+ */
 export class ReloadExtensionOutput {
+    /**
+     * 扩展
+     */
     "extension": data_models$0.ExtensionItem;
 
     /** Creates a new ReloadExtensionOutput instance. */
@@ -454,9 +547,12 @@ export class ReloadExtensionOutput {
 }
 
 /**
- * ResetCliDataInput identifies which CLI plugin's data directory to clear.
+ * ResetCliDataInput 指定要清理数据目录的 CLI 插件
  */
 export class ResetCliDataInput {
+    /**
+     * 唯一标识
+     */
     "id": string;
 
     /** Creates a new ResetCliDataInput instance. */
@@ -478,7 +574,7 @@ export class ResetCliDataInput {
 }
 
 /**
- * ResetCliDataOutput is empty; clients re-fetch the extension if they need updated state.
+ * ResetCliDataOutput 是空响应，调用方可重新查询扩展以获取最新状态
  */
 export class ResetCliDataOutput {
 
@@ -498,11 +594,22 @@ export class ResetCliDataOutput {
 }
 
 /**
- * ResizeLoginCliInput resizes the PTY of a running login session.
+ * ResizeLoginCliInput 携带运行中登录会话的 PTY 新尺寸
  */
 export class ResizeLoginCliInput {
+    /**
+     * 唯一标识
+     */
     "id": string;
+
+    /**
+     * 行数
+     */
     "rows": number;
+
+    /**
+     * 列数
+     */
     "cols": number;
 
     /** Creates a new ResizeLoginCliInput instance. */
@@ -529,8 +636,18 @@ export class ResizeLoginCliInput {
     }
 }
 
+/**
+ * 封装保存扩展配置所需的请求参数
+ */
 export class SaveExtensionConfigInput {
+    /**
+     * 唯一标识
+     */
     "id": string;
+
+    /**
+     * 配置文本
+     */
     "config_text": string;
 
     /** Creates a new SaveExtensionConfigInput instance. */
@@ -554,7 +671,13 @@ export class SaveExtensionConfigInput {
     }
 }
 
+/**
+ * 封装保存扩展配置返回给调用方的数据
+ */
 export class SaveExtensionConfigOutput {
+    /**
+     * 扩展
+     */
     "extension": data_models$0.ExtensionItem;
 
     /** Creates a new SaveExtensionConfigOutput instance. */
@@ -580,10 +703,17 @@ export class SaveExtensionConfigOutput {
 }
 
 /**
- * SendLoginStdinInput sends raw bytes to a running login session's stdin.
+ * SendLoginStdinInput 携带写入运行中登录会话标准输入的原始字节
  */
 export class SendLoginStdinInput {
+    /**
+     * 唯一标识
+     */
     "id": string;
+
+    /**
+     * 数据
+     */
     "data": string;
 
     /** Creates a new SendLoginStdinInput instance. */
@@ -607,8 +737,18 @@ export class SendLoginStdinInput {
     }
 }
 
+/**
+ * 封装切换扩展所需的请求参数
+ */
 export class ToggleExtensionInput {
+    /**
+     * 唯一标识
+     */
     "id": string;
+
+    /**
+     * 启用状态
+     */
     "enabled": boolean;
 
     /** Creates a new ToggleExtensionInput instance. */
@@ -632,7 +772,13 @@ export class ToggleExtensionInput {
     }
 }
 
+/**
+ * 封装切换扩展返回给调用方的数据
+ */
 export class ToggleExtensionOutput {
+    /**
+     * 扩展
+     */
     "extension": data_models$0.ExtensionItem;
 
     /** Creates a new ToggleExtensionOutput instance. */
@@ -657,10 +803,28 @@ export class ToggleExtensionOutput {
     }
 }
 
+/**
+ * 描述工具条目使用的数据结构
+ */
 export class ToolItem {
+    /**
+     * 唯一标识
+     */
     "id": string;
+
+    /**
+     * 名称
+     */
     "name": string;
+
+    /**
+     * 描述
+     */
     "description": string;
+
+    /**
+     * 分类
+     */
     "category": string;
 
     /** Creates a new ToolItem instance. */
@@ -691,10 +855,17 @@ export class ToolItem {
 }
 
 /**
- * UpdateCliManifestInput carries the edited manifest JSON text for a specific CLI plugin.
+ * UpdateCliManifestInput 携带指定 CLI 插件编辑后的清单 JSON 文本
  */
 export class UpdateCliManifestInput {
+    /**
+     * 唯一标识
+     */
     "id": string;
+
+    /**
+     * 清单文本
+     */
     "manifest_text": string;
 
     /** Creates a new UpdateCliManifestInput instance. */
@@ -719,9 +890,12 @@ export class UpdateCliManifestInput {
 }
 
 /**
- * UpdateCliManifestOutput returns the updated ExtensionItem after manifest validation + save.
+ * UpdateCliManifestOutput 返回清单校验并保存后的 ExtensionItem
  */
 export class UpdateCliManifestOutput {
+    /**
+     * 扩展
+     */
     "extension": data_models$0.ExtensionItem;
 
     /** Creates a new UpdateCliManifestOutput instance. */

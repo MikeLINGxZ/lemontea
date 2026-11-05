@@ -1,7 +1,7 @@
 package window_dto
 
-// OpenQuickChatInput carries no fields for opening the quick chat window.
+// OpenQuickChatInput 是打开快捷聊天窗口的空请求
 type OpenQuickChatInput struct{}
 
-// OpenQuickChatOutput carries no fields after opening the quick chat window.
+// OpenQuickChatOutput 是打开快捷聊天窗口后的空响应
 type OpenQuickChatOutput struct{}

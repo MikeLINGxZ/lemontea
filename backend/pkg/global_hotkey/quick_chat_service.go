@@ -11,35 +11,55 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/events"
 )
 
+// 定义快捷聊天启动器回调的参数与返回值
 type quickChatStarter func(context.Context, func(), string) (func(), error)
+
+// 定义快捷聊天探测回调的参数与返回值
 type quickChatProbe func(string) error
+
+// 定义应用已启动订阅者回调的参数与返回值
 type applicationStartedSubscriber func(func()) func()
+
+// 定义日志记录器函数回调的参数与返回值
 type loggerFunc func(string, ...any)
 
-// QuickChatService registers the global quick chat shortcut after Wails has
-// started its platform application, so native hotkey APIs run after AppKit is live.
+// QuickChatService 等待 Wails 启动平台应用后注册全局快捷聊天快捷键，
+// 确保调用原生热键 API 时 AppKit 已运行
 type QuickChatService struct {
-	onPressed           func()
-	start               quickChatStarter
-	probeShortcut       quickChatProbe
+	// 处理已按下，无返回值
+	onPressed func()
+	// 开始
+	start quickChatStarter
+	// 探测快捷键
+	probeShortcut quickChatProbe
+	// 订阅应用已启动
 	subscribeAppStarted applicationStartedSubscriber
-	logf                loggerFunc
+	// 日志回调
+	logf loggerFunc
 
-	mu          sync.Mutex
-	stop        func()
+	// 保护共享状态的互斥锁
+	mu sync.Mutex
+	// 停止快捷聊天服务，无返回值
+	stop func()
+	// 处理解除订阅，无返回值
 	unsubscribe func()
-	shortcut    string
-	started     bool
+	// 快捷键
+	shortcut string
+	// 已启动
+	started bool
+	// 正在注册
 	registering bool
 }
 
+// 构建快捷聊天服务，接收on已按下，返回快捷聊天服务
 func NewQuickChatService(onPressed func()) *QuickChatService {
 	return NewQuickChatServiceWithShortcut(onPressed, DefaultQuickChatShortcut())
 }
 
-// NewQuickChatServiceWithShortcut creates a quick chat service with an initial shortcut.
+// NewQuickChatServiceWithShortcut 使用指定的初始快捷键创建快捷聊天服务
+// 接收on已按下、快捷键，返回快捷聊天服务
 func NewQuickChatServiceWithShortcut(onPressed func(), shortcut string) *QuickChatService {
-	normalized, err := NormalizeQuickChatShortcut(shortcut)
+	normalized, err := NormalizeQuickChatShortcut(shortcut) // 规范化值、规范化快捷聊天快捷键时的错误
 	if err != nil {
 		normalized = DefaultQuickChatShortcut()
 	}
@@ -52,11 +72,15 @@ func NewQuickChatServiceWithShortcut(onPressed func(), shortcut string) *QuickCh
 	)
 }
 
+// 订阅平台应用已启动事件并在就绪时注册快捷键，接收fn 对应的清理或通知回调，返回清理或通知回调
 func subscribeApplicationStarted(fn func()) func() {
-	app := application.Get()
+	app := application.Get() // Wails 应用实例
+	// 解绑函数
 	var unsubscribers []func()
-	subscribe := func(eventType events.ApplicationEventType) {
+	// 订阅
+	subscribe := /* 实现订阅回调，接收事件类型，无返回值 */ func(eventType events.ApplicationEventType) {
 		unsubscribers = append(unsubscribers, app.Event.OnApplicationEvent(eventType, func(*application.ApplicationEvent) {
+			// 处理应用事件时调用的回调，接收应用事件，无返回值
 			fn()
 		}))
 	}
@@ -71,7 +95,8 @@ func subscribeApplicationStarted(fn func()) func() {
 		subscribe(events.Linux.ApplicationStartup)
 	}
 
-	return func() {
+	return /* 执行当前步骤的回调，无返回值 */ func() {
+		// 遍历解绑函数，逐项取得解除订阅
 		for _, unsubscribe := range unsubscribers {
 			if unsubscribe != nil {
 				unsubscribe()
@@ -80,6 +105,7 @@ func subscribeApplicationStarted(fn func()) func() {
 	}
 }
 
+// 构建快捷聊天服务，接收on已按下、开始、订阅应用已启动、日志回调、快捷键，返回快捷聊天服务
 func newQuickChatService(
 	onPressed func(),
 	start quickChatStarter,
@@ -88,17 +114,18 @@ func newQuickChatService(
 	shortcut ...string,
 ) *QuickChatService {
 	if subscribeAppStarted == nil {
-		subscribeAppStarted = func(fn func()) func() {
+		subscribeAppStarted = /* 实现订阅应用已启动回调，接收fn 对应的清理或通知回调，返回清理或通知回调 */ func(fn func()) func() {
 			fn()
-			return func() {}
+			return /* 执行当前步骤的回调，无返回值 */ func() {}
 		}
 	}
 	if logf == nil {
-		logf = func(string, ...any) {}
+		logf = /* 实现日志回调回调，接收文本、待检查的动态数据，无返回值 */ func(string, ...any) {}
 	}
-	initialShortcut := DefaultQuickChatShortcut()
+	initialShortcut := DefaultQuickChatShortcut() // 初始快捷键
 	if len(shortcut) > 0 {
-		if normalized, err := NormalizeQuickChatShortcut(shortcut[0]); err == nil {
+		normalized, err := NormalizeQuickChatShortcut(shortcut[0]) // 规范化值、规范化快捷聊天快捷键时的错误
+		if err == nil {
 			initialShortcut = normalized
 		}
 	}
@@ -112,6 +139,7 @@ func newQuickChatService(
 	}
 }
 
+// 在 Wails 服务启动时保存运行环境并初始化当前服务，接收本次调用的上下文、服务选项列表，返回操作错误
 func (s *QuickChatService) ServiceStartup(ctx context.Context, _ application.ServiceOptions) error {
 	if ctx == nil {
 		ctx = context.Background()
@@ -119,14 +147,15 @@ func (s *QuickChatService) ServiceStartup(ctx context.Context, _ application.Ser
 
 	s.mu.Lock()
 	s.started = true
-	needsSubscribe := s.unsubscribe == nil
+	needsSubscribe := s.unsubscribe == nil // 需要订阅
 	s.mu.Unlock()
 
 	if !needsSubscribe {
 		return nil
 	}
 
-	unsubscribe := s.subscribeAppStarted(func() {
+	// 解除订阅
+	unsubscribe := s.subscribeAppStarted( /* 订阅应用已启动时调用的回调，无返回值 */ func() {
 		s.logf("quick chat global hotkey startup event received")
 		s.register(ctx)
 	})
@@ -146,8 +175,9 @@ func (s *QuickChatService) ServiceStartup(ctx context.Context, _ application.Ser
 	return nil
 }
 
+// 平台未发送启动事件时延迟尝试快捷键注册，接收本次调用的上下文、延时，无返回值
 func (s *QuickChatService) registerAfterFallbackDelay(ctx context.Context, delay time.Duration) {
-	timer := time.NewTimer(delay)
+	timer := time.NewTimer(delay) // 定时器
 	defer timer.Stop()
 
 	select {
@@ -159,12 +189,13 @@ func (s *QuickChatService) registerAfterFallbackDelay(ctx context.Context, delay
 	}
 }
 
+// 在 Wails 服务关闭时释放当前服务持有的资源，返回操作错误
 func (s *QuickChatService) ServiceShutdown() error {
 	s.mu.Lock()
 	s.started = false
-	stop := s.stop
+	stop := s.stop // 停止
 	s.stop = nil
-	unsubscribe := s.unsubscribe
+	unsubscribe := s.unsubscribe // 解除订阅
 	s.unsubscribe = nil
 	s.mu.Unlock()
 
@@ -177,6 +208,7 @@ func (s *QuickChatService) ServiceShutdown() error {
 	return nil
 }
 
+// 注册快捷聊天服务，接收本次调用的上下文，无返回值
 func (s *QuickChatService) register(ctx context.Context) {
 	s.mu.Lock()
 	if !s.started || s.stop != nil || s.registering {
@@ -184,14 +216,14 @@ func (s *QuickChatService) register(ctx context.Context) {
 		return
 	}
 	s.registering = true
-	shortcut := s.shortcut
+	shortcut := s.shortcut // 快捷键
 	s.mu.Unlock()
 
-	stop, err := s.start(ctx, s.onPressed, shortcut)
+	stop, err := s.start(ctx, s.onPressed, shortcut) // 停止、启动当前数据时的错误
 	s.mu.Lock()
 	s.registering = false
 	if err != nil {
-		shouldRetry := s.started && s.stop == nil && s.shortcut != shortcut
+		shouldRetry := s.started && s.stop == nil && s.shortcut != shortcut // 是否需重试
 		if s.started {
 			s.logf("quick chat global hotkey registration failed: %v", err)
 		}
@@ -217,7 +249,7 @@ func (s *QuickChatService) register(ctx context.Context) {
 	s.logf("quick chat global hotkey registered")
 }
 
-// CurrentShortcut returns the normalized quick chat shortcut currently owned by the service.
+// CurrentShortcut 返回服务当前管理的规范化快捷聊天快捷键
 func (s *QuickChatService) CurrentShortcut() string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -227,9 +259,10 @@ func (s *QuickChatService) CurrentShortcut() string {
 	return s.shortcut
 }
 
-// ValidateShortcut reports whether a shortcut is usable without changing the active registration.
+// ValidateShortcut 检查快捷键是否可用，保留当前注册状态
+// 接收快捷键，返回快捷键校验结果
 func (s *QuickChatService) ValidateShortcut(shortcut string) ShortcutValidationResult {
-	normalized, err := NormalizeQuickChatShortcut(shortcut)
+	normalized, err := NormalizeQuickChatShortcut(shortcut) // 规范化值、规范化快捷聊天快捷键时的错误
 	if err != nil {
 		return ShortcutValidationResult{Status: ShortcutValidationInvalid, Message: err.Error()}
 	}
@@ -239,25 +272,27 @@ func (s *QuickChatService) ValidateShortcut(shortcut string) ShortcutValidationR
 	if s.probeShortcut == nil {
 		return ShortcutValidationResult{Shortcut: normalized, Status: ShortcutValidationAvailable}
 	}
-	if err := s.probeShortcut(normalized); err != nil {
-		return ShortcutValidationResult{Shortcut: normalized, Status: ShortcutValidationConflict, Message: err.Error()}
+	probeShortcutErr := s.probeShortcut(normalized) // 处理探测快捷键时的错误
+	if probeShortcutErr != nil {
+		return ShortcutValidationResult{Shortcut: normalized, Status: ShortcutValidationConflict, Message: probeShortcutErr.Error()}
 	}
 	return ShortcutValidationResult{Shortcut: normalized, Status: ShortcutValidationAvailable}
 }
 
-// UpdateShortcut immediately switches the active quick chat global shortcut.
+// UpdateShortcut 立即切换当前注册的全局快捷聊天快捷键
+// 接收本次调用的上下文、快捷键，返回操作错误
 func (s *QuickChatService) UpdateShortcut(ctx context.Context, shortcut string) error {
-	normalized, err := NormalizeQuickChatShortcut(shortcut)
+	normalized, err := NormalizeQuickChatShortcut(shortcut) // 规范化值、规范化快捷聊天快捷键时的错误
 	if err != nil {
 		return err
 	}
-	startCtx := context.Background()
+	startCtx := context.Background() // 开始上下文
 	if ctx != nil {
 		startCtx = context.WithoutCancel(ctx)
 	}
 
 	s.mu.Lock()
-	previousShortcut := s.shortcut
+	previousShortcut := s.shortcut // 先前快捷键
 	if previousShortcut == "" {
 		previousShortcut = DefaultQuickChatShortcut()
 	}
@@ -266,9 +301,9 @@ func (s *QuickChatService) UpdateShortcut(ctx context.Context, shortcut string) 
 		s.mu.Unlock()
 		return nil
 	}
-	previousStop := s.stop
-	wasRegistered := previousStop != nil
-	shouldRegister := s.started && !s.registering
+	previousStop := s.stop                        // 先前停止
+	wasRegistered := previousStop != nil          // 曾经已注册
+	shouldRegister := s.started && !s.registering // 是否需注册
 	s.stop = nil
 	s.shortcut = normalized
 	s.mu.Unlock()
@@ -280,9 +315,11 @@ func (s *QuickChatService) UpdateShortcut(ctx context.Context, shortcut string) 
 		return nil
 	}
 
-	newStop, err := s.start(startCtx, s.onPressed, normalized)
+	newStop, err := s.start(startCtx, s.onPressed, normalized) // 新停止
 	if err != nil {
+		// 恢复停止
 		var restoreStop func()
+		// 恢复错误
 		var restoreErr error
 		if wasRegistered {
 			restoreStop, restoreErr = s.start(startCtx, s.onPressed, previousShortcut)
@@ -303,8 +340,9 @@ func (s *QuickChatService) UpdateShortcut(ctx context.Context, shortcut string) 
 	return nil
 }
 
+// 设置快捷键对应测试，接收快捷键，无返回值
 func (s *QuickChatService) setShortcutForTest(shortcut string) {
-	normalized, err := NormalizeQuickChatShortcut(shortcut)
+	normalized, err := NormalizeQuickChatShortcut(shortcut) // 规范化值、规范化快捷聊天快捷键时的错误
 	if err != nil {
 		normalized = DefaultQuickChatShortcut()
 	}

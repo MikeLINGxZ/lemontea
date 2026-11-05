@@ -1,7 +1,12 @@
+/** 渲染设置面板页头界面，接收组件输入属性，返回组件内容 */
 export function SettingsPanelHeader(props: {
+  /** 标题 */
   title: string
+  /** 描述 */
   description?: string
+  /** 侧边栏 */
   aside?: React.ReactNode
+  /** 徽标 */
   badge?: React.ReactNode
 }) {
   return (

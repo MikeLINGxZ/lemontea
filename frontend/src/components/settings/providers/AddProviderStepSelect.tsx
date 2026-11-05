@@ -3,14 +3,18 @@ import { Config } from '@bindings/gitlab.linhf.cn/project/lemontea/lemon_tea_des
 import { cn } from '@/lib/utils'
 import type { SupportedProvider } from '@/types/settings'
 
+/** 新增模型服务商步骤选择，接收组件输入属性，返回组件内容 */
 export function AddProviderStepSelect(props: {
+  /** 选中项 */
   selected: SupportedProvider | null
+  /** 处理选择事件，接收当前条目，无返回值 */
   onSelect: (p: SupportedProvider) => void
 }) {
-  const [providers, setProviders] = useState<SupportedProvider[]>([])
+  const [providers, setProviders] = useState<SupportedProvider[]>([]) // 服务商列表及其更新方法
 
+  /** 同步外部状态并管理本次副作用的生命周期 */
   useEffect(() => {
-    let cancelled = false
+    let cancelled = false // 已取消
     Config.SupportedProviderList({})
       .then((result) => {
         if (!cancelled && result?.supported_providers) {

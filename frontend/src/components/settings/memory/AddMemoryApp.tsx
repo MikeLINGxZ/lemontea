@@ -13,16 +13,25 @@ import { SettingsActionBar } from '@/components/settings/common/SettingsActionBa
 import { SettingsSelect } from '@/components/settings/common/SettingsSelect'
 import { cn } from '@/lib/utils'
 
+/** 记忆的编辑草稿 */
 type MemoryDraft = {
+  /** 摘要 */
   summary: string
+  /** 内容 */
   content: string
+  /** 类型 */
   type: string
+  /** 要处理的目标 */
   target: string
+  /** 重要度 */
   importance: number
+  /** 置信度 */
   confidence: number
+  /** 已置顶 */
   pinned: boolean
 }
 
+/** 空草稿 */
 const EMPTY_DRAFT: MemoryDraft = {
   summary: '',
   content: '',
@@ -33,6 +42,7 @@ const EMPTY_DRAFT: MemoryDraft = {
   pinned: false,
 }
 
+/** 新增记忆应用，返回组件内容 */
 export function AddMemoryApp() {
   return (
     <AppSettingsSyncProvider>
@@ -48,11 +58,13 @@ export function AddMemoryApp() {
   )
 }
 
+/** 新增记忆窗口，返回组件内容 */
 function AddMemoryWindow() {
-  const { t } = useTranslation()
-  const [draft, setDraft] = useState<MemoryDraft>(EMPTY_DRAFT)
-  const [saving, setSaving] = useState(false)
+  const { t } = useTranslation() // 获取当前语言的翻译方法
+  const [draft, setDraft] = useState<MemoryDraft>(EMPTY_DRAFT) // 草稿及其更新方法
+  const [saving, setSaving] = useState(false) // 保存中及其更新方法
 
+  /** 处理保存，完成后结束异步任务 */
   const handleSave = async () => {
     if (saving || (!draft.summary.trim() && !draft.content.trim())) return
     setSaving(true)
@@ -86,7 +98,7 @@ function AddMemoryWindow() {
             <input
               value={draft.summary}
               onChange={(event) => setDraft({ ...draft, summary: event.target.value })}
-              className="h-11 w-full appearance-none rounded-xl border border-border/80 bg-card/80 px-3.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary"
+              className="h-11 w-full appearance-none rounded-xl border border-border/80 bg-card/80 px-3.5 text-sm text-foreground outline-hidden transition-colors placeholder:text-muted-foreground focus:border-primary"
             />
           </label>
 
@@ -96,7 +108,7 @@ function AddMemoryWindow() {
               value={draft.content}
               onChange={(event) => setDraft({ ...draft, content: event.target.value })}
               rows={8}
-              className="w-full resize-none appearance-none rounded-xl border border-border/80 bg-card/80 px-3.5 py-3 text-sm leading-6 text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary"
+              className="w-full resize-none appearance-none rounded-xl border border-border/80 bg-card/80 px-3.5 py-3 text-sm leading-6 text-foreground outline-hidden transition-colors placeholder:text-muted-foreground focus:border-primary"
             />
           </label>
 
@@ -136,7 +148,7 @@ function AddMemoryWindow() {
                 inputMode="numeric"
                 value={String(draft.importance)}
                 onChange={(event) => setDraft({ ...draft, importance: Number(event.target.value) })}
-                className="h-11 w-full appearance-none rounded-xl border border-border/80 bg-card/80 px-3.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary"
+                className="h-11 w-full appearance-none rounded-xl border border-border/80 bg-card/80 px-3.5 text-sm text-foreground outline-hidden transition-colors placeholder:text-muted-foreground focus:border-primary"
               />
             </label>
             <label className="block">
@@ -146,7 +158,7 @@ function AddMemoryWindow() {
                 inputMode="numeric"
                 value={String(draft.confidence)}
                 onChange={(event) => setDraft({ ...draft, confidence: Number(event.target.value) })}
-                className="h-11 w-full appearance-none rounded-xl border border-border/80 bg-card/80 px-3.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary"
+                className="h-11 w-full appearance-none rounded-xl border border-border/80 bg-card/80 px-3.5 text-sm text-foreground outline-hidden transition-colors placeholder:text-muted-foreground focus:border-primary"
               />
             </label>
           </div>

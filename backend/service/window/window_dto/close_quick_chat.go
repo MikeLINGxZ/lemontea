@@ -1,7 +1,7 @@
 package window_dto
 
-// CloseQuickChatInput carries no fields for closing the quick chat window.
+// CloseQuickChatInput 是关闭快捷聊天窗口的空请求
 type CloseQuickChatInput struct{}
 
-// CloseQuickChatOutput carries no fields after closing the quick chat window.
+// CloseQuickChatOutput 是关闭快捷聊天窗口后的空响应
 type CloseQuickChatOutput struct{}

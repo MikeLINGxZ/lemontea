@@ -5,17 +5,25 @@ import { SettingsMenuContext } from '@/components/settings/SettingsShell'
 import { ProviderListItem } from '@/components/settings/providers/ProviderListItem'
 import type { ProviderItem } from '@/types/settings'
 
+/** 渲染模型服务商列表界面，接收组件输入属性，返回组件内容 */
 export function ProviderList(props: {
+  /** 条目列表 */
   items: ProviderItem[]
+  /** 当前选中项编号 */
   selectedId: number | null
+  /** 处理选择事件，接收当前条目的唯一编号，无返回值 */
   onSelect: (id: number) => void
+  /** 处理创建事件，无返回值 */
   onCreate: () => void
+  /** 处理切换启用事件，接收当前条目，无返回值 */
   onToggleEnable: (item: ProviderItem) => void
+  /** 处理集合默认事件，接收当前条目的唯一编号，无返回值 */
   onSetDefault: (id: number) => void
+  /** 处理删除事件，接收当前条目的唯一编号，无返回值 */
   onDelete: (id: number) => void
 }) {
-  const { t } = useTranslation()
-  const { isH5, onCollapseSubmenu } = useContext(SettingsMenuContext)
+  const { t } = useTranslation() // 获取当前语言的翻译方法
+  const { isH5, onCollapseSubmenu } = useContext(SettingsMenuContext) // 取出是否采用窄屏布局、on折叠二级菜单
 
   return (
     <div className="flex h-full flex-col">

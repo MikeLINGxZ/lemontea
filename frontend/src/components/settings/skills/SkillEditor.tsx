@@ -2,17 +2,27 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { SkillFull } from '@/types/skills'
 
+/** 技能编辑器组件接收的属性 */
 type Props = {
+  /** 初始 */
   initial: Partial<SkillFull>
+  /** 已读仅 */
   readOnly?: boolean
+  /** 保存中 */
   saving?: boolean
+  /** 名称错误 */
   nameError?: string | null
+  /** 危险操作标签 */
   dangerLabel?: string
+  /** 处理危险操作点击事件，无返回值 */
   onDangerClick?: () => void
-  onSubmit: (draft: { name: string; description: string; body: string }) => Promise<void> | void
+  /** 处理提交事件，接收草稿，返回对应的处理结果 */
+  onSubmit: (draft: { /* 名称 */ name: string; /* 描述 */ description: string; /* 正文 */ body: string }) => Promise<void> | void
+  /** 处理取消事件，无返回值 */
   onCancel: () => void
 }
 
+/** 维护技能名称、说明和正文草稿并提交有效内容，接收组件属性，返回组件内容 */
 export function SkillEditor({
   initial,
   readOnly = false,
@@ -23,18 +33,20 @@ export function SkillEditor({
   onSubmit,
   onCancel,
 }: Props) {
-  const { t } = useTranslation()
-  const [name, setName] = useState(initial.name ?? '')
-  const [description, setDescription] = useState(initial.description ?? '')
-  const [body, setBody] = useState(initial.body ?? '')
-  const [saving, setSaving] = useState(false)
+  const { t } = useTranslation() // 获取当前语言的翻译方法
+  const [name, setName] = useState(initial.name ?? '') // 名称及其更新方法
+  const [description, setDescription] = useState(initial.description ?? '') // 描述及其更新方法
+  const [body, setBody] = useState(initial.body ?? '') // 正文及其更新方法
+  const [saving, setSaving] = useState(false) // 保存中及其更新方法
 
+  /** 同步外部状态并管理本次副作用的生命周期 */
   useEffect(() => {
     setName(initial.name ?? '')
     setDescription(initial.description ?? '')
     setBody(initial.body ?? '')
   }, [initial.name, initial.description, initial.body])
 
+  /** 处理保存，完成后结束异步任务 */
   const handleSave = async () => {
     if (savingProp) return
     setSaving(true)
@@ -45,7 +57,7 @@ export function SkillEditor({
     }
   }
 
-  const busy = saving || savingProp
+  const busy = saving || savingProp // 处理中
 
   return (
     <div className="flex h-full flex-col space-y-5 pb-4 pt-2">
@@ -57,7 +69,7 @@ export function SkillEditor({
           value={name}
           disabled={readOnly}
           onChange={(e) => setName(e.target.value)}
-          className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary disabled:cursor-not-allowed disabled:opacity-70"
+          className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-hidden focus:border-primary disabled:cursor-not-allowed disabled:opacity-70"
         />
         {nameError ? <p className="text-xs text-destructive">{nameError}</p> : null}
       </div>
@@ -70,7 +82,7 @@ export function SkillEditor({
           value={description}
           disabled={readOnly}
           onChange={(e) => setDescription(e.target.value)}
-          className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary disabled:cursor-not-allowed disabled:opacity-70"
+          className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-hidden focus:border-primary disabled:cursor-not-allowed disabled:opacity-70"
         />
       </div>
       <div className="flex min-h-0 flex-1 flex-col space-y-1.5">
@@ -81,7 +93,7 @@ export function SkillEditor({
           value={body}
           disabled={readOnly}
           onChange={(e) => setBody(e.target.value)}
-          className="min-h-[260px] flex-1 rounded-xl border border-border bg-background p-3 font-mono text-xs outline-none focus:border-primary disabled:cursor-not-allowed disabled:opacity-70"
+          className="min-h-[260px] flex-1 rounded-xl border border-border bg-background p-3 font-mono text-xs outline-hidden focus:border-primary disabled:cursor-not-allowed disabled:opacity-70"
         />
       </div>
       {!readOnly && (

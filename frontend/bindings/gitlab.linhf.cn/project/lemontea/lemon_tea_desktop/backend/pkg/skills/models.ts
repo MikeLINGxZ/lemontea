@@ -6,8 +6,8 @@
 import { Create as $Create } from "@wailsio/runtime";
 
 /**
- * Manager owns the merged in-memory view of skills (builtin + on-disk + disabled flags)
- * and exposes mutation methods that persist changes to disk.
+ * Manager 在内存中合并内置技能、磁盘技能和禁用标记，
+ * 并提供将变更保存到磁盘的方法
  */
 export class Manager {
 

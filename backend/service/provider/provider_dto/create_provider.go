@@ -5,6 +5,7 @@ import (
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/provider"
 )
 
+// 封装创建模型提供商所需的请求参数
 type CreateProviderInput struct {
 	ProviderName string             `json:"provider_name"` // 供应商名称
 	ProviderType provider.Type      `json:"provider_type"` // 供应商类型
@@ -15,5 +16,6 @@ type CreateProviderInput struct {
 	Models       []view_model.Model `json:"models"`        // 供应商模型列表
 }
 
+// 封装创建模型提供商返回给调用方的数据
 type CreateProviderOutput struct {
 }

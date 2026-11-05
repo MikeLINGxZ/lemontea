@@ -1,13 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import type { CSSProperties } from 'react'
 import { Events } from '@wailsio/runtime'
-import { useEditor, EditorContent as EditorContentBase } from '@tiptap/react'
+import { useEditor, EditorContent } from '@tiptap/react'
 import { Extension, InputRule } from '@tiptap/core'
 import type { Editor, JSONContent } from '@tiptap/core'
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model'
 import { TextSelection } from '@tiptap/pm/state'
 
-const EditorContent = EditorContentBase as unknown as React.FC<{ editor: ReturnType<typeof useEditor> }>
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import Suggestion from '@tiptap/suggestion'
@@ -30,15 +29,19 @@ import { File as FileBinding } from '@bindings/gitlab.linhf.cn/project/lemontea/
 import { SelectFileInput, SaveTempFileInput } from '@bindings/gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/service/file/file_dto'
 import { AttachmentChips } from './AttachmentChips'
 import { ATTACHMENT_MAX_COUNT, ATTACHMENT_MAX_BYTES, inferAttachmentMeta } from '@/lib/attachments'
+import { isObjectRecord } from '@/lib/guards'
 
+/** 注册斜杠指令弹层的编辑器扩展 */
 const SlashCommand = Extension.create({
   name: 'slashCommand',
+  /** 注册斜杠指令建议插件，返回对应的处理结果 */
   addProseMirrorPlugins() {
     return [
       Suggestion({
-        editor: this.editor as any,
+        editor: this.editor,
         ...buildSlashSuggestion(),
-        command: ({ editor, range, props }: { editor: any; range: { from: number; to: number }; props: { name: string } }) => {
+        /** 命令处理，接收编辑器、范围、组件输入属性，无返回值 */
+        command: ({ editor, range, props }: { /* 编辑器 */ editor: Editor; /* 范围 */ range: { /* 起点 */ from: number; /* 终点 */ to: number }; /* 组件输入属性 */ props: { /* 名称 */ name: string } }) => {
           editor.chain().focus().deleteRange(range).insertContent(`/${props.name} `).run()
         },
       }),
@@ -46,15 +49,22 @@ const SlashCommand = Extension.create({
   },
 })
 
+/** 定义聊天工具选项的数据结构 */
 type ChatToolOption = {
+  /** 当前条目的唯一编号 */
   id: string
+  /** 名称 */
   name: string
+  /** 描述 */
   description: string
+  /** 分类 */
   category: string
+  /** 是否启用 */
   enabled: boolean
 }
 
-const TOOL_I18N_KEYS: Record<string, { name: string; description: string }> = {
+/** 内置工具名称和说明的国际化键 */
+const TOOL_I18N_KEYS: Record<string, { /* 名称 */ name: string; /* 描述 */ description: string }> = {
   datetime: {
     name: 'input.toolNames.datetime.name',
     description: 'input.toolNames.datetime.description',
@@ -85,23 +95,27 @@ const TOOL_I18N_KEYS: Record<string, { name: string; description: string }> = {
   },
 }
 
+/** 将二进制文件转换为 Base64 编码，接收二进制对象，返回处理后的文本 */
 async function blobToBase64(blob: Blob): Promise<string> {
-  const buf = await blob.arrayBuffer()
-  const bytes = new Uint8Array(buf)
-  let binary = ''
-  for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i])
+  const buf = await blob.arrayBuffer() // 保存文件的二进制缓冲区
+  const bytes = new Uint8Array(buf) // 字节
+  let binary = '' // 二进制文本
+  for (/* 循环索引 */ let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i])
   return btoa(binary)
 }
 
+/** 将行内反引号转换为代码块的编辑器扩展 */
 const SingleLineCodeBlock = Extension.create({
   name: 'singleLineCodeBlock',
 
+  /** 注册行内代码块的输入规则，返回对应的处理结果 */
   addInputRules() {
     return [
       new InputRule({
         find: /^```\s?([^`]+?)\s?```$/,
+        /** 响应当前订阅的事件，接收范围、匹配项、编辑器可调用的命令，无返回值 */
         handler: ({ range, match, commands }) => {
-          const code = match[1]?.trim() ?? ''
+          const code = match[1]?.trim() ?? '' // 代码
 
           commands.insertContentAt(range, {
             type: 'codeBlock',
@@ -113,22 +127,25 @@ const SingleLineCodeBlock = Extension.create({
   },
 })
 
+/** 将源代码文本包装为编辑器代码块节点，接收代码，返回对应的处理结果 */
 const createCodeBlockContent = (code: string): JSONContent => ({
   type: 'codeBlock',
   content: code ? [{ type: 'text', text: code }] : [],
 })
 
+/** 读取编辑器节点文本并保留换行，接收节点，返回表达式结果 */
 const getNodeTextWithBreaks = (node: ProseMirrorNode) => (
   node.textBetween(0, node.content.size, '\n', '\n')
 )
 
+/** 把段落中的 Markdown 围栏转换为编辑器代码块，接收编辑器，返回对应的处理结果 */
 const convertFencedCodeBlock = (editor: Editor) => {
-  let converted = false
+  let converted = false // 是否已转换
 
   editor.state.doc.descendants((node, pos) => {
     if (converted || node.type.name !== 'paragraph') return false
 
-    const match = getNodeTextWithBreaks(node).match(/^```[^\n]*\n([\s\S]*?)\n```$/)
+    const match = getNodeTextWithBreaks(node).match(/^```[^\n]*\n([\s\S]*?)\n```$/) // 匹配项
     if (!match) return true
 
     editor.commands.insertContentAt(
@@ -142,26 +159,31 @@ const convertFencedCodeBlock = (editor: Editor) => {
 
   if (converted) return true
 
+  /** 顶部级别节点列表 */
   const topLevelNodes: Array<{
+    /** 节点 */
     node: ProseMirrorNode
+    /** 字符位置 */
     pos: number
   }> = []
 
+  /** 逐项处理列表内容 */
   editor.state.doc.forEach((node, offset) => {
     topLevelNodes.push({ node, pos: offset + 1 })
   })
 
-  for (let start = 0; start < topLevelNodes.length; start += 1) {
-    const startText = getNodeTextWithBreaks(topLevelNodes[start].node).trim()
+  for (/* 开始 */ let start = 0; start < topLevelNodes.length; start += 1) {
+    const startText = getNodeTextWithBreaks(topLevelNodes[start].node).trim() // 开始文本
     if (topLevelNodes[start].node.type.name !== 'paragraph' || !/^```[^\n]*$/.test(startText)) {
       continue
     }
 
-    for (let end = start + 1; end < topLevelNodes.length; end += 1) {
-      const endText = getNodeTextWithBreaks(topLevelNodes[end].node).trim()
+    for (/* 结束 */ let end = start + 1; end < topLevelNodes.length; end += 1) {
+      const endText = getNodeTextWithBreaks(topLevelNodes[end].node).trim() // 结束文本
 
       if (topLevelNodes[end].node.type.name !== 'paragraph' || endText !== '```') continue
 
+      /** 代码 */
       const code = topLevelNodes
         .slice(start + 1, end)
         .map(item => getNodeTextWithBreaks(item.node))
@@ -180,19 +202,36 @@ const convertFencedCodeBlock = (editor: Editor) => {
   return false
 }
 
+/** 聊天输入组件接收的属性 */
 type ChatInputProps = {
+  /** 会话编号 */
   sessionId?: number
+  /** 展示变体 */
   variant?: 'default' | 'quick'
 }
 
+/** 选择初始模型编号，接收模型服务商模型列表，返回处理结果，无法取得时为空 */
+export function pickInitialModelId(providerModels: ProviderModel[]): number | null {
+  const enabledProviders = providerModels.filter(pm => pm.provider.enabled) // 启用状态服务商列表
+  /** 默认模型服务商 */
+  const defaultProvider = enabledProviders.find(pm => pm.provider.is_default) ?? enabledProviders[0]
+  /** 默认模型 */
+  const defaultModel = defaultProvider?.models.find(m => m.is_default && m.enable)
+    ?? defaultProvider?.models.find(m => m.enable)
+  return defaultModel?.id ?? null
+}
+
+/** 快捷no拖动样式 */
 const quickNoDragStyle = {
   '--wails-draggable': 'no-drag',
   WebkitAppRegion: 'no-drag',
 } as CSSProperties & Record<'--wails-draggable', string>
 
+/** 渲染富文本输入区、模型和工具选择器，处理附件、斜杠指令及发送动作，接收会话编号、展示变体，返回组件内容 */
 export function ChatInput({ sessionId, variant = 'default' }: ChatInputProps) {
-  const { t } = useTranslation()
-  const isQuick = variant === 'quick'
+  const { t } = useTranslation() // 获取当前语言的翻译方法
+  const isQuick = variant === 'quick' // 是否快捷
+  /** 从状态仓库读取当前会话编号、是否流式输出、创建会话、发送消息、停止生成、集合当前会话 */
   const {
     currentConversationId,
     isStreaming,
@@ -201,10 +240,12 @@ export function ChatInput({ sessionId, variant = 'default' }: ChatInputProps) {
     stopGeneration,
     setCurrentConversation,
   } = useChatStore(useShallow((state) => {
-    const resolvedSessionId = sessionId ?? state.currentConversationId
+    const resolvedSessionId = sessionId ?? state.currentConversationId // 已处理会话编号
+    /** 当前会话 */
     const currentConversation = resolvedSessionId
       ? state.conversations.find((conversation) => conversation.id === resolvedSessionId)
       : undefined
+    /** 会话状态 */
     const sessionStatus = resolvedSessionId
       ? (state.sessionStatuses[resolvedSessionId] ?? currentConversation?.status)
       : undefined
@@ -218,21 +259,22 @@ export function ChatInput({ sessionId, variant = 'default' }: ChatInputProps) {
       setCurrentConversation: state.setCurrentConversation,
     }
   }))
-  const [tools, setTools] = useState<ChatToolOption[]>([])
-  const [providerModels, setProviderModels] = useState<ProviderModel[]>([])
-  const [selectedModelId, setSelectedModelId] = useState<number | null>(null)
-  const [toolsOpen, setToolsOpen] = useState(false)
-  const [modelOpen, setModelOpen] = useState(false)
-  const [modelQuery, setModelQuery] = useState('')
-  const [isEmpty, setIsEmpty] = useState(true)
-  const [attachments, setAttachments] = useState<Attachment[]>([])
-  const attachmentsRef = useRef<Attachment[]>([])
+  const [tools, setTools] = useState<ChatToolOption[]>([]) // 工具列表及其更新方法
+  const [providerModels, setProviderModels] = useState<ProviderModel[]>([]) // 模型服务商模型列表及其更新方法
+  const [selectedModelId, setSelectedModelId] = useState<number | null>(null) // 选中项模型编号及其更新方法
+  const [toolsOpen, setToolsOpen] = useState(false) // 工具列表展开及其更新方法
+  const [modelOpen, setModelOpen] = useState(false) // 模型展开及其更新方法
+  const [modelQuery, setModelQuery] = useState('') // 模型搜索词及其更新方法
+  const [isEmpty, setIsEmpty] = useState(true) // 是否空及其更新方法
+  const [attachments, setAttachments] = useState<Attachment[]>([]) // 附件列表及其更新方法
+  const attachmentsRef = useRef<Attachment[]>([]) // 附件列表引用，供后续读取当前值
   attachmentsRef.current = attachments
-  const [isDraggingOver, setIsDraggingOver] = useState(false)
-  const targetSessionId = sessionId ?? currentConversationId
+  const [isDraggingOver, setIsDraggingOver] = useState(false) // 是否正在拖动经过及其更新方法
+  const targetSessionId = sessionId ?? currentConversationId // 目标会话编号
 
-  const enabledToolsCount = tools.filter(x => x.enabled).length
+  const enabledToolsCount = tools.filter(x => x.enabled).length // 启用状态工具列表数量
 
+  /** 获取工具分类标签，接收分类，返回对应的处理结果 */
   const getToolCategoryLabel = (category: string) => {
     if (category === 'builtin') return t('input.toolCategories.builtin')
     if (category === 'mcp') return t('input.toolCategories.mcp')
@@ -240,25 +282,28 @@ export function ChatInput({ sessionId, variant = 'default' }: ChatInputProps) {
     return t('input.toolCategories.other')
   }
 
+  /** 获取工具显示名称，接收工具，返回对应的处理结果 */
   const getToolDisplayName = (tool: ChatToolOption) => {
-    const key = TOOL_I18N_KEYS[tool.id]
+    const key = TOOL_I18N_KEYS[tool.id] // 键
     return key ? t(key.name) : tool.name
   }
 
+  /** 获取工具显示描述，接收工具，返回对应的处理结果 */
   const getToolDisplayDescription = (tool: ChatToolOption) => {
-    const key = TOOL_I18N_KEYS[tool.id]
+    const key = TOOL_I18N_KEYS[tool.id] // 键
     return key ? t(key.description) : tool.description
   }
 
+  /** 退出列表终点段落处理，返回对应的处理结果 */
   const exitListToParagraph = () => {
     if (!editor) return false
 
-    const { state, view } = editor
-    const { $from } = state.selection
-    let listDepth: number | null = null
+    const { state, view } = editor // 取出当前状态、视图
+    const { $from } = state.selection // 起点
+    let listDepth: number | null = null // 列表深度
 
-    for (let depth = $from.depth; depth > 0; depth -= 1) {
-      const nodeName = $from.node(depth).type.name
+    for (/* 深度 */ let depth = $from.depth; depth > 0; depth -= 1) {
+      const nodeName = $from.node(depth).type.name // 节点名称
 
       if (nodeName === 'bulletList' || nodeName === 'orderedList') {
         listDepth = depth
@@ -268,9 +313,9 @@ export function ChatInput({ sessionId, variant = 'default' }: ChatInputProps) {
 
     if (listDepth === null) return false
 
-    const insertPos = $from.after(listDepth)
-    const paragraph = state.schema.nodes.paragraph.create()
-    const tr = state.tr.insert(insertPos, paragraph)
+    const insertPos = $from.after(listDepth) // 插入位置
+    const paragraph = state.schema.nodes.paragraph.create() // 段落
+    const tr = state.tr.insert(insertPos, paragraph) // 当前处理位置的值
 
     tr.setSelection(TextSelection.near(tr.doc.resolve(insertPos + 1)))
     view.dispatch(tr.scrollIntoView())
@@ -279,6 +324,7 @@ export function ChatInput({ sessionId, variant = 'default' }: ChatInputProps) {
     return true
   }
 
+  /** 编辑器 */
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -298,8 +344,9 @@ export function ChatInput({ sessionId, variant = 'default' }: ChatInputProps) {
     content: '',
     editorProps: {
       attributes: {
-        class: 'tiptap-input focus:outline-none px-4 pt-3 pb-2 min-h-[5.25rem] max-h-48 overflow-y-auto text-foreground',
+        class: 'tiptap-input focus:outline-hidden px-4 pt-3 pb-2 min-h-[5.25rem] max-h-48 overflow-y-auto text-foreground',
       },
+      /** 处理键向下，接收视图、触发本次回调的事件，返回对应的处理结果 */
       handleKeyDown: (_view, event) => {
         if (event.key === 'Enter' && event.shiftKey) {
           if (editor?.isActive('heading')) {
@@ -322,6 +369,7 @@ export function ChatInput({ sessionId, variant = 'default' }: ChatInputProps) {
         return false
       },
     },
+    /** 处理更新事件，接收编辑器，无返回值 */
     onUpdate: ({ editor }) => {
       if (convertFencedCodeBlock(editor)) {
         setIsEmpty(false)
@@ -332,34 +380,37 @@ export function ChatInput({ sessionId, variant = 'default' }: ChatInputProps) {
     },
   })
 
+  /** 初次加载模型时选中默认项，重新获得焦点时只更新列表 */
   useEffect(() => {
+    /** 加载处理，接收是否初始，完成后结束异步任务 */
     const load = async (isInitial: boolean) => {
       try {
-        const result = await ProviderBinding.ProviderAndModelList({})
+        const result = await ProviderBinding.ProviderAndModelList({}) // 保存本次调用的结果
         if (!result?.provider_models) return
         setProviderModels(result.provider_models)
         if (isInitial) {
-          const defaultPm = result.provider_models.find(pm => pm.provider.is_default && pm.provider.enabled)
-          const defaultModel = defaultPm?.models.find(m => m.is_default && m.enable)
-          if (defaultModel) setSelectedModelId(defaultModel.id)
+          setSelectedModelId(pickInitialModelId(result.provider_models))
         }
       } catch {
-        // ignore
+        // 忽略本次失败并保留当前界面状态
       }
     }
     void load(true)
+    /** 处理焦点，返回表达式结果 */
     const handleFocus = () => void load(false)
     window.addEventListener('focus', handleFocus)
     return () => window.removeEventListener('focus', handleFocus)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  /** 刷新可选工具并恢复用户此前启用的工具集合 */
   useEffect(() => {
+    /** 加载工具列表，完成后结束异步任务 */
     const loadTools = async () => {
       try {
-        const result = await PluginBinding.ListAvailableTools({})
+        const result = await PluginBinding.ListAvailableTools({}) // 保存本次调用的结果
         if (!result?.tools) return
-        const selectableTools = result.tools.filter(tool => tool.category !== 'builtin')
-        const persistedIds = useAppStore.getState().enabledToolIds
+        const selectableTools = result.tools.filter(tool => tool.category !== 'builtin') // 可选择工具列表
+        const persistedIds = useAppStore.getState().enabledToolIds // 持久化编号列表
         setTools(selectableTools.map((tool) => ({
           id: tool.id,
           name: tool.name,
@@ -368,16 +419,18 @@ export function ChatInput({ sessionId, variant = 'default' }: ChatInputProps) {
           enabled: persistedIds.includes(tool.id),
         })))
       } catch {
-        // ignore
+        // 忽略本次失败并保留当前界面状态
       }
     }
 
     void loadTools()
+    /** 处理焦点，无返回值 */
     const handleFocus = () => { void loadTools() }
     window.addEventListener('focus', handleFocus)
     return () => window.removeEventListener('focus', handleFocus)
   }, [])
 
+  /** 切换会话时清空编辑器和附件，避免发送到其他会话 */
   useEffect(() => {
     if (!editor) return
     editor.commands.clearContent()
@@ -385,21 +438,30 @@ export function ChatInput({ sessionId, variant = 'default' }: ChatInputProps) {
     setAttachments([])
   }, [targetSessionId, editor])
 
+  /** 监听原生拖放事件，独立管理拖放外观和可接收的附件路径 */
   useEffect(() => {
+    /** 保存事件解绑方法 */
     const offEnter = Events.On(Events.Types.Mac.WindowFileDraggingEntered, () => {
       setIsDraggingOver(true)
     })
+    /** 保存事件解绑方法 */
     const offExit = Events.On(Events.Types.Mac.WindowFileDraggingExited, () => {
       setIsDraggingOver(false)
     })
+    /** 保存事件解绑方法 */
     const offPerformed = Events.On(Events.Types.Mac.WindowFileDraggingPerformed, () => {
       setIsDraggingOver(false)
     })
+    /** 订阅 files-dropped 并保存解绑方法 */
     const offDrop = Events.On('files-dropped', (event) => {
-      const payload = event.data as { files?: string[] } | null
-      const files = payload?.files ?? []
-      const remaining = ATTACHMENT_MAX_COUNT - attachmentsRef.current.length
-      const newAtts = files.slice(0, remaining).map(path => inferAttachmentMeta(path))
+      const payload: unknown = event.data // 待校验的原生拖放事件数据
+      if (!isObjectRecord(payload) || !Array.isArray(payload.files)) return
+
+      /** 仅接收有效的文件路径字符串 */
+      const files = payload.files.filter((file: unknown): file is string => typeof file === 'string')
+      /** 当前会话仍可接收的附件数量 */
+      const remaining = Math.max(ATTACHMENT_MAX_COUNT - attachmentsRef.current.length, 0)
+      const newAtts = files.slice(0, remaining).map(path => inferAttachmentMeta(path)) // 按剩余名额转换成附件数据
       if (newAtts.length > 0) {
         setAttachments(prev => [...prev, ...newAtts])
       }
@@ -413,30 +475,37 @@ export function ChatInput({ sessionId, variant = 'default' }: ChatInputProps) {
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  /** 处理添加附件，完成后结束异步任务 */
   const handleAttach = async () => {
     if (attachments.length >= ATTACHMENT_MAX_COUNT) return
-    const result = await FileBinding.SelectFile(new SelectFileInput())
+    const result = await FileBinding.SelectFile(new SelectFileInput()) // 保存本次调用的结果
     if (!result?.file_path) return
     setAttachments(prev => [...prev, inferAttachmentMeta(result.file_path)])
   }
 
+  /** 处理发送，完成后结束异步任务 */
   const handleSend = async () => {
     if (!editor || isStreaming) return
-    const content = ((editor.storage as { markdown?: { getMarkdown?: () => string } }).markdown?.getMarkdown?.() ?? '').trim()
+    /** 内容 */
+    const content = ((editor.storage as { /* Markdown 扩展的序列化接口 */ markdown?: {
+      /* 获取编辑器内容对应的 Markdown 文本 */
+      getMarkdown?: () => string
+    } }).markdown?.getMarkdown?.() ?? '').trim()
     if (!content && attachments.length === 0) return
 
+    /** 选中项模型服务商 */
     const selectedProvider = providerModels.find(pm => pm.models.some(m => m.id === selectedModelId))
-    const selectedModel = selectedProvider?.models.find(m => m.id === selectedModelId)
+    const selectedModel = selectedProvider?.models.find(m => m.id === selectedModelId) // 选中项模型
     if (!selectedProvider || !selectedModel) return
 
-    let nextSessionId = targetSessionId
+    let nextSessionId = targetSessionId // 下一项会话编号
     if (!nextSessionId) {
       nextSessionId = await createConversation()
       if (!nextSessionId) return
       setCurrentConversation(nextSessionId)
     }
 
-    const outboundAttachments = attachments
+    const outboundAttachments = attachments // 待发送附件列表
     editor.commands.clearContent()
     setIsEmpty(true)
     setAttachments([])
@@ -453,38 +522,44 @@ export function ChatInput({ sessionId, variant = 'default' }: ChatInputProps) {
     })
   }
 
+  /** 处理停止，无返回值 */
   const handleStop = () => {
     if (targetSessionId) {
       void stopGeneration(targetSessionId)
     }
   }
 
+  /** 处理粘贴，接收触发本次回调的事件，完成后结束异步任务 */
   const handlePaste = async (event: React.ClipboardEvent<HTMLDivElement>) => {
-    const items = Array.from(event.clipboardData.items)
-    const fileItems = items.filter(item => item.kind === 'file')
+    const items = Array.from(event.clipboardData.items) // 条目列表
+    const fileItems = items.filter(item => item.kind === 'file') // 文件条目列表
     if (fileItems.length === 0) return
 
     event.preventDefault()
 
-    const remaining = ATTACHMENT_MAX_COUNT - attachmentsRef.current.length
+    const remaining = ATTACHMENT_MAX_COUNT - attachmentsRef.current.length // 剩余
+    /** 终点进程 */
     const toProcess = fileItems.slice(0, remaining).map(item => {
-      const blob = item.getAsFile()
+      const blob = item.getAsFile() // 二进制对象
       if (!blob) return null
       if (blob.size > ATTACHMENT_MAX_BYTES) return null
-      const name = blob.name || `pasted-${Date.now()}.${item.type.split('/')[1] ?? 'bin'}`
+      const name = blob.name || `pasted-${Date.now()}.${item.type.split('/')[1] ?? 'bin'}` // 名称
       return { blob, name, mime: item.type || 'application/octet-stream' }
     }).filter((x): x is NonNullable<typeof x> => x !== null)
 
+    /** 保存结果列表 */
     const results = await Promise.allSettled(
       toProcess.map(async ({ blob, name, mime }) => {
-        const data = await blobToBase64(blob)
+        const data = await blobToBase64(blob) // 保存数据
+        /** 保存本次调用的结果 */
         const result = await FileBinding.SaveTempFile(new SaveTempFileInput({ name, data, mime }))
         if (!result?.file_path) throw new Error('no path')
-        const att = inferAttachmentMeta(result.file_path)
+        const att = inferAttachmentMeta(result.file_path) // 当前附件
         return { ...att, name }
       })
     )
 
+    /** 新附件列表 */
     const newAtts = results
       .filter((r): r is PromiseFulfilledResult<Attachment> => r.status === 'fulfilled')
       .map(r => r.value)
@@ -494,37 +569,44 @@ export function ChatInput({ sessionId, variant = 'default' }: ChatInputProps) {
     }
   }
 
+  /** 处理拖动经过，接收触发本次回调的事件，无返回值 */
   const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
     if (!event.dataTransfer.types.includes('Files')) return
     event.preventDefault()
     setIsDraggingOver(true)
   }
 
+  /** 处理拖动离开，接收触发本次回调的事件，无返回值 */
   const handleDragLeave = (event: React.DragEvent<HTMLDivElement>) => {
     if ((event.currentTarget as HTMLDivElement).contains(event.relatedTarget as Node)) return
     setIsDraggingOver(false)
   }
 
+  /** 处理拖放，接收触发本次回调的事件，完成后结束异步任务 */
   const handleDrop = async (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault()
     setIsDraggingOver(false)
 
-    const dropped = Array.from(event.dataTransfer.files)
-    const remaining = ATTACHMENT_MAX_COUNT - attachmentsRef.current.length
+    const dropped = Array.from(event.dataTransfer.files) // 已拖放
+    const remaining = ATTACHMENT_MAX_COUNT - attachmentsRef.current.length // 剩余
+    /** 终点进程 */
     const toProcess = dropped.slice(0, remaining).filter(file => file.size <= ATTACHMENT_MAX_BYTES)
 
+    /** 保存结果列表 */
     const results = await Promise.allSettled(
       toProcess.map(async (file) => {
-        const data = await blobToBase64(file)
+        const data = await blobToBase64(file) // 保存数据
+        /** 保存本次调用的结果 */
         const result = await FileBinding.SaveTempFile(
           new SaveTempFileInput({ name: file.name, data, mime: file.type || 'application/octet-stream' })
         )
         if (!result?.file_path) throw new Error('no path')
-        const att = inferAttachmentMeta(result.file_path)
+        const att = inferAttachmentMeta(result.file_path) // 当前附件
         return { ...att, name: file.name }
       })
     )
 
+    /** 新附件列表 */
     const newAtts = results
       .filter((r): r is PromiseFulfilledResult<Attachment> => r.status === 'fulfilled')
       .map(r => r.value)
@@ -534,26 +616,30 @@ export function ChatInput({ sessionId, variant = 'default' }: ChatInputProps) {
     }
   }
 
+  /** 关闭模型选择器，无返回值 */
   const closeModelSelector = () => {
     setModelOpen(false)
     setModelQuery('')
   }
 
+  /** 切换工具，接收当前条目的唯一编号，无返回值 */
   const toggleTool = (id: string) => {
     setTools((prev) => {
-      const next = prev.map(tl => tl.id === id ? { ...tl, enabled: !tl.enabled } : tl)
-      const enabledIds = next.filter(t => t.enabled).map(t => t.id)
+      const next = prev.map(tl => tl.id === id ? { ...tl, enabled: !tl.enabled } : tl) // 更新后的值
+      const enabledIds = next.filter(t => t.enabled).map(t => t.id) // 启用状态编号列表
       useAppStore.getState().setEnabledToolIds(enabledIds)
       return next
     })
   }
 
+  /** 已分组工具列表 */
   const groupedTools = tools.reduce<Record<string, ChatToolOption[]>>((acc, tool) => {
-    const key = tool.category || 'other'
+    const key = tool.category || 'other' // 键
     acc[key] = acc[key] ? [...acc[key], tool] : [tool]
     return acc
   }, {})
 
+  /** 启用状态服务商列表 */
   const enabledProviders = providerModels
     .filter(pm => pm.provider.enabled)
     .map(pm => ({
@@ -565,12 +651,15 @@ export function ChatInput({ sessionId, variant = 'default' }: ChatInputProps) {
     }))
     .filter(pm => pm.models.length > 0)
 
+  /** 选中项模型对象 */
   const selectedModelObj = enabledProviders.flatMap(p => p.models).find(m => m.id === selectedModelId)
 
-  const normalizedModelQuery = modelQuery.trim().toLowerCase()
+  const normalizedModelQuery = modelQuery.trim().toLowerCase() // 规范化值模型搜索词
+  /** 筛选结果服务商列表 */
   const filteredProviders = enabledProviders
     .map(provider => {
-      const providerMatches = provider.name.toLowerCase().includes(normalizedModelQuery)
+      const providerMatches = provider.name.toLowerCase().includes(normalizedModelQuery) // 模型服务商匹配项
+      /** 模型列表 */
       const models = normalizedModelQuery && !providerMatches
         ? provider.models.filter(model => model.name.toLowerCase().includes(normalizedModelQuery))
         : provider.models
@@ -590,7 +679,7 @@ export function ChatInput({ sessionId, variant = 'default' }: ChatInputProps) {
     >
       <div className={cn('mx-auto w-full', isQuick ? 'max-w-none px-0' : 'max-w-[calc(66rem)] px-4')}>
         <div className={cn(
-          'border border-border bg-background shadow-sm focus-within:border-primary/40 transition-colors relative',
+          'border border-border bg-background shadow-xs focus-within:border-primary/40 transition-colors relative',
           isQuick ? 'rounded-lg' : 'rounded-2xl',
           isDraggingOver && "border-primary"
         )}>
@@ -602,7 +691,7 @@ export function ChatInput({ sessionId, variant = 'default' }: ChatInputProps) {
               <span className="text-sm text-primary font-medium">{t('input.dropFiles')}</span>
             </div>
           )}
-        {/* Editor */}
+        {/* 富文本编辑区域 */}
         <AttachmentChips
           items={attachments}
           variant="input"
@@ -610,9 +699,9 @@ export function ChatInput({ sessionId, variant = 'default' }: ChatInputProps) {
         />
         <EditorContent editor={editor} />
 
-        {/* Toolbar */}
+        {/* 聊天输入工具栏 */}
         <div className="flex items-center gap-1 px-2 pb-2">
-          {/* Add file */}
+          {/* 添加附件 */}
           <button
             aria-label={t('input.attach')}
             onClick={handleAttach}
@@ -622,7 +711,7 @@ export function ChatInput({ sessionId, variant = 'default' }: ChatInputProps) {
             <Paperclip size={16} />
           </button>
 
-          {/* Tools */}
+          {/* 工具选择和启用状态 */}
           <div className="relative">
             <button
               onClick={() => { setToolsOpen(v => !v); setModelOpen(false) }}
@@ -688,7 +777,7 @@ export function ChatInput({ sessionId, variant = 'default' }: ChatInputProps) {
             )}
           </div>
 
-          {/* Model selector */}
+          {/* 模型选择器 */}
           <div className="relative">
             <button
               onClick={() => {
@@ -745,7 +834,7 @@ export function ChatInput({ sessionId, variant = 'default' }: ChatInputProps) {
                         value={modelQuery}
                         onChange={e => setModelQuery(e.target.value)}
                         placeholder={t('input.searchModel')}
-                        className="h-8 min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                        className="h-8 min-w-0 flex-1 bg-transparent text-sm outline-hidden placeholder:text-muted-foreground"
                       />
                     </div>
                   </div>
@@ -756,7 +845,7 @@ export function ChatInput({ sessionId, variant = 'default' }: ChatInputProps) {
 
           <div className="flex-1" />
 
-          {/* Send / Stop button */}
+          {/* 按生成状态显示发送或停止按钮 */}
           <button
             aria-label={isStreaming ? t('input.stop') : t('input.send')}
             onClick={() => {

@@ -1,11 +1,13 @@
 package skills_dto
 
-// GetSkillInput requests a single skill by name.
+// GetSkillInput 按名称指定要查询的技能
 type GetSkillInput struct {
+	// 名称
 	Name string `json:"name"`
 }
 
-// GetSkillOutput returns the requested skill.
+// GetSkillOutput 返回查询到的技能
 type GetSkillOutput struct {
+	// 技能
 	Skill SkillItem `json:"skill"`
 }

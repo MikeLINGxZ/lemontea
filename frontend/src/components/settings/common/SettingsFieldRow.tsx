@@ -1,8 +1,12 @@
 import type { ReactNode } from 'react'
 
+/** 渲染设置字段 行界面，接收组件输入属性，返回组件内容 */
 export function SettingsFieldRow(props: {
+  /** 标签 */
   label: string
+  /** 描述 */
   description?: string
+  /** 要渲染的子内容 */
   children: ReactNode
 }) {
   return (

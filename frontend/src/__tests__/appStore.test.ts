@@ -10,6 +10,10 @@ beforeEach(() => {
 })
 
 describe('appStore', () => {
+  it('uses medium font size by default', () => {
+    expect(useAppStore.getInitialState().fontSize).toBe('md')
+  })
+
   it('setTheme updates theme', () => {
     useAppStore.getState().setTheme('dark')
     expect(useAppStore.getState().theme).toBe('dark')

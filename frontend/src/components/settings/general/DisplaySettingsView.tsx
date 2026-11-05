@@ -8,16 +8,23 @@ import { SettingsPanelHeader } from '@/components/settings/common/SettingsPanelH
 import { cn } from '@/lib/utils'
 import type { FontSize } from '@/types'
 
+/** 渲染显示设置视图界面，接收组件输入属性，返回组件内容 */
 export function DisplaySettingsView(props: {
+  /** 值 */
   value: FontSize
+  /** 草稿 */
   draft: FontSize
+  /** 处理草稿变更事件，接收更新后的值，无返回值 */
   onDraftChange: (next: FontSize) => void
+  /** 处理应用事件，无返回值 */
   onApply: () => void
+  /** 处理重置事件，无返回值 */
   onReset: () => void
 }) {
-  const { t } = useTranslation()
-  const [previewFontSize, setPreviewFontSize] = useState<FontSize>(props.draft)
-  const options: { value: FontSize; label: string; preview: string }[] = [
+  const { t } = useTranslation() // 获取当前语言的翻译方法
+  const [previewFontSize, setPreviewFontSize] = useState<FontSize>(props.draft) // 预览字体尺寸及其更新方法
+  /** 可用选项列表 */
+  const options: { /* 值 */ value: FontSize; /* 标签 */ label: string; /* 预览 */ preview: string }[] = [
     { value: 'xs', label: t('settingsPage.fontSizes.xs'), preview: t('settingsPage.fontPreview.xs') },
     { value: 'sm', label: t('settingsPage.fontSizes.sm'), preview: t('settingsPage.fontPreview.sm') },
     { value: 'md', label: t('settingsPage.fontSizes.md'), preview: t('settingsPage.fontPreview.md') },
@@ -25,11 +32,12 @@ export function DisplaySettingsView(props: {
     { value: 'xl', label: t('settingsPage.fontSizes.xl'), preview: t('settingsPage.fontPreview.xl') },
   ]
 
+  /** 同步外部状态并管理本次副作用的生命周期 */
   useEffect(() => {
     setPreviewFontSize(props.draft)
   }, [props.draft])
 
-  const dirty = props.value !== previewFontSize
+  const dirty = props.value !== previewFontSize // 有未保存修改
 
   return (
     <SettingsDirtyGuard dirty={dirty}>

@@ -2,12 +2,14 @@ package plugin_dto
 
 import "gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/models/data_models"
 
-// GenerateCliManifestInput identifies which CLI plugin to regenerate the manifest for.
+// GenerateCliManifestInput 指定要重新生成清单的 CLI 插件
 type GenerateCliManifestInput struct {
+	// 唯一标识
 	ID string `json:"id"`
 }
 
-// GenerateCliManifestOutput returns the refreshed extension after a successful generation.
+// GenerateCliManifestOutput 返回清单生成成功后的扩展条目
 type GenerateCliManifestOutput struct {
+	// 扩展
 	Extension data_models.ExtensionItem `json:"extension"`
 }

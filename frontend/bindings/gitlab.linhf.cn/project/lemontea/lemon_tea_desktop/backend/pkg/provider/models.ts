@@ -5,15 +5,37 @@
 // @ts-ignore: Unused imports
 import { Create as $Create } from "@wailsio/runtime";
 
+/**
+ * 定义类型的类型
+ */
 export enum Type {
     /**
      * The Go zero value for the underlying type of the enum.
      */
     $zero = "",
 
+    /**
+     * Deepseek 对应的数据
+     */
     Deepseek = "deepseek",
+
+    /**
+     * 阿里云
+     */
     Aliyun = "aliyun",
+
+    /**
+     * Openrouter 对应的数据
+     */
     Openrouter = "openrouter",
+
+    /**
+     * Ollama 对应的数据
+     */
     Ollama = "ollama",
+
+    /**
+     * 展开AICompatibility
+     */
     OpenAiCompatibility = "openai_compatibility",
 };

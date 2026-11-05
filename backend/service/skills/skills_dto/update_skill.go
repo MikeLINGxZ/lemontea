@@ -1,14 +1,19 @@
 package skills_dto
 
-// UpdateSkillInput provides the fields needed to update an existing user skill.
+// UpdateSkillInput 包含更新已有用户技能所需的字段
 type UpdateSkillInput struct {
-	Name        string `json:"name"`
-	NewName     string `json:"new_name,omitempty"`
+	// 名称
+	Name string `json:"name"`
+	// 新名称
+	NewName string `json:"new_name,omitempty"`
+	// 描述
 	Description string `json:"description"`
-	Body        string `json:"body"`
+	// 正文
+	Body string `json:"body"`
 }
 
-// UpdateSkillOutput returns the updated skill.
+// UpdateSkillOutput 返回更新后的技能
 type UpdateSkillOutput struct {
+	// 技能
 	Skill SkillItem `json:"skill"`
 }

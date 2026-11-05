@@ -1,9 +1,10 @@
 package notification_dto
 
-// ResolveNotificationInput identifies the notification to resolve.
+// ResolveNotificationInput 指定要处理的通知
 type ResolveNotificationInput struct {
+	// 唯一标识
 	ID uint `json:"id"`
 }
 
-// ResolveNotificationOutput is returned after a resolve or reject action completes.
+// ResolveNotificationOutput 表示通知的接受或拒绝操作已完成
 type ResolveNotificationOutput struct{}

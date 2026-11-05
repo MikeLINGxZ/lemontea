@@ -12,6 +12,9 @@ import * as view_model$0 from "../../../models/view_model/models.js";
 // @ts-ignore: Unused imports
 import * as provider$0 from "../../../pkg/provider/models.js";
 
+/**
+ * 封装创建模型提供商所需的请求参数
+ */
 export class CreateProviderInput {
     /**
      * 供应商名称
@@ -88,6 +91,9 @@ export class CreateProviderInput {
     }
 }
 
+/**
+ * 封装创建模型提供商返回给调用方的数据
+ */
 export class CreateProviderOutput {
 
     /** Creates a new CreateProviderOutput instance. */
@@ -105,7 +111,13 @@ export class CreateProviderOutput {
     }
 }
 
+/**
+ * 封装删除模型所需的请求参数
+ */
 export class DeleteModelInput {
+    /**
+     * 模型编号
+     */
     "model_id": number;
 
     /** Creates a new DeleteModelInput instance. */
@@ -126,6 +138,9 @@ export class DeleteModelInput {
     }
 }
 
+/**
+ * 封装删除模型返回给调用方的数据
+ */
 export class DeleteModelOutput {
 
     /** Creates a new DeleteModelOutput instance. */
@@ -143,7 +158,13 @@ export class DeleteModelOutput {
     }
 }
 
+/**
+ * 封装删除提供商所需的请求参数
+ */
 export class DeleteProviderInput {
+    /**
+     * 提供商编号
+     */
     "provider_id": number;
 
     /** Creates a new DeleteProviderInput instance. */
@@ -164,6 +185,9 @@ export class DeleteProviderInput {
     }
 }
 
+/**
+ * 封装删除提供商返回给调用方的数据
+ */
 export class DeleteProviderOutput {
 
     /** Creates a new DeleteProviderOutput instance. */
@@ -182,7 +206,7 @@ export class DeleteProviderOutput {
 }
 
 /**
- * EditProviderInput carries all mutable fields for an existing provider.
+ * EditProviderInput 包含已有提供商的全部可编辑字段
  */
 export class EditProviderInput {
     /**
@@ -260,6 +284,9 @@ export class EditProviderInput {
     }
 }
 
+/**
+ * 封装处理编辑提供商返回给调用方的数据
+ */
 export class EditProviderOutput {
 
     /** Creates a new EditProviderOutput instance. */
@@ -277,6 +304,9 @@ export class EditProviderOutput {
     }
 }
 
+/**
+ * 封装列出提供商列表所需的请求参数
+ */
 export class ListProvidersInput {
 
     /** Creates a new ListProvidersInput instance. */
@@ -294,7 +324,13 @@ export class ListProvidersInput {
     }
 }
 
+/**
+ * 封装列出提供商列表返回给调用方的数据
+ */
 export class ListProvidersOutput {
+    /**
+     * 提供商列表
+     */
     "providers": ProviderWrapper[];
 
     /** Creates a new ListProvidersOutput instance. */
@@ -319,6 +355,9 @@ export class ListProvidersOutput {
     }
 }
 
+/**
+ * 封装处理提供商并模型列表所需的请求参数
+ */
 export class ProviderAndModelListInput {
 
     /** Creates a new ProviderAndModelListInput instance. */
@@ -336,7 +375,13 @@ export class ProviderAndModelListInput {
     }
 }
 
+/**
+ * 封装处理提供商并模型列表返回给调用方的数据
+ */
 export class ProviderAndModelListOutput {
+    /**
+     * 提供商模型列表
+     */
     "provider_models": view_model$0.ProviderModel[];
 
     /** Creates a new ProviderAndModelListOutput instance. */
@@ -361,8 +406,18 @@ export class ProviderAndModelListOutput {
     }
 }
 
+/**
+ * 描述提供商包装结构使用的数据结构
+ */
 export class ProviderWrapper {
+    /**
+     * 提供商
+     */
     "providers": view_model$0.Provider;
+
+    /**
+     * 模型列表
+     */
     "models": view_model$0.Model[];
 
     /** Creates a new ProviderWrapper instance. */
@@ -394,6 +449,9 @@ export class ProviderWrapper {
     }
 }
 
+/**
+ * 封装处理请求提供商模型列表所需的请求参数
+ */
 export class RequestProviderModelListInput {
     /**
      * 供应商基础URL
@@ -426,7 +484,13 @@ export class RequestProviderModelListInput {
     }
 }
 
+/**
+ * 封装处理请求提供商模型列表返回给调用方的数据
+ */
 export class RequestProviderModelListOutput {
+    /**
+     * 模型列表
+     */
     "models": view_model$0.Model[];
 
     /** Creates a new RequestProviderModelListOutput instance. */
@@ -451,6 +515,9 @@ export class RequestProviderModelListOutput {
     }
 }
 
+/**
+ * 封装设置默认所需的请求参数
+ */
 export class SetDefaultInput {
     /**
      * 供应商ID
@@ -483,6 +550,9 @@ export class SetDefaultInput {
     }
 }
 
+/**
+ * 封装设置默认返回给调用方的数据
+ */
 export class SetDefaultOutput {
 
     /** Creates a new SetDefaultOutput instance. */

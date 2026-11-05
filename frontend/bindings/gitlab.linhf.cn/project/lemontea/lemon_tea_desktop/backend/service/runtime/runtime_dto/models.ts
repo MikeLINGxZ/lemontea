@@ -5,6 +5,9 @@
 // @ts-ignore: Unused imports
 import { Create as $Create } from "@wailsio/runtime";
 
+/**
+ * 封装取消下载所需的请求参数
+ */
 export class CancelDownloadInput {
 
     /** Creates a new CancelDownloadInput instance. */
@@ -22,6 +25,9 @@ export class CancelDownloadInput {
     }
 }
 
+/**
+ * 封装取消下载返回给调用方的数据
+ */
 export class CancelDownloadOutput {
 
     /** Creates a new CancelDownloadOutput instance. */
@@ -39,6 +45,9 @@ export class CancelDownloadOutput {
     }
 }
 
+/**
+ * 封装处理下载节点所需的请求参数
+ */
 export class DownloadNodeInput {
 
     /** Creates a new DownloadNodeInput instance. */
@@ -56,6 +65,9 @@ export class DownloadNodeInput {
     }
 }
 
+/**
+ * 封装处理下载节点返回给调用方的数据
+ */
 export class DownloadNodeOutput {
 
     /** Creates a new DownloadNodeOutput instance. */
@@ -73,6 +85,9 @@ export class DownloadNodeOutput {
     }
 }
 
+/**
+ * 封装获取当前状态所需的请求参数
+ */
 export class GetStatusInput {
 
     /** Creates a new GetStatusInput instance. */
@@ -90,12 +105,38 @@ export class GetStatusInput {
     }
 }
 
+/**
+ * 封装获取当前状态返回给调用方的数据
+ */
 export class GetStatusOutput {
+    /**
+     * 当前状态
+     */
     "state": string;
+
+    /**
+     * 版本
+     */
     "version": string;
+
+    /**
+     * 安装目录
+     */
     "install_dir": string;
+
+    /**
+     * Node.js 可执行文件路径
+     */
     "node_path": string;
+
+    /**
+     * npm 可执行文件路径
+     */
     "npm_path": string;
+
+    /**
+     * 错误消息
+     */
     "error_msg": string;
 
     /** Creates a new GetStatusOutput instance. */
@@ -131,6 +172,9 @@ export class GetStatusOutput {
     }
 }
 
+/**
+ * 封装标记下载稍后所需的请求参数
+ */
 export class MarkDownloadLaterInput {
 
     /** Creates a new MarkDownloadLaterInput instance. */
@@ -148,6 +192,9 @@ export class MarkDownloadLaterInput {
     }
 }
 
+/**
+ * 封装标记下载稍后返回给调用方的数据
+ */
 export class MarkDownloadLaterOutput {
 
     /** Creates a new MarkDownloadLaterOutput instance. */

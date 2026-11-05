@@ -20,7 +20,7 @@
         <key>CFBundleIconName</key>
             <string>icons</string>
         <key>LSMinimumSystemVersion</key>
-            <string>10.15.0</string>
+            <string>12.0.0</string>
         <key>NSHighResolutionCapable</key>
             <string>true</string>
         <key>NSHumanReadableCopyright</key>

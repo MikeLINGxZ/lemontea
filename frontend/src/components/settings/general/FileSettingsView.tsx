@@ -6,14 +6,20 @@ import { SettingsDirtyGuard } from '@/components/settings/common/SettingsDirtyGu
 import { SettingsFieldRow } from '@/components/settings/common/SettingsFieldRow'
 import { SettingsPanelHeader } from '@/components/settings/common/SettingsPanelHeader'
 
+/** 渲染文件设置视图界面，接收组件输入属性，返回组件内容 */
 export function FileSettingsView(props: {
+  /** 数据目录 */
   dataDir: string
+  /** 当前数据目录 */
   currentDataDir: string
+  /** 有未保存修改 */
   dirty: boolean
+  /** 处理选择文件夹事件，无返回值 */
   onSelectFolder: () => void
+  /** 处理应用事件，无返回值 */
   onApply: () => void
 }) {
-  const { t } = useTranslation()
+  const { t } = useTranslation() // 获取当前语言的翻译方法
 
   return (
     <SettingsDirtyGuard dirty={props.dirty}>

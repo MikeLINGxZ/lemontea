@@ -5,6 +5,9 @@
 // @ts-ignore: Unused imports
 import { Create as $Create } from "@wailsio/runtime";
 
+/**
+ * 封装关闭增加记忆所需的请求参数
+ */
 export class CloseAddMemoryInput {
 
     /** Creates a new CloseAddMemoryInput instance. */
@@ -22,6 +25,9 @@ export class CloseAddMemoryInput {
     }
 }
 
+/**
+ * 封装关闭增加记忆返回给调用方的数据
+ */
 export class CloseAddMemoryOutput {
 
     /** Creates a new CloseAddMemoryOutput instance. */
@@ -39,6 +45,9 @@ export class CloseAddMemoryOutput {
     }
 }
 
+/**
+ * 封装关闭增加提供商所需的请求参数
+ */
 export class CloseAddProviderInput {
 
     /** Creates a new CloseAddProviderInput instance. */
@@ -56,6 +65,9 @@ export class CloseAddProviderInput {
     }
 }
 
+/**
+ * 封装关闭增加提供商返回给调用方的数据
+ */
 export class CloseAddProviderOutput {
 
     /** Creates a new CloseAddProviderOutput instance. */
@@ -73,6 +85,9 @@ export class CloseAddProviderOutput {
     }
 }
 
+/**
+ * 封装关闭增加技能所需的请求参数
+ */
 export class CloseAddSkillInput {
 
     /** Creates a new CloseAddSkillInput instance. */
@@ -90,6 +105,9 @@ export class CloseAddSkillInput {
     }
 }
 
+/**
+ * 封装关闭增加技能返回给调用方的数据
+ */
 export class CloseAddSkillOutput {
 
     /** Creates a new CloseAddSkillOutput instance. */
@@ -108,7 +126,7 @@ export class CloseAddSkillOutput {
 }
 
 /**
- * CloseQuickChatInput carries no fields for closing the quick chat window.
+ * CloseQuickChatInput 是关闭快捷聊天窗口的空请求
  */
 export class CloseQuickChatInput {
 
@@ -128,7 +146,7 @@ export class CloseQuickChatInput {
 }
 
 /**
- * CloseQuickChatOutput carries no fields after closing the quick chat window.
+ * CloseQuickChatOutput 是关闭快捷聊天窗口后的空响应
  */
 export class CloseQuickChatOutput {
 
@@ -147,6 +165,9 @@ export class CloseQuickChatOutput {
     }
 }
 
+/**
+ * 封装打开增加记忆所需的请求参数
+ */
 export class OpenAddMemoryInput {
 
     /** Creates a new OpenAddMemoryInput instance. */
@@ -164,6 +185,9 @@ export class OpenAddMemoryInput {
     }
 }
 
+/**
+ * 封装打开增加记忆返回给调用方的数据
+ */
 export class OpenAddMemoryOutput {
 
     /** Creates a new OpenAddMemoryOutput instance. */
@@ -181,6 +205,9 @@ export class OpenAddMemoryOutput {
     }
 }
 
+/**
+ * 封装打开增加提供商所需的请求参数
+ */
 export class OpenAddProviderInput {
 
     /** Creates a new OpenAddProviderInput instance. */
@@ -198,6 +225,9 @@ export class OpenAddProviderInput {
     }
 }
 
+/**
+ * 封装打开增加提供商返回给调用方的数据
+ */
 export class OpenAddProviderOutput {
 
     /** Creates a new OpenAddProviderOutput instance. */
@@ -215,6 +245,9 @@ export class OpenAddProviderOutput {
     }
 }
 
+/**
+ * 封装打开增加技能所需的请求参数
+ */
 export class OpenAddSkillInput {
 
     /** Creates a new OpenAddSkillInput instance. */
@@ -232,6 +265,9 @@ export class OpenAddSkillInput {
     }
 }
 
+/**
+ * 封装打开增加技能返回给调用方的数据
+ */
 export class OpenAddSkillOutput {
 
     /** Creates a new OpenAddSkillOutput instance. */
@@ -249,6 +285,9 @@ export class OpenAddSkillOutput {
     }
 }
 
+/**
+ * 封装打开首次引导所需的请求参数
+ */
 export class OpenOnboardingInput {
 
     /** Creates a new OpenOnboardingInput instance. */
@@ -266,6 +305,9 @@ export class OpenOnboardingInput {
     }
 }
 
+/**
+ * 封装打开首次引导返回给调用方的数据
+ */
 export class OpenOnboardingOutput {
 
     /** Creates a new OpenOnboardingOutput instance. */
@@ -284,7 +326,7 @@ export class OpenOnboardingOutput {
 }
 
 /**
- * OpenQuickChatInput carries no fields for opening the quick chat window.
+ * OpenQuickChatInput 是打开快捷聊天窗口的空请求
  */
 export class OpenQuickChatInput {
 
@@ -304,7 +346,7 @@ export class OpenQuickChatInput {
 }
 
 /**
- * OpenQuickChatOutput carries no fields after opening the quick chat window.
+ * OpenQuickChatOutput 是打开快捷聊天窗口后的空响应
  */
 export class OpenQuickChatOutput {
 
@@ -323,7 +365,13 @@ export class OpenQuickChatOutput {
     }
 }
 
+/**
+ * 封装打开设置所需的请求参数
+ */
 export class OpenSettingsInput {
+    /**
+     * 标签页
+     */
     "tab": string;
 
     /** Creates a new OpenSettingsInput instance. */
@@ -344,6 +392,9 @@ export class OpenSettingsInput {
     }
 }
 
+/**
+ * 封装打开设置返回给调用方的数据
+ */
 export class OpenSettingsOutput {
 
     /** Creates a new OpenSettingsOutput instance. */
@@ -362,9 +413,12 @@ export class OpenSettingsOutput {
 }
 
 /**
- * SelectQuickChatInput identifies the session selected from the quick chat window.
+ * SelectQuickChatInput 指定在快捷聊天窗口中选中的会话
  */
 export class SelectQuickChatInput {
+    /**
+     * 会话编号
+     */
     "session_id": number;
 
     /** Creates a new SelectQuickChatInput instance. */
@@ -386,7 +440,7 @@ export class SelectQuickChatInput {
 }
 
 /**
- * SelectQuickChatOutput carries no fields after the selection event is emitted.
+ * SelectQuickChatOutput 是发出会话选择事件后的空响应
  */
 export class SelectQuickChatOutput {
 
@@ -406,7 +460,7 @@ export class SelectQuickChatOutput {
 }
 
 /**
- * ToggleQuickChatInput carries no fields for toggling the quick chat window.
+ * ToggleQuickChatInput 是切换快捷聊天窗口可见性的空请求
  */
 export class ToggleQuickChatInput {
 
@@ -426,7 +480,7 @@ export class ToggleQuickChatInput {
 }
 
 /**
- * ToggleQuickChatOutput carries no fields after toggling the quick chat window.
+ * ToggleQuickChatOutput 是切换快捷聊天窗口可见性后的空响应
  */
 export class ToggleQuickChatOutput {
 

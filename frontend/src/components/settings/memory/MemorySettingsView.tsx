@@ -13,42 +13,75 @@ import { SettingsPanelHeader } from '@/components/settings/common/SettingsPanelH
 import { SettingsSelect } from '@/components/settings/common/SettingsSelect'
 import { cn } from '@/lib/utils'
 
+/** 记忆的编辑草稿 */
 type MemoryDraft = {
+  /** 当前条目的唯一编号 */
   id: number | null
+  /** 摘要 */
   summary: string
+  /** 内容 */
   content: string
+  /** 类型 */
   type: string
+  /** 要处理的目标 */
   target: string
+  /** 重要度 */
   importance: number
+  /** 置信度 */
   confidence: number
+  /** 已置顶 */
   pinned: boolean
 }
 
+/** 定义记忆控制器的数据结构 */
 type MemoryController = {
+  /** 条目列表 */
   items: MemoryItem[]
+  /** 选中项 */
   selected: MemoryItem | null
+  /** 当前选中项编号 */
   selectedId: number | null
+  /** 草稿 */
   draft: MemoryDraft
+  /** 草稿有未保存修改 */
   draftDirty: boolean
+  /** 搜索词 */
   query: string
+  /** 要处理的目标 */
   target: string
+  /** 类型 */
   type: string
+  /** 包含已遗忘 */
   includeForgotten: boolean
+  /** 加载中 */
   loading: boolean
+  /** 设置选中项编号，接收当前条目的唯一编号，无返回值 */
   setSelectedId: (id: number | null) => void
+  /** 设置草稿，接收草稿，无返回值 */
   setDraft: (draft: MemoryDraft) => void
+  /** 重置草稿，无返回值 */
   resetDraft: () => void
+  /** 设置搜索词，接收值，无返回值 */
   setQuery: (value: string) => void
+  /** 设置要处理的目标，接收值，无返回值 */
   setTarget: (value: string) => void
+  /** 设置类型，接收值，无返回值 */
   setType: (value: string) => void
+  /** 设置包含已遗忘，接收值，无返回值 */
   setIncludeForgotten: (value: boolean) => void
+  /** 加载记忆列表，完成后结束异步任务 */
   loadMemories: () => Promise<void>
+  /** 将当前草稿保存到对应的后端服务，完成后结束异步任务 */
   saveDraft: () => Promise<void>
+  /** 遗忘选中项，完成后结束异步任务 */
   forgetSelected: () => Promise<void>
+  /** 恢复选中项，完成后结束异步任务 */
   restoreSelected: () => Promise<void>
+  /** 启动新，无返回值 */
   startNew: () => void
 }
 
+/** 空草稿 */
 const EMPTY_DRAFT: MemoryDraft = {
   id: null,
   summary: '',
@@ -60,6 +93,7 @@ const EMPTY_DRAFT: MemoryDraft = {
   pinned: false,
 }
 
+/** 记忆草稿 相同处理，接收左侧、右侧，返回是否满足条件 */
 function memoryDraftsEqual(left: MemoryDraft, right: MemoryDraft): boolean {
   return left.id === right.id &&
     left.summary === right.summary &&
@@ -71,31 +105,35 @@ function memoryDraftsEqual(left: MemoryDraft, right: MemoryDraft): boolean {
     left.pinned === right.pinned
 }
 
-// useMemoryController owns memory list/detail state for the settings split view.
+/** 统一管理记忆列表、筛选条件和编辑草稿，返回页面操作与状态，接收当前，返回对应的处理结果 */
 export function useMemoryController(active: boolean): MemoryController {
-  const [items, setItems] = useState<MemoryItem[]>([])
-  const [selectedId, setSelectedId] = useState<number | null>(null)
-  const [query, setQuery] = useState('')
-  const [target, setTarget] = useState('')
-  const [type, setType] = useState('')
-  const [includeForgotten, setIncludeForgotten] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [draft, setDraft] = useState<MemoryDraft>(EMPTY_DRAFT)
-  const [initialDraft, setInitialDraft] = useState<MemoryDraft>(EMPTY_DRAFT)
+  const [items, setItems] = useState<MemoryItem[]>([]) // 条目列表及其更新方法
+  const [selectedId, setSelectedId] = useState<number | null>(null) // 当前选中项编号及其更新方法
+  const [query, setQuery] = useState('') // 搜索词及其更新方法
+  const [target, setTarget] = useState('') // 要处理的目标及其更新方法
+  const [type, setType] = useState('') // 类型及其更新方法
+  const [includeForgotten, setIncludeForgotten] = useState(false) // 包含已遗忘及其更新方法
+  const [loading, setLoading] = useState(false) // 加载中及其更新方法
+  const [draft, setDraft] = useState<MemoryDraft>(EMPTY_DRAFT) // 草稿及其更新方法
+  const [initialDraft, setInitialDraft] = useState<MemoryDraft>(EMPTY_DRAFT) // 初始草稿及其更新方法
 
+  /** 选中项 */
   const selected = useMemo(
     () => items.find((item) => item.id === selectedId) ?? null,
     [items, selectedId],
   )
 
+  /** 草稿有未保存修改 */
   const draftDirty = useMemo(
     () => !memoryDraftsEqual(draft, initialDraft),
     [draft, initialDraft],
   )
 
+  /** 加载记忆列表，完成后结束异步任务 */
   const loadMemories = useCallback(async () => {
     setLoading(true)
     try {
+      /** 保存列表结果 */
       const listResult = await MemoryBinding.ListMemories(new ListMemoriesInput({
         query,
         target,
@@ -104,7 +142,7 @@ export function useMemoryController(active: boolean): MemoryController {
         offset: 0,
         limit: 100,
       }))
-      const nextItems = listResult?.items ?? []
+      const nextItems = listResult?.items ?? [] // 下一项条目列表
       setItems(nextItems)
       setSelectedId((current) => {
         if (current !== null && nextItems.some((item) => item.id === current)) return current
@@ -115,25 +153,30 @@ export function useMemoryController(active: boolean): MemoryController {
     }
   }, [includeForgotten, query, target, type])
 
+  /** 同步外部状态并管理本次副作用的生命周期 */
   useEffect(() => {
     if (active) {
       void loadMemories()
     }
   }, [active, loadMemories])
 
+  /** 同步外部状态并管理本次副作用的生命周期 */
   useEffect(() => {
     if (!active) return
+    /** 处理焦点，无返回值 */
     const handleFocus = () => { void loadMemories() }
     window.addEventListener('focus', handleFocus)
     return () => window.removeEventListener('focus', handleFocus)
   }, [active, loadMemories])
 
+  /** 同步外部状态并管理本次副作用的生命周期 */
   useEffect(() => {
     if (!selected) {
       setDraft(EMPTY_DRAFT)
       setInitialDraft(EMPTY_DRAFT)
       return
     }
+    /** 下一项草稿 */
     const nextDraft: MemoryDraft = {
       id: selected.id,
       summary: selected.summary,
@@ -148,16 +191,19 @@ export function useMemoryController(active: boolean): MemoryController {
     setInitialDraft(nextDraft)
   }, [selected])
 
+  /** 启动新，无返回值 */
   const startNew = useCallback(() => {
     setSelectedId(null)
     setDraft(EMPTY_DRAFT)
     setInitialDraft(EMPTY_DRAFT)
   }, [])
 
+  /** 重置草稿，无返回值 */
   const resetDraft = useCallback(() => {
     setDraft(initialDraft)
   }, [initialDraft])
 
+  /** 将当前草稿保存到对应的后端服务，完成后结束异步任务 */
   const saveDraft = useCallback(async () => {
     if (draft.id === null) {
       await MemoryBinding.CreateMemory(new CreateMemoryInput({
@@ -186,12 +232,14 @@ export function useMemoryController(active: boolean): MemoryController {
     await loadMemories()
   }, [draft, loadMemories, selected?.source])
 
+  /** 遗忘选中项，完成后结束异步任务 */
   const forgetSelected = useCallback(async () => {
     if (!selected) return
     await MemoryBinding.ForgetMemory(new ForgetMemoryInput({ id: selected.id }))
     await loadMemories()
   }, [loadMemories, selected])
 
+  /** 恢复选中项，完成后结束异步任务 */
   const restoreSelected = useCallback(async () => {
     if (!selected) return
     await MemoryBinding.RestoreMemory(new RestoreMemoryInput({ id: selected.id }))
@@ -224,11 +272,11 @@ export function useMemoryController(active: boolean): MemoryController {
   }
 }
 
-// MemoryList renders the left-hand memory navigation list.
-export function MemoryList(props: { controller: MemoryController }) {
-  const { t } = useTranslation()
-  const { isH5, onCollapseSubmenu } = useContext(SettingsMenuContext)
-  const controller = props.controller
+/** 在左侧列表搜索和筛选记忆，并切换当前编辑项，接收组件输入属性，返回组件内容 */
+export function MemoryList(props: { /* 控制器 */ controller: MemoryController }) {
+  const { t } = useTranslation() // 获取当前语言的翻译方法
+  const { isH5, onCollapseSubmenu } = useContext(SettingsMenuContext) // 取出是否采用窄屏布局、on折叠二级菜单
+  const controller = props.controller // 控制器
 
   return (
     <div className="flex h-full flex-col gap-3 p-3">
@@ -253,7 +301,7 @@ export function MemoryList(props: { controller: MemoryController }) {
           value={controller.query}
           onChange={(event) => controller.setQuery(event.target.value)}
           placeholder={t('settingsPage.memory.search')}
-          className="min-w-0 flex-1 appearance-none bg-transparent text-xs outline-none placeholder:text-muted-foreground"
+          className="min-w-0 flex-1 appearance-none bg-transparent text-xs outline-hidden placeholder:text-muted-foreground"
         />
       </label>
 
@@ -294,7 +342,7 @@ export function MemoryList(props: { controller: MemoryController }) {
           controller.includeForgotten ? 'bg-primary' : 'bg-muted',
         )}>
           <span className={cn(
-            'inline-block h-[14px] w-[14px] rounded-full bg-white shadow-sm transition-transform duration-200',
+            'inline-block h-[14px] w-[14px] rounded-full bg-white shadow-xs transition-transform duration-200',
             controller.includeForgotten ? 'translate-x-[15px]' : 'translate-x-[2px]',
           )} />
         </span>
@@ -345,12 +393,12 @@ export function MemoryList(props: { controller: MemoryController }) {
   )
 }
 
-// MemorySettingsView renders the right-hand editor for the selected memory.
-export function MemorySettingsView(props: { controller: MemoryController }) {
-  const { t } = useTranslation()
-  const { isH5 } = useContext(SettingsMenuContext)
-  const { controller } = props
-  const { draft, selected } = controller
+/** 编辑选中的记忆并提供保存、遗忘和恢复操作，接收组件输入属性，返回组件内容 */
+export function MemorySettingsView(props: { /* 控制器 */ controller: MemoryController }) {
+  const { t } = useTranslation() // 获取当前语言的翻译方法
+  const { isH5 } = useContext(SettingsMenuContext) // 是否采用窄屏布局
+  const { controller } = props // 控制器
+  const { draft, selected } = controller // 取出草稿、选中项
 
   return (
     <SettingsContentLayout
@@ -396,7 +444,7 @@ export function MemorySettingsView(props: { controller: MemoryController }) {
               value={draft.content}
               onChange={(event) => controller.setDraft({ ...draft, content: event.target.value })}
               rows={8}
-              className="w-full resize-none appearance-none rounded-xl border border-border/80 bg-card/80 px-3.5 py-3 text-sm leading-6 text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary"
+              className="w-full resize-none appearance-none rounded-xl border border-border/80 bg-card/80 px-3.5 py-3 text-sm leading-6 text-foreground outline-hidden transition-colors placeholder:text-muted-foreground focus:border-primary"
             />
           </Field>
 
@@ -463,13 +511,19 @@ export function MemorySettingsView(props: { controller: MemoryController }) {
   )
 }
 
+/** 渲染紧凑选择界面，接收组件输入属性，返回组件内容 */
 function CompactSelect(props: {
+  /** 无障碍标签 */
   ariaLabel: string
+  /** 值 */
   value: string
+  /** 处理本次变更事件，接收值，无返回值 */
   onChange: (value: string) => void
-  options: Array<{ value: string; label: string }>
+  /** 可用选项列表 */
+  options: Array<{ /* 值 */ value: string; /* 标签 */ label: string }>
 }) {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(false) // 展开及其更新方法
+  /** 选中项 */
   const selected = props.options.find((option) => option.value === props.value) ?? props.options[0]
 
   return (
@@ -479,7 +533,7 @@ function CompactSelect(props: {
         aria-label={props.ariaLabel}
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
-        className="flex h-8 w-full items-center justify-between gap-1.5 rounded-lg border border-border/80 bg-card/80 px-2.5 text-left text-xs text-foreground transition-colors hover:bg-accent focus:border-primary focus:outline-none"
+        className="flex h-8 w-full items-center justify-between gap-1.5 rounded-lg border border-border/80 bg-card/80 px-2.5 text-left text-xs text-foreground transition-colors hover:bg-accent focus:border-primary focus:outline-hidden"
       >
         <span className="min-w-0 flex-1 truncate">{selected?.label}</span>
         <ChevronDown size={13} className={cn('shrink-0 text-muted-foreground transition-transform', open ? 'rotate-180' : '')} />
@@ -509,7 +563,8 @@ function CompactSelect(props: {
   )
 }
 
-function Field(props: { label: string; children: ReactNode }) {
+/** 渲染字段界面，接收组件输入属性，返回组件内容 */
+function Field(props: { /* 标签 */ label: string; /* 要渲染的子内容 */ children: ReactNode }) {
   return (
     <label className="block">
       <span className="mb-1.5 block text-sm font-medium text-foreground">{props.label}</span>
@@ -518,9 +573,13 @@ function Field(props: { label: string; children: ReactNode }) {
   )
 }
 
+/** 渲染文本输入界面，接收组件输入属性，返回组件内容 */
 function TextInput(props: {
+  /** 值 */
   value: string
+  /** 处理本次变更事件，接收值，无返回值 */
   onChange: (value: string) => void
+  /** 类型 */
   type?: 'text' | 'number'
 }) {
   return (
@@ -529,7 +588,7 @@ function TextInput(props: {
       inputMode={props.type === 'number' ? 'numeric' : undefined}
       value={props.value}
       onChange={(event) => props.onChange(event.target.value)}
-      className="h-11 w-full appearance-none rounded-xl border border-border/80 bg-card/80 px-3.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary"
+      className="h-11 w-full appearance-none rounded-xl border border-border/80 bg-card/80 px-3.5 text-sm text-foreground outline-hidden transition-colors placeholder:text-muted-foreground focus:border-primary"
     />
   )
 }

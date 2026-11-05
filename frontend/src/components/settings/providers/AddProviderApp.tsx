@@ -12,8 +12,10 @@ import { AddProviderStepDone } from '@/components/settings/providers/AddProvider
 import { cn } from '@/lib/utils'
 import type { SupportedProvider } from '@/types/settings'
 
+/** 向导步骤的可选值 */
 type WizardStep = 1 | 2 | 3
 
+/** 新增模型服务商应用，返回组件内容 */
 export function AddProviderApp() {
   return (
     <AppSettingsSyncProvider>
@@ -29,11 +31,14 @@ export function AddProviderApp() {
   )
 }
 
+/** 新增模型服务商向导，返回组件内容 */
 function AddProviderWizard() {
-  const { t } = useTranslation()
-  const [step, setStep] = useState<WizardStep>(1)
+  const { t } = useTranslation() // 获取当前语言的翻译方法
+  const [step, setStep] = useState<WizardStep>(1) // 步骤及其更新方法
+  /** 选中项模型服务商及其更新方法 */
   const [selectedProvider, setSelectedProvider] = useState<SupportedProvider | null>(null)
 
+  /** 步骤列表 */
   const steps = [
     t('settingsPage.addProvider.stepSelect'),
     t('settingsPage.addProvider.stepForm'),
@@ -42,18 +47,18 @@ function AddProviderWizard() {
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
-      {/* Title */}
+      {/* 窗口标题 */}
       <div className="shrink-0 px-6 pb-3 pt-12">
         <h1 className="text-lg font-semibold">{t('settingsPage.addProvider.title')}</h1>
       </div>
 
-      {/* Stepper */}
+      {/* 当前步骤和完成进度 */}
       <div className="shrink-0 px-6 pb-4">
         <div className="flex items-center gap-2">
           {steps.map((label, idx) => {
-            const num = (idx + 1) as WizardStep
-            const active = num === step
-            const done = num < step
+            const num = (idx + 1) as WizardStep // 数值
+            const active = num === step // 当前
+            const done = num < step // 完成
             return (
               <div key={label} className="flex items-center gap-2">
                 {idx > 0 && <div className="h-px w-8 bg-border" />}
@@ -85,7 +90,7 @@ function AddProviderWizard() {
         </div>
       </div>
 
-      {/* Content */}
+      {/* 当前步骤的主体内容 */}
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-6">
         {step === 1 && (
           <div className="min-h-0 overflow-y-auto">
@@ -104,7 +109,7 @@ function AddProviderWizard() {
         {step === 3 && <AddProviderStepDone />}
       </div>
 
-      {/* Footer */}
+      {/* 底部操作区 */}
       <div className="shrink-0 border-t border-border px-6 pb-6 pt-4">
         {step === 1 && (
           <div className="flex justify-between">

@@ -10,12 +10,23 @@ import { Create as $Create } from "@wailsio/runtime";
 import * as provider$0 from "../../../pkg/provider/models.js";
 
 /**
- * AttachmentInput 是前端发送消息时携带的附件元数据。
- * Name/Mime 可空，后端通过 path 推断后写入存储与 model.Message。
+ * AttachmentInput 包含前端发送消息时携带的附件元数据
+ * Name 和 Mime 可留空，后端根据 Path 推断缺失值后写入存储和 model.Message
  */
 export class AttachmentInput {
+    /**
+     * 路径
+     */
     "path": string;
+
+    /**
+     * 名称
+     */
     "name"?: string;
+
+    /**
+     * MIME类型
+     */
     "mime"?: string;
 
     /** Creates a new AttachmentInput instance. */
@@ -36,8 +47,18 @@ export class AttachmentInput {
     }
 }
 
+/**
+ * 封装创建并保存一个新会话所需的请求参数
+ */
 export class CreateSessionInput {
+    /**
+     * 标题
+     */
     "title": string;
+
+    /**
+     * 标签列表
+     */
     "tags"?: string[];
 
     /** Creates a new CreateSessionInput instance. */
@@ -62,9 +83,23 @@ export class CreateSessionInput {
     }
 }
 
+/**
+ * 封装创建并保存一个新会话返回给调用方的数据
+ */
 export class CreateSessionOutput {
+    /**
+     * 会话编号
+     */
     "session_id": number;
+
+    /**
+     * 标题
+     */
     "title": string;
+
+    /**
+     * 标签列表
+     */
     "tags": string[];
 
     /** Creates a new CreateSessionOutput instance. */
@@ -95,7 +130,13 @@ export class CreateSessionOutput {
     }
 }
 
+/**
+ * 封装删除会话所需的请求参数
+ */
 export class DeleteSessionInput {
+    /**
+     * 会话编号
+     */
     "session_id": number;
 
     /** Creates a new DeleteSessionInput instance. */
@@ -116,6 +157,9 @@ export class DeleteSessionInput {
     }
 }
 
+/**
+ * 封装删除会话返回给调用方的数据
+ */
 export class DeleteSessionOutput {
 
     /** Creates a new DeleteSessionOutput instance. */
@@ -133,11 +177,33 @@ export class DeleteSessionOutput {
     }
 }
 
+/**
+ * 封装处理生成标题所需的请求参数
+ */
 export class GenerateTitleInput {
+    /**
+     * 会话编号
+     */
     "session_id": number;
+
+    /**
+     * 服务基础地址
+     */
     "base_url": string;
+
+    /**
+     * API 密钥
+     */
     "api_key": string;
+
+    /**
+     * 模型名称
+     */
     "model_name": string;
+
+    /**
+     * 提供商类型
+     */
     "provider_type": provider$0.Type;
 
     /** Creates a new GenerateTitleInput instance. */
@@ -170,7 +236,13 @@ export class GenerateTitleInput {
     }
 }
 
+/**
+ * 封装处理生成标题返回给调用方的数据
+ */
 export class GenerateTitleOutput {
+    /**
+     * 标题
+     */
     "title": string;
 
     /** Creates a new GenerateTitleOutput instance. */
@@ -191,10 +263,28 @@ export class GenerateTitleOutput {
     }
 }
 
+/**
+ * 封装按查询条件和游标返回会话列表所需的请求参数
+ */
 export class ListSessionsInput {
+    /**
+     * 游标
+     */
     "cursor": number;
+
+    /**
+     * 上限
+     */
     "limit": number;
+
+    /**
+     * 已收藏仅
+     */
     "starred_only": boolean;
+
+    /**
+     * 包含隐藏
+     */
     "include_hidden": boolean;
 
     /** Creates a new ListSessionsInput instance. */
@@ -224,9 +314,23 @@ export class ListSessionsInput {
     }
 }
 
+/**
+ * 封装按查询条件和游标返回会话列表返回给调用方的数据
+ */
 export class ListSessionsOutput {
+    /**
+     * 会话列表
+     */
     "sessions": SessionItem[];
+
+    /**
+     * 下一项游标
+     */
     "next_cursor": number;
+
+    /**
+     * 是否有更多
+     */
     "has_more": boolean;
 
     /** Creates a new ListSessionsOutput instance. */
@@ -257,9 +361,23 @@ export class ListSessionsOutput {
     }
 }
 
+/**
+ * 封装按分页参数加载指定会话的历史消息所需的请求参数
+ */
 export class LoadSessionMessagesInput {
+    /**
+     * 会话编号
+     */
     "session_id": number;
+
+    /**
+     * 偏移
+     */
     "offset": number;
+
+    /**
+     * 上限
+     */
     "limit": number;
 
     /** Creates a new LoadSessionMessagesInput instance. */
@@ -286,9 +404,23 @@ export class LoadSessionMessagesInput {
     }
 }
 
+/**
+ * 封装按分页参数加载指定会话的历史消息返回给调用方的数据
+ */
 export class LoadSessionMessagesOutput {
+    /**
+     * 消息列表
+     */
     "messages": MessageItem[];
+
+    /**
+     * 总量
+     */
     "total": number;
+
+    /**
+     * 是否有更多
+     */
     "has_more": boolean;
 
     /** Creates a new LoadSessionMessagesOutput instance. */
@@ -319,7 +451,13 @@ export class LoadSessionMessagesOutput {
     }
 }
 
+/**
+ * 封装清除指定会话的未读状态所需的请求参数
+ */
 export class MarkSessionReadInput {
+    /**
+     * 会话编号
+     */
     "session_id": number;
 
     /** Creates a new MarkSessionReadInput instance. */
@@ -340,6 +478,9 @@ export class MarkSessionReadInput {
     }
 }
 
+/**
+ * 封装清除指定会话的未读状态返回给调用方的数据
+ */
 export class MarkSessionReadOutput {
 
     /** Creates a new MarkSessionReadOutput instance. */
@@ -357,19 +498,73 @@ export class MarkSessionReadOutput {
     }
 }
 
+/**
+ * 描述消息条目使用的数据结构
+ */
 export class MessageItem {
+    /**
+     * 唯一标识
+     */
     "id": number;
+
+    /**
+     * 会话编号
+     */
     "session_id": number;
+
+    /**
+     * 父级编号
+     */
     "parent_id": number | null;
+
+    /**
+     * 角色
+     */
     "role": string;
+
+    /**
+     * 内容类型
+     */
     "content_type": string;
+
+    /**
+     * 内容
+     */
     "content": string;
+
+    /**
+     * 模型名称
+     */
     "model_name": string;
+
+    /**
+     * 智能体名称
+     */
     "agent_name": string;
+
+    /**
+     * Token输入
+     */
     "tokens_in": number;
+
+    /**
+     * Token输出
+     */
     "tokens_out": number;
+
+    /**
+     * 附加数据
+     */
     "extra": string;
+
+    /**
+     * 附件列表
+     */
     "attachments": string;
+
+    /**
+     * 创建
+     */
     "created": string;
 
     /** Creates a new MessageItem instance. */
@@ -426,8 +621,18 @@ export class MessageItem {
     }
 }
 
+/**
+ * 封装重命名会话所需的请求参数
+ */
 export class RenameSessionInput {
+    /**
+     * 会话编号
+     */
     "session_id": number;
+
+    /**
+     * 标题
+     */
     "title": string;
 
     /** Creates a new RenameSessionInput instance. */
@@ -451,6 +656,9 @@ export class RenameSessionInput {
     }
 }
 
+/**
+ * 封装重命名会话返回给调用方的数据
+ */
 export class RenameSessionOutput {
 
     /** Creates a new RenameSessionOutput instance. */
@@ -468,10 +676,28 @@ export class RenameSessionOutput {
     }
 }
 
+/**
+ * 封装把用户对工具调用的确认结果交给正在等待的会话所需的请求参数
+ */
 export class RespondToConfirmInput {
+    /**
+     * 会话编号
+     */
     "session_id": number;
+
+    /**
+     * 已同意
+     */
     "approved": boolean;
+
+    /**
+     * 消息
+     */
     "message": string;
+
+    /**
+     * 操作
+     */
     "action": string;
 
     /** Creates a new RespondToConfirmInput instance. */
@@ -501,6 +727,9 @@ export class RespondToConfirmInput {
     }
 }
 
+/**
+ * 封装把用户对工具调用的确认结果交给正在等待的会话返回给调用方的数据
+ */
 export class RespondToConfirmOutput {
 
     /** Creates a new RespondToConfirmOutput instance. */
@@ -518,16 +747,58 @@ export class RespondToConfirmOutput {
     }
 }
 
+/**
+ * 封装启动指定会话的模型请求并将处理结果返回给前端所需的请求参数
+ */
 export class SendMessageInput {
+    /**
+     * 会话编号
+     */
     "session_id": number;
+
+    /**
+     * 内容
+     */
     "content": string;
+
+    /**
+     * 系统提示词
+     */
     "system_prompt"?: string;
+
+    /**
+     * 技能名称
+     */
     "skill_name"?: string;
+
+    /**
+     * 服务基础地址
+     */
     "base_url": string;
+
+    /**
+     * API 密钥
+     */
     "api_key": string;
+
+    /**
+     * 模型名称
+     */
     "model_name": string;
+
+    /**
+     * 提供商类型
+     */
     "provider_type": provider$0.Type;
+
+    /**
+     * 已启用的用户工具列表
+     */
     "enabled_user_tools": string[];
+
+    /**
+     * 附件列表
+     */
     "attachments"?: AttachmentInput[];
 
     /** Creates a new SendMessageInput instance. */
@@ -574,6 +845,9 @@ export class SendMessageInput {
     }
 }
 
+/**
+ * 封装启动指定会话的模型请求并将处理结果返回给前端返回给调用方的数据
+ */
 export class SendMessageOutput {
 
     /** Creates a new SendMessageOutput instance. */
@@ -591,14 +865,48 @@ export class SendMessageOutput {
     }
 }
 
+/**
+ * 描述会话条目使用的数据结构
+ */
 export class SessionItem {
+    /**
+     * 唯一标识
+     */
     "id": number;
+
+    /**
+     * 标题
+     */
     "title": string;
+
+    /**
+     * 类别
+     */
     "kind": string;
+
+    /**
+     * 标签列表
+     */
     "tags": string[];
+
+    /**
+     * 已收藏
+     */
     "starred": boolean;
+
+    /**
+     * 当前状态
+     */
     "status": string;
+
+    /**
+     * 创建
+     */
     "created": string;
+
+    /**
+     * 更新
+     */
     "updated": string;
 
     /** Creates a new SessionItem instance. */
@@ -645,16 +953,47 @@ export class SessionItem {
 }
 
 /**
- * SpawnTaskSessionInput describes the initial prompt for an automated task session.
+ * SpawnTaskSessionInput 描述自动化任务会话的初始提示词
  */
 export class SpawnTaskSessionInput {
+    /**
+     * 标题
+     */
     "title": string;
+
+    /**
+     * 系统提示词
+     */
     "system_prompt": string;
+
+    /**
+     * 用户消息
+     */
     "user_message": string;
+
+    /**
+     * 技能名称
+     */
     "skill_name": string;
+
+    /**
+     * 服务基础地址
+     */
     "base_url": string;
+
+    /**
+     * API 密钥
+     */
     "api_key": string;
+
+    /**
+     * 模型名称
+     */
     "model_name": string;
+
+    /**
+     * 提供商类型
+     */
     "provider_type": provider$0.Type;
 
     /** Creates a new SpawnTaskSessionInput instance. */
@@ -697,10 +1036,17 @@ export class SpawnTaskSessionInput {
 }
 
 /**
- * SpawnTaskSessionOutput returns the created task session identity.
+ * SpawnTaskSessionOutput 返回新建任务会话的标识
  */
 export class SpawnTaskSessionOutput {
+    /**
+     * 会话编号
+     */
     "session_id": number;
+
+    /**
+     * 标题
+     */
     "title": string;
 
     /** Creates a new SpawnTaskSessionOutput instance. */
@@ -724,7 +1070,13 @@ export class SpawnTaskSessionOutput {
     }
 }
 
+/**
+ * 封装取消指定会话仍在运行的模型请求所需的请求参数
+ */
 export class StopGenerationInput {
+    /**
+     * 会话编号
+     */
     "session_id": number;
 
     /** Creates a new StopGenerationInput instance. */
@@ -745,6 +1097,9 @@ export class StopGenerationInput {
     }
 }
 
+/**
+ * 封装取消指定会话仍在运行的模型请求返回给调用方的数据
+ */
 export class StopGenerationOutput {
 
     /** Creates a new StopGenerationOutput instance. */
@@ -762,8 +1117,18 @@ export class StopGenerationOutput {
     }
 }
 
+/**
+ * 封装根据请求更新会话的收藏状态所需的请求参数
+ */
 export class ToggleStarSessionInput {
+    /**
+     * 会话编号
+     */
     "session_id": number;
+
+    /**
+     * 已收藏
+     */
     "starred": boolean;
 
     /** Creates a new ToggleStarSessionInput instance. */
@@ -787,6 +1152,9 @@ export class ToggleStarSessionInput {
     }
 }
 
+/**
+ * 封装根据请求更新会话的收藏状态返回给调用方的数据
+ */
 export class ToggleStarSessionOutput {
 
     /** Creates a new ToggleStarSessionOutput instance. */

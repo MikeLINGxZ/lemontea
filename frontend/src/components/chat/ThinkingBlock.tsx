@@ -2,15 +2,20 @@ import { useState } from 'react'
 import { Brain, ChevronDown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+/** 思考内容区块组件接收的属性 */
 interface Props {
+  /** 内容 */
   content: string
+  /** 默认展开 */
   defaultExpanded?: boolean
+  /** 当前 */
   active?: boolean
 }
 
+/** 渲染思考内容区块界面，接收内容、默认展开、当前，返回组件内容 */
 export function ThinkingBlock({ content, defaultExpanded = false, active = false }: Props) {
-  const { t } = useTranslation()
-  const [expanded, setExpanded] = useState(defaultExpanded)
+  const { t } = useTranslation() // 获取当前语言的翻译方法
+  const [expanded, setExpanded] = useState(defaultExpanded) // 展开及其更新方法
 
   return (
     <div className="mb-0">

@@ -1,11 +1,13 @@
 package window_options
 
 import (
+	"runtime"
+
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/id/window_id"
 )
 
-// DefaultHome returns the default WebviewWindowOptions used by the application home window.
+// DefaultHome 返回应用主窗口使用的默认 WebviewWindowOptions
 func DefaultHome() application.WebviewWindowOptions {
 	return application.WebviewWindowOptions{
 		Name:           window_id.Home,
@@ -25,7 +27,7 @@ func DefaultHome() application.WebviewWindowOptions {
 	}
 }
 
-// DefaultOnboarding returns the WebviewWindowOptions for the first-launch onboarding window.
+// DefaultOnboarding 返回首次启动引导窗口的 WebviewWindowOptions
 func DefaultOnboarding() application.WebviewWindowOptions {
 	return application.WebviewWindowOptions{
 		Name:           window_id.Onboarding,
@@ -45,9 +47,9 @@ func DefaultOnboarding() application.WebviewWindowOptions {
 	}
 }
 
-// DefaultQuickChat returns the floating WebviewWindowOptions for the quick chat chooser.
+// DefaultQuickChat 返回快捷聊天选择器的浮动窗口配置 WebviewWindowOptions
 func DefaultQuickChat() application.WebviewWindowOptions {
-	return application.WebviewWindowOptions{
+	return WithHiddenTitleBar(application.WebviewWindowOptions{
 		Name:                window_id.QuickChat,
 		Title:               "lemontea",
 		MinimiseButtonState: application.ButtonHidden,
@@ -60,16 +62,27 @@ func DefaultQuickChat() application.WebviewWindowOptions {
 			Backdrop:                application.MacBackdropTranslucent,
 			TitleBar:                application.MacTitleBarHiddenInsetUnified,
 		},
+
 		BackgroundColour: application.NewRGB(27, 38, 54),
 		URL:              "/?entry=quick_chat",
 		Width:            720,
 		Height:           54,
 		MinWidth:         560,
 		MinHeight:        54,
-	}
+	})
 }
 
-// QuickChatShortcut returns the app-level accelerator used to toggle the quick chat popup.
+// WithHiddenTitleBar 应用当前平台的隐藏标题栏配置
+// 接收选项列表，返回Webview窗口选项列表
+func WithHiddenTitleBar(options application.WebviewWindowOptions) application.WebviewWindowOptions {
+	if runtime.GOOS == "windows" {
+		options.Frameless = true
+		options.Windows.DisableFramelessWindowDecorations = false
+	}
+	return options
+}
+
+// QuickChatShortcut 返回用于切换快捷聊天弹窗的应用级快捷键
 func QuickChatShortcut() string {
 	return "CmdOrCtrl+Shift+Space"
 }

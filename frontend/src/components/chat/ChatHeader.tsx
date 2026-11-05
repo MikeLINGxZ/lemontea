@@ -3,7 +3,7 @@ import { PanelLeftOpen, Pencil, Check, X, RefreshCw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Provider as ProviderBinding } from '@bindings/gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/service/provider'
 import type { ProviderWrapper } from '@bindings/gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/service/provider/provider_dto/models'
-import { Type as ProviderType } from '@bindings/gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/provider/models'
+import { resolveProviderType } from '@/lib/provider'
 import { useChatStore } from '@/store/chatStore'
 import { useSettingsStore } from '@/store/settingsStore'
 import { cn } from '@/lib/utils'
@@ -12,17 +12,25 @@ import type { Message } from '@/types'
 import type { ProviderItem } from '@/types/settings'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
 
+/** 空消息列表 */
 const EMPTY_MESSAGES: Message[] = []
 
+/** 聊天页头组件接收的属性 */
 interface ChatHeaderProps {
+  /** 侧栏折叠 */
   sidebarCollapsed: boolean
+  /** 处理展开侧栏事件，无返回值 */
   onExpandSidebar: () => void
+  /** 显示窗口控制区域 */
   showWindowControlSpace: boolean
+  /** 动画窗口控制区域 */
   animateWindowControlSpace: boolean
 }
 
+/** 选择模型服务商模型，接收模型服务商、首选模型名称，返回对应的处理结果 */
 function pickProviderModel(provider: ProviderItem, preferredModelName?: string) {
   if (preferredModelName) {
+    /** 已匹配模型 */
     const matchedModel = provider.models.find(
       (model) => model.enable && model.model === preferredModelName
     )
@@ -36,6 +44,7 @@ function pickProviderModel(provider: ProviderItem, preferredModelName?: string) 
   )
 }
 
+/** 转换包装终点模型服务商条目列表，接收包装对象列表，返回对应的处理结果 */
 function mapWrapperToProviderItems(wrappers: ProviderWrapper[]): ProviderItem[] {
   return wrappers.map((wrapper) => ({
     id: wrapper.providers.id,
@@ -61,13 +70,15 @@ function mapWrapperToProviderItems(wrappers: ProviderWrapper[]): ProviderItem[] 
   }))
 }
 
+/** 显示会话标题和当前模型，并处理重命名和标题生成，接收侧栏折叠、on展开侧栏、显示窗口控制区域、动画窗口控制区域，返回组件内容 */
 export function ChatHeader({
   sidebarCollapsed,
   onExpandSidebar,
   showWindowControlSpace,
   animateWindowControlSpace,
 }: ChatHeaderProps) {
-  const { t } = useTranslation()
+  const { t } = useTranslation() // 获取当前语言的翻译方法
+  /** 从状态仓库读取当前会话编号、重命名会话、生成标题草稿、标题、是否有消息列表、会话运行配置、消息列表 */
   const {
     currentConversationId,
     renameConversation,
@@ -77,9 +88,11 @@ export function ChatHeader({
     sessionRunConfig,
     messages,
   } = useChatStore(useShallow((state) => {
+    /** 当前会话 */
     const currentConversation = state.conversations.find(
       conversation => conversation.id === state.currentConversationId
     )
+    /** 会话消息列表 */
     const conversationMessages = state.currentConversationId
       ? (state.messages[state.currentConversationId] ?? EMPTY_MESSAGES)
       : EMPTY_MESSAGES
@@ -96,18 +109,20 @@ export function ChatHeader({
       messages: conversationMessages,
     }
   }))
-  const providers = useSettingsStore((state) => state.providers)
-  const [editing, setEditing] = useState(false)
-  const [editValue, setEditValue] = useState('')
-  const [isGeneratingTitle, setIsGeneratingTitle] = useState(false)
+  const providers = useSettingsStore((state) => state.providers) // 从状态仓库读取服务商列表
+  const [editing, setEditing] = useState(false) // 正在编辑及其更新方法
+  const [editValue, setEditValue] = useState('') // 编辑值及其更新方法
+  const [isGeneratingTitle, setIsGeneratingTitle] = useState(false) // 是否正在生成标题及其更新方法
 
-  const displayTitle = title ?? t('chat.newChat')
+  const displayTitle = title ?? t('chat.newChat') // 显示标题
 
+  /** 启动编辑，无返回值 */
   const startEdit = () => {
     setEditValue(displayTitle)
     setEditing(true)
   }
 
+  /** 保存编辑，无返回值 */
   const saveEdit = () => {
     if (editValue.trim() && currentConversationId) {
       void renameConversation(currentConversationId, editValue.trim())
@@ -115,20 +130,24 @@ export function ChatHeader({
     setEditing(false)
   }
 
+  /** 解析标题配置起点服务商列表，接收模型服务商列表，返回对应的处理结果 */
   const resolveTitleConfigFromProviders = (providerList: ProviderItem[]) => {
+    /** 最新模型名称 */
     const latestModelName = [...messages]
       .reverse()
       .find((message) => message.modelName)?.modelName
 
-    const enabledProviders = providerList.filter((provider) => provider.enabled)
+    const enabledProviders = providerList.filter((provider) => provider.enabled) // 启用状态服务商列表
     if (enabledProviders.length === 0) return null
 
+    /** 匹配模型服务商 */
     const matchingProvider = latestModelName
       ? enabledProviders.find((provider) =>
           provider.models.some((model) => model.enable && model.model === latestModelName)
         )
       : null
 
+    /** 选中项模型服务商 */
     const selectedProvider =
       matchingProvider ??
       enabledProviders.find((provider) => provider.is_default) ??
@@ -136,27 +155,28 @@ export function ChatHeader({
 
     if (!selectedProvider) return null
 
-    const selectedModel = pickProviderModel(selectedProvider, latestModelName)
+    const selectedModel = pickProviderModel(selectedProvider, latestModelName) // 选中项模型
     if (!selectedModel) return null
 
     return {
       baseUrl: selectedProvider.base_url,
       apiKey: selectedProvider.api_key,
       modelName: selectedModel.model,
-      providerType: selectedProvider.provider_type as ProviderType,
+      providerType: resolveProviderType(selectedProvider.provider_type),
     }
   }
 
-  const fallbackTitleConfig = sessionRunConfig ?? resolveTitleConfigFromProviders(providers)
+  const fallbackTitleConfig = sessionRunConfig ?? resolveTitleConfigFromProviders(providers) // 回退标题配置
 
+  /** 重新生成标题，完成后结束异步任务 */
   const regenerateTitle = async () => {
     if (!currentConversationId || isGeneratingTitle) return
 
     setIsGeneratingTitle(true)
     try {
-      let titleConfig = fallbackTitleConfig
+      let titleConfig = fallbackTitleConfig // 标题配置
       if (!titleConfig) {
-        const providersResult = await ProviderBinding.ListProviders({})
+        const providersResult = await ProviderBinding.ListProviders({}) // 保存服务商列表结果
         titleConfig = providersResult?.providers
           ? resolveTitleConfigFromProviders(mapWrapperToProviderItems(providersResult.providers))
           : null
@@ -164,7 +184,7 @@ export function ChatHeader({
 
       if (!titleConfig) return
 
-      const nextTitle = await generateTitleDraft(currentConversationId, titleConfig)
+      const nextTitle = await generateTitleDraft(currentConversationId, titleConfig) // 保存下一项标题
       if (nextTitle) {
         setEditValue(nextTitle)
       }
@@ -192,7 +212,7 @@ export function ChatHeader({
       {editing ? (
         <>
           <input
-            className="flex-1 bg-transparent border-b border-primary outline-none text-lg font-medium text-foreground"
+            className="flex-1 bg-transparent border-b border-primary outline-hidden text-lg font-medium text-foreground"
             value={editValue}
             onChange={e => setEditValue(e.target.value)}
             onKeyDown={e => {

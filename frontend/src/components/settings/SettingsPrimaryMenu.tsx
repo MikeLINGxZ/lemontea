@@ -3,14 +3,20 @@ import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import type { SettingsPrimaryTab } from '@/types/settings'
 
+/** 渲染设置主操作菜单界面，接收组件输入属性，返回组件内容 */
 export function SettingsPrimaryMenu(props: {
+  /** 当前标签页 */
   activeTab: SettingsPrimaryTab
+  /** 处理本次变更事件，接收标签页，无返回值 */
   onChange: (tab: SettingsPrimaryTab) => void
+  /** 隐藏页头 */
   hideHeader?: boolean
+  /** 是否采用窄屏布局 */
   isH5?: boolean
 }) {
-  const { t } = useTranslation()
-  const menuItems: { key: SettingsPrimaryTab; label: string; icon: typeof SlidersHorizontal }[] = [
+  const { t } = useTranslation() // 获取当前语言的翻译方法
+  /** 菜单条目列表 */
+  const menuItems: { /* 键 */ key: SettingsPrimaryTab; /* 标签 */ label: string; /* 图标 */ icon: typeof SlidersHorizontal }[] = [
     { key: 'general', label: t('settingsPage.primary.general'), icon: SlidersHorizontal },
     { key: 'providers', label: t('settingsPage.primary.providers'), icon: Package2 },
     { key: 'plugins', label: t('settingsPage.primary.plugins'), icon: Blocks },

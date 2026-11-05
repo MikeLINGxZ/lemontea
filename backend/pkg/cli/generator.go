@@ -7,8 +7,10 @@ import (
 	"strings"
 )
 
+// 上限生成器帮助字符列表
 const maxGeneratorHelpChars = 12000
 
+// 清单生成器系统提示词
 const manifestGeneratorSystemPrompt = `You convert a CLI tool's --help output into a JSON manifest for the Lemontea CLI plugin system.
 
 The manifest schema is:
@@ -42,28 +44,34 @@ Rules:
 - output_mode: prefer "json" if the CLI has a --json flag for that subcommand, else "text".
 - Return ONLY the JSON object, no prose.`
 
-// OneshotCaller is the injected LLM dependency for manifest generation.
+// OneshotCaller 是生成清单时注入的模型调用依赖
 type OneshotCaller func(ctx context.Context, system, user string) (string, error)
 
-// GenerateParams contains the inputs required to draft a CLI manifest.
+// GenerateParams 包含生成 CLI 清单草稿所需的输入
 type GenerateParams struct {
-	HelpText    string
+	// 帮助文本
+	HelpText string
+	// 包名名称
 	PackageName string
+	// 包名元信息
 	PackageMeta PackageMeta
-	Executable  string
-	Caller      OneshotCaller
+	// 可执行文件
+	Executable string
+	// 调用方
+	Caller OneshotCaller
 }
 
-// Generate asks an LLM to draft a manifest and falls back to an empty-tools stub when parsing/validation fails.
+// Generate 请求模型起草清单，解析或校验失败时返回不含工具的最简清单
+// 接收本次调用的上下文、生成参数，返回清单及可能发生的错误
 func Generate(ctx context.Context, p GenerateParams) (Manifest, error) {
-	userPrompt := buildGeneratorUserPrompt(p)
-	raw, err := p.Caller(ctx, manifestGeneratorSystemPrompt, userPrompt)
+	userPrompt := buildGeneratorUserPrompt(p)                            // 用户提示词
+	raw, err := p.Caller(ctx, manifestGeneratorSystemPrompt, userPrompt) // 尚未解析的原始数据、处理调用方时的错误
 	if err != nil {
 		log.Printf("cli manifest generator caller failed: %v", err)
 		return stubManifest(p), nil
 	}
 
-	manifest, parseErr := parseGeneratedManifest(raw)
+	manifest, parseErr := parseGeneratedManifest(raw) // 清单、解析生成结果清单时的错误
 	if parseErr != nil {
 		log.Printf("cli manifest generator parse failed: %v", parseErr)
 		return stubManifest(p), nil
@@ -75,20 +83,22 @@ func Generate(ctx context.Context, p GenerateParams) (Manifest, error) {
 	if len(manifest.LoginCommand) == 0 {
 		manifest.LoginCommand = guessLoginCommand(p.HelpText)
 	}
-	if validateErr := Validate(manifest); validateErr != nil {
+	validateErr := Validate(manifest) // 校验当前数据时的错误
+	if validateErr != nil {
 		log.Printf("cli manifest generator validation failed: %v", validateErr)
 		return stubManifest(p), nil
 	}
 	return manifest, nil
 }
 
-// guessLoginCommand scans CLI --help output for a top-level auth-like subcommand
-// and returns the canonical login invocation. auth/oauth are expanded to
-// ["<name>", "login"] (gh, gcloud, lark-cli convention); login/signin stay as one element.
-// Returns nil when nothing matches.
+// guessLoginCommand 从 CLI 的 --help 输出中查找顶层认证子命令
+// 返回约定的登录参数，其中 auth 和 oauth 会展开
+// 为 ["<name>", "login"]（沿用 gh、gcloud、lark-cli 的约定），login 和 signin 保持为单项
+// 没有匹配项时返回 nil
 func guessLoginCommand(helpText string) []string {
+	// 遍历分栏帮助文本数量，逐项取得行
 	for _, line := range strings.Split(helpText, "\n") {
-		fields := strings.Fields(line)
+		fields := strings.Fields(line) // 字段
 		if len(fields) < 1 {
 			continue
 		}
@@ -102,7 +112,8 @@ func guessLoginCommand(helpText string) []string {
 	return nil
 }
 
-// buildGeneratorUserPrompt renders the task-specific prompt payload for one CLI package.
+// buildGeneratorUserPrompt 生成指定 CLI 包对应的用户提示词
+// 接收生成参数，返回文本
 func buildGeneratorUserPrompt(p GenerateParams) string {
 	return "Package: " + p.PackageName + " v" + p.PackageMeta.Version + "\n" +
 		"Description: " + p.PackageMeta.Description + "\n" +
@@ -110,50 +121,57 @@ func buildGeneratorUserPrompt(p GenerateParams) string {
 		"--help output:\n```\n" + clampGeneratorHelpText(p.HelpText) + "\n```"
 }
 
-// clampGeneratorHelpText trims oversized help output so the model prompt stays responsive on verbose CLIs.
+// clampGeneratorHelpText 截断过长的帮助输出，避免提示词过长拖慢模型响应
+// 接收帮助文本，返回文本
 func clampGeneratorHelpText(helpText string) string {
-	trimmed := strings.TrimSpace(helpText)
+	trimmed := strings.TrimSpace(helpText) // 已去除空白
 	if len(trimmed) <= maxGeneratorHelpChars {
 		return trimmed
 	}
 
+	// 已省略标记
 	const omittedMarker = "\n...\n[help output truncated]\n...\n"
-	headLen := 8000
-	tailLen := maxGeneratorHelpChars - headLen - len(omittedMarker)
+	headLen := 8000                                                 // 开头长度
+	tailLen := maxGeneratorHelpChars - headLen - len(omittedMarker) // 末尾长度
 	if tailLen < 0 {
 		tailLen = 0
 	}
 	if headLen > len(trimmed) {
 		headLen = len(trimmed)
 	}
-	start := trimmed[:headLen]
-	end := ""
+	start := trimmed[:headLen] // 开始
+	end := ""                  // 结束
 	if tailLen > 0 && tailLen < len(trimmed)-headLen {
 		end = trimmed[len(trimmed)-tailLen:]
 	}
 	return start + omittedMarker + end
 }
 
-// parseGeneratedManifest decodes raw or fenced JSON from the model output.
+// parseGeneratedManifest 解码模型输出中的原始 JSON 或代码围栏内的 JSON
+// 接收尚未解析的原始数据，返回清单及可能发生的错误
 func parseGeneratedManifest(raw string) (Manifest, error) {
-	trimmed := strings.TrimSpace(raw)
+	trimmed := strings.TrimSpace(raw) // 已去除空白
+	// 清单
 	var manifest Manifest
-	if err := json.Unmarshal([]byte(trimmed), &manifest); err == nil {
+	decodeErr := json.Unmarshal([]byte(trimmed), &manifest) // 解析序列化内容时的错误
+	if decodeErr == nil {
 		return manifest, nil
 	}
 
-	start := strings.Index(trimmed, "{")
-	end := strings.LastIndex(trimmed, "}")
+	start := strings.Index(trimmed, "{")   // 开始
+	end := strings.LastIndex(trimmed, "}") // 结束
 	if start < 0 || end < 0 || end < start {
 		return Manifest{}, json.Unmarshal([]byte(trimmed), &manifest)
 	}
-	if err := json.Unmarshal([]byte(trimmed[start:end+1]), &manifest); err != nil {
-		return Manifest{}, err
+	decodeErr2 := json.Unmarshal([]byte(trimmed[start:end+1]), &manifest) // 解码错误
+	if decodeErr2 != nil {
+		return Manifest{}, decodeErr2
 	}
 	return manifest, nil
 }
 
-// stubManifest creates the smallest editable manifest we can safely persist.
+// stubManifest 创建可安全保存并供后续编辑的最简清单
+// 接收生成参数，返回清单
 func stubManifest(p GenerateParams) Manifest {
 	return Manifest{
 		Name:        p.PackageName,

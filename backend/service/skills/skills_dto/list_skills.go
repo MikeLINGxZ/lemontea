@@ -1,18 +1,24 @@
 package skills_dto
 
-// ListSkillsInput is the request payload for listing all skills.
+// ListSkillsInput 是查询所有技能的请求
 type ListSkillsInput struct{}
 
-// ListSkillsOutput returns all known skills.
+// ListSkillsOutput 返回所有已知技能
 type ListSkillsOutput struct {
+	// 技能列表
 	Skills []SkillItem `json:"skills"`
 }
 
-// SkillItem is the view-model representation of one skill returned to the frontend.
+// SkillItem 表示返回给前端的一项技能
 type SkillItem struct {
-	Name        string `json:"name"`
+	// 名称
+	Name string `json:"name"`
+	// 描述
 	Description string `json:"description"`
-	Body        string `json:"body,omitempty"`
-	Source      string `json:"source"`
-	Disabled    bool   `json:"disabled"`
+	// 正文
+	Body string `json:"body,omitempty"`
+	// 来源
+	Source string `json:"source"`
+	// 禁用状态
+	Disabled bool `json:"disabled"`
 }

@@ -1,22 +1,29 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+/** CLI安装起点文档模态框组件接收的属性 */
 type Props = {
+  /** 展开 */
   open: boolean
+  /** 处理关闭事件，无返回值 */
   onClose: () => void
+  /** 处理提交事件，接收内容，无返回值 */
   onSubmit: (content: string) => void
 }
 
+/** 渲染CLI安装起点文档模态框界面，接收展开、on关闭、on提交，返回组件内容 */
 export function CliInstallFromDocsModal({ open, onClose, onSubmit }: Props) {
-  const { t } = useTranslation()
-  const [content, setContent] = useState('')
+  const { t } = useTranslation() // 获取当前语言的翻译方法
+  const [content, setContent] = useState('') // 内容及其更新方法
 
+  /** 同步外部状态并管理本次副作用的生命周期 */
   useEffect(() => {
     if (!open) setContent('')
   }, [open])
 
   if (!open) return null
 
+  /** 处理提交，无返回值 */
   const handleSubmit = () => {
     if (!content.trim()) return
     onSubmit(content.trim())

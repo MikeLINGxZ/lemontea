@@ -11,30 +11,44 @@ import (
 	pkgProvider "gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/provider"
 )
 
-// ToolConfirmDecisionInput describes the tool call under review for runtime confirmation.
+// ToolConfirmDecisionInput 描述等待运行时确认决策的工具调用
 type ToolConfirmDecisionInput struct {
-	ToolName     string
-	Arguments    string
-	Purpose      string
-	Meta         tools.ToolMeta
-	ModelName    string
-	BaseURL      string
-	APIKey       string
+	// 工具名称
+	ToolName string
+	// 实参
+	Arguments string
+	// 用途
+	Purpose string
+	// 元信息
+	Meta tools.ToolMeta
+	// 模型名称
+	ModelName string
+	// 服务基础地址
+	BaseURL string
+	// API 密钥
+	APIKey string
+	// 提供商类型
 	ProviderType pkgProvider.Type
-	SessionID    uint
+	// 会话编号
+	SessionID uint
 }
 
-// ToolConfirmDecision is the structured result returned by a runtime confirmation decider.
+// ToolConfirmDecision 保存运行时确认决策器返回的结构化结果
 type ToolConfirmDecision struct {
+	// 需要确认
 	RequireConfirm bool
-	Deny           bool
-	Reason         string
-	Source         string
+	// 禁止
+	Deny bool
+	// 原因
+	Reason string
+	// 来源
+	Source string
 }
 
-// ToolConfirmDecider decides whether one tool call should require user confirmation.
+// ToolConfirmDecider 判断单次工具调用是否需要用户确认
 type ToolConfirmDecider func(ctx context.Context, input ToolConfirmDecisionInput) (ToolConfirmDecision, error)
 
+// 工具确认决策系统提示词
 const toolConfirmDecisionSystemPrompt = `You decide whether a tool call should require user confirmation before execution.
 
 Return strict JSON:
@@ -49,15 +63,17 @@ Guidelines:
 - If the risk is uncertain, choose true.
 - Judge this specific invocation, not just the tool name.`
 
+// 运行默认工具确认策略并为无法判定的结果提供回退，接收调用上下文和请求参数，返回工具确认决策及可能发生的错误
 func defaultToolConfirmDecider(ctx context.Context, input ToolConfirmDecisionInput) (ToolConfirmDecision, error) {
-	if decision, ok := deterministicToolConfirmDecision(input); ok {
+	if /* 决策、是否成功取得对应值 */ decision, ok := deterministicToolConfirmDecision(input); ok {
 		return decision, nil
 	}
 	if strings.TrimSpace(input.ModelName) == "" || strings.TrimSpace(input.BaseURL) == "" {
 		return heuristicToolConfirmDecision(input), nil
 	}
 
-	userPrompt := buildToolConfirmDecisionPrompt(input)
+	userPrompt := buildToolConfirmDecisionPrompt(input) // 用户提示词
+	// 远程服务响应、处理单次请求完成时的错误
 	resp, err := OneshotComplete(ctx, OneshotRequest{
 		BaseURL:      input.BaseURL,
 		APIKey:       input.APIKey,
@@ -69,17 +85,21 @@ func defaultToolConfirmDecider(ctx context.Context, input ToolConfirmDecisionInp
 		Timeout:      20 * time.Second,
 	})
 	if err != nil {
-		fallback := heuristicToolConfirmDecision(input)
+		fallback := heuristicToolConfirmDecision(input) // 回退
 		fallback.Reason = "fallback after decider error"
 		return fallback, nil
 	}
 
+	// 解析结果
 	var parsed struct {
-		RequireConfirm bool   `json:"require_confirm"`
-		Reason         string `json:"reason"`
+		// 需要确认
+		RequireConfirm bool `json:"require_confirm"`
+		// 原因
+		Reason string `json:"reason"`
 	}
-	if err := json.Unmarshal([]byte(extractJSONObject(resp.Text)), &parsed); err != nil {
-		fallback := heuristicToolConfirmDecision(input)
+	decodeErr := json.Unmarshal([]byte(extractJSONObject(resp.Text)), &parsed) // 解析序列化内容时的错误
+	if decodeErr != nil {
+		fallback := heuristicToolConfirmDecision(input) // 回退
 		fallback.Reason = "fallback after parse error"
 		return fallback, nil
 	}
@@ -91,7 +111,9 @@ func defaultToolConfirmDecider(ctx context.Context, input ToolConfirmDecisionInp
 	}, nil
 }
 
+// 构造供模型判断工具风险的提示词，接收工具确认决策输入，返回文本
 func buildToolConfirmDecisionPrompt(input ToolConfirmDecisionInput) string {
+	// 构建器
 	var builder strings.Builder
 	builder.WriteString("Tool name: ")
 	builder.WriteString(input.ToolName)
@@ -109,6 +131,7 @@ func buildToolConfirmDecisionPrompt(input ToolConfirmDecisionInput) string {
 	return builder.String()
 }
 
+// 根据工具与参数的可识别特征进行风险判断，接收工具确认决策输入，返回工具确认决策
 func heuristicToolConfirmDecision(input ToolConfirmDecisionInput) ToolConfirmDecision {
 	if input.Meta.RequiresConfirm {
 		return ToolConfirmDecision{
@@ -118,16 +141,20 @@ func heuristicToolConfirmDecision(input ToolConfirmDecisionInput) ToolConfirmDec
 		}
 	}
 
+	// 小写
 	lower := strings.ToLower(strings.Join([]string{input.ToolName, input.Purpose, input.Arguments}, " "))
+	// 有风险检索词
 	riskyTerms := []string{
 		"delete", "remove", "destroy", "drop", "send", "post ", "publish", "create",
 		"update", "write", "upload", "execute", "shell", "command", "prod", "production",
 		"deploy", "restart", "kill", "token", "secret", "config", "permission",
 	}
+	// 安全检索词
 	safeTerms := []string{
 		"list", "get", "show", "read", "fetch", "query", "status", "inspect", "describe",
 	}
 
+	// 遍历有风险检索词，逐项取得终端
 	for _, term := range riskyTerms {
 		if strings.Contains(lower, term) {
 			return ToolConfirmDecision{
@@ -137,6 +164,7 @@ func heuristicToolConfirmDecision(input ToolConfirmDecisionInput) ToolConfirmDec
 			}
 		}
 	}
+	// 遍历安全检索词，逐项取得终端
 	for _, term := range safeTerms {
 		if strings.Contains(lower, term) {
 			return ToolConfirmDecision{
@@ -153,16 +181,17 @@ func heuristicToolConfirmDecision(input ToolConfirmDecisionInput) ToolConfirmDec
 	}
 }
 
-// deterministicToolConfirmDecision applies product safety rules that do not need model judgment.
+// deterministicToolConfirmDecision 应用无需模型判断的安全规则
+// 接收工具确认决策输入，返回工具确认决策、是否满足条件
 func deterministicToolConfirmDecision(input ToolConfirmDecisionInput) (ToolConfirmDecision, bool) {
 	if input.ToolName != "shell" {
 		return ToolConfirmDecision{}, false
 	}
-	command := shellCommandFromArgs(input.Arguments)
+	command := shellCommandFromArgs(input.Arguments) // 命令
 	if command == "" {
 		return ToolConfirmDecision{RequireConfirm: true, Reason: "missing shell command", Source: "policy"}, true
 	}
-	normalized := normalizeShellCommand(command)
+	normalized := normalizeShellCommand(command) // 规范化值
 	if isDeniedShellCommand(normalized) {
 		return ToolConfirmDecision{
 			Deny:           true,
@@ -188,34 +217,43 @@ func deterministicToolConfirmDecision(input ToolConfirmDecisionInput) (ToolConfi
 	return ToolConfirmDecision{}, false
 }
 
-// shellCommandFromArgs extracts the command field from a shell tool argument payload.
+// shellCommandFromArgs 从 Shell 工具的参数载荷中提取 command 字段
+// 接收参数，返回文本
 func shellCommandFromArgs(args string) string {
+	// 解析结果
 	var parsed struct {
+		// 命令
 		Command string `json:"command"`
 	}
-	if err := json.Unmarshal([]byte(args), &parsed); err != nil {
+	err := json.Unmarshal([]byte(args), &parsed) // 解析序列化内容时的错误
+	if err != nil {
 		return ""
 	}
 	return strings.TrimSpace(parsed.Command)
 }
 
-// normalizeShellCommand trims shell wrappers so simple policy matching remains stable.
+// normalizeShellCommand 移除 Shell 包装，使简单规则能稳定匹配
+// 接收命令，返回文本
 func normalizeShellCommand(command string) string {
-	lower := strings.ToLower(strings.TrimSpace(command))
+	lower := strings.ToLower(strings.TrimSpace(command)) // 小写
 	lower = strings.TrimPrefix(lower, "command ")
 	return strings.Join(strings.Fields(lower), " ")
 }
 
-// isSafeShellCommand recognizes read-only commands useful for ordinary user tasks.
+// isSafeShellCommand 判断命令是否属于日常任务使用的只读命令
+// 接收命令，返回是否满足条件
 func isSafeShellCommand(command string) bool {
+	// 安全精确值
 	safeExact := []string{
 		"pwd",
 	}
+	// 遍历安全精确值，逐项取得精确值
 	for _, exact := range safeExact {
 		if command == exact {
 			return true
 		}
 	}
+	// 安全前缀列表
 	safePrefixes := []string{
 		"ls ",
 		"find ",
@@ -225,6 +263,7 @@ func isSafeShellCommand(command string) bool {
 		"file ",
 		"mdls ",
 	}
+	// 遍历安全前缀列表，逐项取得前缀
 	for _, prefix := range safePrefixes {
 		if command == strings.TrimSpace(prefix) || strings.HasPrefix(command, prefix) {
 			return true
@@ -233,8 +272,10 @@ func isSafeShellCommand(command string) bool {
 	return false
 }
 
-// isRiskyShellCommand recognizes commands that can change files and should ask first.
+// isRiskyShellCommand 判断命令是否可能修改文件并需要事先确认
+// 接收命令，返回是否满足条件
 func isRiskyShellCommand(command string) bool {
+	// 有风险前缀列表
 	riskyPrefixes := []string{
 		"mv ",
 		"cp ",
@@ -248,6 +289,7 @@ func isRiskyShellCommand(command string) bool {
 		"unzip ",
 		"tar ",
 	}
+	// 遍历有风险前缀列表，逐项取得前缀
 	for _, prefix := range riskyPrefixes {
 		if strings.HasPrefix(command, prefix) {
 			return true
@@ -256,8 +298,10 @@ func isRiskyShellCommand(command string) bool {
 	return false
 }
 
-// isDeniedShellCommand blocks clearly destructive commands by default.
+// isDeniedShellCommand 判断命令是否具有明显破坏性并默认拦截
+// 接收命令，返回是否满足条件
 func isDeniedShellCommand(command string) bool {
+	// 已拒绝前缀列表
 	deniedPrefixes := []string{
 		"rm ",
 		"rm -",
@@ -266,11 +310,13 @@ func isDeniedShellCommand(command string) bool {
 		"mkfs",
 		"diskutil erase",
 	}
+	// 遍历已拒绝前缀列表，逐项取得前缀
 	for _, prefix := range deniedPrefixes {
 		if strings.HasPrefix(command, prefix) {
 			return true
 		}
 	}
+	// 已拒绝片段列表
 	deniedFragments := []string{
 		"; rm ",
 		"&& rm ",
@@ -281,6 +327,7 @@ func isDeniedShellCommand(command string) bool {
 		"|| rmdir ",
 		"| rmdir ",
 	}
+	// 遍历已拒绝片段列表，逐项取得片段
 	for _, fragment := range deniedFragments {
 		if strings.Contains(command, fragment) {
 			return true
@@ -289,10 +336,11 @@ func isDeniedShellCommand(command string) bool {
 	return false
 }
 
+// 从包含额外文本的响应中定位 JSON 对象，接收尚未解析的原始数据，返回文本
 func extractJSONObject(raw string) string {
-	trimmed := strings.TrimSpace(raw)
-	start := strings.Index(trimmed, "{")
-	end := strings.LastIndex(trimmed, "}")
+	trimmed := strings.TrimSpace(raw)      // 已去除空白
+	start := strings.Index(trimmed, "{")   // 开始
+	end := strings.LastIndex(trimmed, "}") // 结束
 	if start >= 0 && end >= start {
 		return trimmed[start : end+1]
 	}

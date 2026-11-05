@@ -11,19 +11,20 @@ import (
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/dir"
 )
 
-// StartLoginCommand loads the named plugin's manifest, builds env per manifest.Isolation,
-// and spawns a LoginSession running `manifest.Executable + argv`. The caller supplies
-// argv (typically one step from manifest.ResolveLoginSteps()), keeping multi-step
-// orchestration out of this layer. Concurrency-conflict detection is the service layer's job.
+// StartLoginCommand 读取指定插件的清单，并根据 manifest.Isolation 构造环境变量
+// 启动执行 `manifest.Executable + argv` 的 LoginSession
+// argv 由调用方提供，通常取自 manifest.ResolveLoginSteps() 的单个步骤
+// 由调用方编排多个步骤，服务层负责检测并发冲突
+// 接收本次调用的上下文、当前名称、命令参数，返回登录会话及可能发生的错误
 func (m *Manager) StartLoginCommand(ctx context.Context, name string, argv []string) (*LoginSession, error) {
 	if len(argv) == 0 {
 		return nil, errors.New("cli: login step has empty argv")
 	}
-	cliDataDir := filepath.Join(dir.CLIDataRoot(m.dataDir), name)
-	installDir := filepath.Join(dir.CLIRoot(m.dataDir), name)
-	manifestPath := filepath.Join(cliDataDir, "manifest.json")
+	cliDataDir := filepath.Join(dir.CLIDataRoot(m.dataDir), name) // CLI数据目录
+	installDir := filepath.Join(dir.CLIRoot(m.dataDir), name)     // 安装目录
+	manifestPath := filepath.Join(cliDataDir, "manifest.json")    // 清单路径
 
-	manifest, err := LoadManifest(manifestPath)
+	manifest, err := LoadManifest(manifestPath) // 清单、加载 CLI 扩展清单时的错误
 	if err != nil {
 		return nil, err
 	}
@@ -34,6 +35,7 @@ func (m *Manager) StartLoginCommand(ctx context.Context, name string, argv []str
 		}
 	}
 
+	// 环境变量
 	env := BuildEnv(EnvParams{
 		Isolation:  manifest.Isolation,
 		CLIDataDir: cliDataDir,
@@ -42,9 +44,9 @@ func (m *Manager) StartLoginCommand(ctx context.Context, name string, argv []str
 		ParentEnv:  os.Environ(),
 	})
 
-	// Pin Cwd to installDir so login scripts that resolve files relative to themselves
-	// (config templates, embedded node modules) work regardless of where the app was launched from.
-	// RunTool intentionally leaves Cwd unset because tool argv is fully resolved by the manifest.
+	// 将 Cwd 固定在 installDir，使登录脚本能稳定定位相对路径中的文件
+	// 例如配置模板和随包附带的 Node.js 模块，与应用的启动目录无关
+	// RunTool 的 argv 完全由清单解析，因此无需设置 Cwd
 	return StartLoginSession(ctx, LoginSessionParams{
 		Executable: manifest.Executable,
 		Argv:       argv,
@@ -53,18 +55,19 @@ func (m *Manager) StartLoginCommand(ctx context.Context, name string, argv []str
 	})
 }
 
-// StartLogin runs the first resolved login step. Retained for callers that have
-// always treated login as a single command; multi-step flows should call
-// StartLoginCommand once per step from manifest.ResolveLoginSteps().
-// Returns errors.New("cli: manifest has no login_command") when no steps are configured.
+// StartLogin 执行解析出的第一个登录步骤，供按单命令登录的既有调用方使用
+// 多步骤流程应使用 manifest.ResolveLoginSteps() 获取步骤
+// 并对每个步骤调用一次 StartLoginCommand
+// 未配置步骤时返回 errors.New("cli: manifest has no login_command")
+// 接收本次调用的上下文、当前名称，返回登录会话及可能发生的错误
 func (m *Manager) StartLogin(ctx context.Context, name string) (*LoginSession, error) {
-	cliDataDir := filepath.Join(dir.CLIDataRoot(m.dataDir), name)
-	manifestPath := filepath.Join(cliDataDir, "manifest.json")
-	manifest, err := LoadManifest(manifestPath)
+	cliDataDir := filepath.Join(dir.CLIDataRoot(m.dataDir), name) // CLI数据目录
+	manifestPath := filepath.Join(cliDataDir, "manifest.json")    // 清单路径
+	manifest, err := LoadManifest(manifestPath)                   // 清单、加载 CLI 扩展清单时的错误
 	if err != nil {
 		return nil, err
 	}
-	steps := manifest.ResolveLoginSteps()
+	steps := manifest.ResolveLoginSteps() // 步骤列表
 	if len(steps) == 0 {
 		return nil, errors.New("cli: manifest has no login_command")
 	}

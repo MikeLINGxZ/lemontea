@@ -1,17 +1,23 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+/** CLI npm安装模态框组件接收的属性 */
 type Props = {
+  /** 展开 */
   open: boolean
+  /** 处理关闭事件，无返回值 */
   onClose: () => void
+  /** 处理提交事件，接收npm包名、名称，无返回值 */
   onSubmit: (npmPackage: string, name: string) => void
 }
 
+/** 渲染CLI npm安装模态框界面，接收展开、on关闭、on提交，返回组件内容 */
 export function CliNpmInstallModal({ open, onClose, onSubmit }: Props) {
-  const { t } = useTranslation()
-  const [npmPkg, setNpmPkg] = useState('')
-  const [name, setName] = useState('')
+  const { t } = useTranslation() // 获取当前语言的翻译方法
+  const [npmPkg, setNpmPkg] = useState('') // npm包名及其更新方法
+  const [name, setName] = useState('') // 名称及其更新方法
 
+  /** 同步外部状态并管理本次副作用的生命周期 */
   useEffect(() => {
     if (!open) {
       setNpmPkg('')
@@ -21,6 +27,7 @@ export function CliNpmInstallModal({ open, onClose, onSubmit }: Props) {
 
   if (!open) return null
 
+  /** 处理提交，无返回值 */
   const handleSubmit = () => {
     if (!npmPkg.trim()) return
     onSubmit(npmPkg.trim(), name.trim())

@@ -1,13 +1,13 @@
 [Desktop Entry]
 Version=1.0
-Name=My Product
-Comment=A init application
+Name=Lemontea
+Comment=A simple and easy-to-use ai assistant
 # The Exec line includes %u to pass the URL to the application
-Exec=/usr/local/bin/init %u
+Exec=/usr/local/bin/lemontea %u
 Terminal=false
 Type=Application
-Icon=init
+Icon=lemontea
 Categories=Utility;
-StartupWMClass=init
+StartupWMClass=lemontea
 
  

@@ -9,29 +9,35 @@ import { DeleteSkillInput, ListSkillsInput, ToggleSkillInput } from '@bindings/g
 import { SkillsListItem } from './SkillsListItem'
 import { SkillImportDialog } from './SkillImportDialog'
 import type { SkillItem } from '@/types/skills'
+import { normalizeSkill } from '@/lib/skills'
 
+/** 刷新技能列表并处理启用、导入和删除操作，返回组件内容 */
 export function SkillsList() {
-  const { t } = useTranslation()
-  const skills = useSettingsStore((s) => s.skills)
-  const setSkills = useSettingsStore((s) => s.setSkills)
-  const selectedSkillName = useSettingsStore((s) => s.selectedSkillName)
-  const setSelectedSkillName = useSettingsStore((s) => s.setSelectedSkillName)
-  const updateSkill = useSettingsStore((s) => s.updateSkill)
-  const removeSkill = useSettingsStore((s) => s.removeSkill)
-  const [importOpen, setImportOpen] = useState(false)
-  const [deleteTarget, setDeleteTarget] = useState<SkillItem | null>(null)
-  const [deleting, setDeleting] = useState(false)
+  const { t } = useTranslation() // 获取当前语言的翻译方法
+  const skills = useSettingsStore((s) => s.skills) // 从状态仓库读取技能列表
+  const setSkills = useSettingsStore((s) => s.setSkills) // 从状态仓库读取集合技能列表
+  const selectedSkillName = useSettingsStore((s) => s.selectedSkillName) // 从状态仓库读取选中项技能名称
+  const setSelectedSkillName = useSettingsStore((s) => s.setSelectedSkillName) // 从状态仓库读取集合选中项技能名称
+  const updateSkill = useSettingsStore((s) => s.updateSkill) // 从状态仓库读取更新技能
+  const removeSkill = useSettingsStore((s) => s.removeSkill) // 从状态仓库读取移除技能
+  const [importOpen, setImportOpen] = useState(false) // 导入展开及其更新方法
+  const [deleteTarget, setDeleteTarget] = useState<SkillItem | null>(null) // 删除目标及其更新方法
+  const [deleting, setDeleting] = useState(false) // 删除中及其更新方法
 
+  /** 刷新处理，完成后结束异步任务 */
   const refresh = useCallback(async () => {
-    const result = await SkillsBinding.ListSkills(new ListSkillsInput())
-    setSkills((result?.skills ?? []) as unknown as SkillItem[])
+    const result = await SkillsBinding.ListSkills(new ListSkillsInput()) // 保存本次调用的结果
+    setSkills((result?.skills ?? []).map(normalizeSkill))
   }, [setSkills])
 
+  /** 同步外部状态并管理本次副作用的生命周期 */
   useEffect(() => {
     void refresh()
   }, [refresh])
 
+  /** 同步外部状态并管理本次副作用的生命周期 */
   useEffect(() => {
+    /** 处理焦点，无返回值 */
     const handleFocus = () => {
       void refresh()
     }
@@ -39,20 +45,23 @@ export function SkillsList() {
     return () => window.removeEventListener('focus', handleFocus)
   }, [refresh])
 
+  /** 处理切换，接收当前条目，完成后结束异步任务 */
   const handleToggle = useCallback(async (item: SkillItem) => {
-    const nextDisabled = !item.disabled
-    const optimistic: SkillItem = { ...item, disabled: nextDisabled }
+    const nextDisabled = !item.disabled // 下一项禁用状态
+    const optimistic: SkillItem = { ...item, disabled: nextDisabled } // 乐观更新
     updateSkill(optimistic)
     try {
+      /** 保存本次调用的结果 */
       const result = await SkillsBinding.ToggleSkill(new ToggleSkillInput({ name: item.name, disabled: nextDisabled }))
       if (result?.skill) {
-        updateSkill(result.skill as unknown as SkillItem)
+        updateSkill(normalizeSkill(result.skill))
       }
     } catch {
       updateSkill(item)
     }
   }, [updateSkill])
 
+  /** 处理删除，完成后结束异步任务 */
   const handleDelete = useCallback(async () => {
     if (!deleteTarget) return
     if (deleting) return
@@ -69,6 +78,7 @@ export function SkillsList() {
     }
   }, [deleteTarget, deleting, removeSkill, selectedSkillName, setSelectedSkillName])
 
+  /** 处理开始新，无返回值 */
   const handleStartNew = () => { void Window.OpenAddSkill({}) }
 
   return (

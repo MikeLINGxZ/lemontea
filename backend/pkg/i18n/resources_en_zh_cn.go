@@ -1,5 +1,6 @@
 package i18n
 
+// 中文中文
 var zhCN = map[string]string{
 	"app.window.settings_title":                 "设置",
 	"select.folder":                             "选择文件夹",
@@ -18,7 +19,7 @@ var zhCN = map[string]string{
 	"select.file":                               "选择文件",
 	"ierror.unknown_error":                      "未知错误",
 
-	// Agent
+	// 智能体消息
 	"ierror.agent.send_message":          "发送消息失败",
 	"ierror.agent.no_confirm":            "没有活跃的确认请求",
 	"ierror.agent.create_session":        "创建会话失败",
@@ -47,13 +48,13 @@ var zhCN = map[string]string{
 	"ierror.memory.stats":                "获取记忆统计失败",
 	"ierror.memory.settings":             "保存记忆设置失败",
 
-	// File
+	// 文件消息
 	"ierror.file.select_folder":  "选择文件夹失败",
 	"ierror.file.select_file":    "选择文件失败",
 	"ierror.file.open":           "打开文件失败",
 	"ierror.file.save_temp_file": "保存临时文件失败",
 
-	// Settings
+	// 设置消息
 	"ierror.settings.load_config":         "加载配置失败",
 	"ierror.settings.save_config":         "保存配置失败",
 	"ierror.settings.create_dir":          "创建目录失败",
@@ -63,7 +64,7 @@ var zhCN = map[string]string{
 	"ierror.settings.write_locator":       "写入数据目录定位符失败",
 	"ierror.settings.target_dir_required": "目标数据目录不能为空",
 
-	// Provider
+	// 供应商消息
 	"ierror.provider.create":           "创建提供商失败",
 	"ierror.provider.create_models":    "创建模型失败",
 	"ierror.provider.list_providers":   "获取提供商列表失败",
@@ -75,12 +76,12 @@ var zhCN = map[string]string{
 	"ierror.provider.set_default":      "设置默认提供商失败",
 	"ierror.provider.fetch_model_list": "获取模型列表失败",
 
-	// Onboarding
+	// 首次启动引导消息
 	"ierror.onboarding.read_init":  "读取初始化状态失败",
 	"ierror.onboarding.write_init": "写入初始化状态失败",
 	"ierror.onboarding.complete":   "完成初始化失败",
 
-	// Runtime
+	// 运行时消息
 	"ierror.runtime.unsupported_os":    "不支持的操作系统或架构",
 	"ierror.runtime.fetch_sums":        "获取校验文件失败",
 	"ierror.runtime.checksum_mismatch": "运行时安装包校验失败",
@@ -89,7 +90,7 @@ var zhCN = map[string]string{
 	"ierror.runtime.write_state":       "写入运行时状态失败",
 	"ierror.runtime.read_state":        "读取运行时状态失败",
 
-	// CLI
+	// CLI 插件消息
 	"ierror.cli.runtime_unavailable":      "插件运行时尚未就绪，请先完成 onboarding",
 	"ierror.cli.install_failed":           "CLI 安装失败",
 	"ierror.cli.reset_data_failed":        "重置 CLI 数据失败",
@@ -98,19 +99,19 @@ var zhCN = map[string]string{
 	"ierror.cli.manifest_generate_failed": "生成 manifest 失败",
 	"ierror.cli.tool_not_found":           "未找到 CLI 工具",
 
-	// CLI login
+	// CLI 登录消息
 	"cli.login.session_conflict": "该 CLI 已有进行中的登录会话",
 	"cli.login.not_found":        "找不到对应的 CLI 登录会话",
 	"cli.login.no_command":       "该 CLI 的 manifest 未声明 login_command",
 	"cli.login.start_failed":     "启动 CLI 登录失败：{detail}",
 
-	// Terminal
+	// 终端消息
 	"ierror.terminal.list":        "获取终端列表失败",
 	"ierror.terminal.read_output": "读取终端输出失败",
 	"ierror.terminal.write_input": "写入终端输入失败",
 	"ierror.terminal.resize":      "调整终端大小失败",
 
-	// Skills
+	// 技能消息
 	"ierror.skills.load_failed":     "加载 skill 失败",
 	"ierror.skills.not_found":       "找不到 skill",
 	"ierror.skills.invalid_name":    "skill 名称不合法",

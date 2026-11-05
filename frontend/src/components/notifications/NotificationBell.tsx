@@ -5,13 +5,16 @@ import { useNotificationsStore } from '@/store/notificationsStore'
 import type { NotificationItem } from '@/types/notifications'
 import { FloatingChatPanel } from './FloatingChatPanel'
 
+/** 展示待处理通知数量，并提供打开会话和清除通知的操作，返回组件内容 */
 export function NotificationBell() {
-  const { t } = useTranslation()
-  const items = useNotificationsStore((state) => state.items)
-  const [open, setOpen] = useState(false)
+  const { t } = useTranslation() // 获取当前语言的翻译方法
+  const items = useNotificationsStore((state) => state.items) // 从状态仓库读取条目列表
+  const [open, setOpen] = useState(false) // 展开及其更新方法
+  /** 当前通知及其更新方法 */
   const [activeNotification, setActiveNotification] = useState<NotificationItem | null>(null)
 
-  const unresolvedCount = items.length
+  const unresolvedCount = items.length // 未处理数量
+  /** 排序结果条目列表 */
   const sortedItems = useMemo(
     () => [...items].sort((left, right) => right.created_at.localeCompare(left.created_at)),
     [items],

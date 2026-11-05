@@ -13,20 +13,22 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
-// Window management service
+// Window 管理应用窗口
 type Window struct {
+	// Wails 应用实例
 	wailsApp *application.App
 }
 
-// OpenSettings open the settings window
+// OpenSettings 打开设置窗口
+// 接收调用上下文和请求参数，返回操作结果及可能发生的错误
 func (p *Window) OpenSettings(ctx context.Context, input window_dto.OpenSettingsInput) (*window_dto.OpenSettingsOutput, error) {
-	tab := "settings"
+	tab := "settings" // 标签页
 	if input.Tab != "" {
 		tab = input.Tab
 	}
-	pageUrl := fmt.Sprintf("/?entry=settings&tab=%s", tab)
+	pageUrl := fmt.Sprintf("/?entry=settings&tab=%s", tab) // 页面地址
 
-	settingsWindow, ok := p.wailsApp.Window.GetByName(window_id.Settings)
+	settingsWindow, ok := p.wailsApp.Window.GetByName(window_id.Settings) // 设置窗口、是否成功取得对应值
 	if ok {
 		settingsWindow.SetURL(pageUrl)
 		p.showCenteredOnHomeScreen(settingsWindow)
@@ -51,10 +53,11 @@ func (p *Window) OpenSettings(ctx context.Context, input window_dto.OpenSettings
 	return &window_dto.OpenSettingsOutput{}, nil
 }
 
-// OpenAddProvider open the add provider window
+// OpenAddProvider 打开添加提供商窗口
+// 接收调用上下文和请求参数，返回操作结果及可能发生的错误
 func (p *Window) OpenAddProvider(ctx context.Context, input window_dto.OpenAddProviderInput) (*window_dto.OpenAddProviderOutput, error) {
 
-	addProviderWindow, ok := p.wailsApp.Window.GetByName(window_id.AddProvider)
+	addProviderWindow, ok := p.wailsApp.Window.GetByName(window_id.AddProvider) // 增加提供商窗口、是否成功取得对应值
 	if ok {
 		p.showCenteredOnHomeScreen(addProviderWindow)
 		return &window_dto.OpenAddProviderOutput{}, nil
@@ -78,9 +81,10 @@ func (p *Window) OpenAddProvider(ctx context.Context, input window_dto.OpenAddPr
 	return &window_dto.OpenAddProviderOutput{}, nil
 }
 
-// CloseAddProvider close the add provider window
+// CloseAddProvider 关闭添加提供商窗口
+// 接收调用上下文和请求参数，返回操作结果及可能发生的错误
 func (p *Window) CloseAddProvider(ctx context.Context, input window_dto.CloseAddProviderInput) (*window_dto.CloseAddProviderOutput, error) {
-	addProviderWindow, ok := p.wailsApp.Window.GetByName(window_id.AddProvider)
+	addProviderWindow, ok := p.wailsApp.Window.GetByName(window_id.AddProvider) // 增加提供商窗口、是否成功取得对应值
 	if ok {
 		addProviderWindow.Close()
 		return &window_dto.CloseAddProviderOutput{}, nil
@@ -88,9 +92,10 @@ func (p *Window) CloseAddProvider(ctx context.Context, input window_dto.CloseAdd
 	return &window_dto.CloseAddProviderOutput{}, nil
 }
 
-// OpenAddSkill opens or focuses the add skill window.
+// OpenAddSkill 打开添加技能窗口，窗口已存在时将其聚焦
+// 接收调用上下文和请求参数，返回操作结果及可能发生的错误
 func (p *Window) OpenAddSkill(ctx context.Context, input window_dto.OpenAddSkillInput) (*window_dto.OpenAddSkillOutput, error) {
-	addSkillWindow, ok := p.wailsApp.Window.GetByName(window_id.AddSkill)
+	addSkillWindow, ok := p.wailsApp.Window.GetByName(window_id.AddSkill) // 增加技能窗口、是否成功取得对应值
 	if ok {
 		p.showCenteredOnHomeScreen(addSkillWindow)
 		return &window_dto.OpenAddSkillOutput{}, nil
@@ -115,9 +120,10 @@ func (p *Window) OpenAddSkill(ctx context.Context, input window_dto.OpenAddSkill
 	return &window_dto.OpenAddSkillOutput{}, nil
 }
 
-// CloseAddSkill closes the add skill window.
+// CloseAddSkill 关闭添加技能窗口
+// 接收调用上下文和请求参数，返回操作结果及可能发生的错误
 func (p *Window) CloseAddSkill(ctx context.Context, input window_dto.CloseAddSkillInput) (*window_dto.CloseAddSkillOutput, error) {
-	addSkillWindow, ok := p.wailsApp.Window.GetByName(window_id.AddSkill)
+	addSkillWindow, ok := p.wailsApp.Window.GetByName(window_id.AddSkill) // 增加技能窗口、是否成功取得对应值
 	if ok {
 		addSkillWindow.Close()
 		return &window_dto.CloseAddSkillOutput{}, nil
@@ -125,9 +131,10 @@ func (p *Window) CloseAddSkill(ctx context.Context, input window_dto.CloseAddSki
 	return &window_dto.CloseAddSkillOutput{}, nil
 }
 
-// OpenAddMemory opens or focuses the add memory window.
+// OpenAddMemory 打开添加记忆窗口，窗口已存在时将其聚焦
+// 接收调用上下文和请求参数，返回操作结果及可能发生的错误
 func (p *Window) OpenAddMemory(ctx context.Context, input window_dto.OpenAddMemoryInput) (*window_dto.OpenAddMemoryOutput, error) {
-	addMemoryWindow, ok := p.wailsApp.Window.GetByName(window_id.AddMemory)
+	addMemoryWindow, ok := p.wailsApp.Window.GetByName(window_id.AddMemory) // 增加记忆窗口、是否成功取得对应值
 	if ok {
 		p.showCenteredOnHomeScreen(addMemoryWindow)
 		return &window_dto.OpenAddMemoryOutput{}, nil
@@ -152,9 +159,10 @@ func (p *Window) OpenAddMemory(ctx context.Context, input window_dto.OpenAddMemo
 	return &window_dto.OpenAddMemoryOutput{}, nil
 }
 
-// CloseAddMemory closes the add memory window.
+// CloseAddMemory 关闭添加记忆窗口
+// 接收调用上下文和请求参数，返回操作结果及可能发生的错误
 func (p *Window) CloseAddMemory(ctx context.Context, input window_dto.CloseAddMemoryInput) (*window_dto.CloseAddMemoryOutput, error) {
-	addMemoryWindow, ok := p.wailsApp.Window.GetByName(window_id.AddMemory)
+	addMemoryWindow, ok := p.wailsApp.Window.GetByName(window_id.AddMemory) // 增加记忆窗口、是否成功取得对应值
 	if ok {
 		addMemoryWindow.Close()
 		return &window_dto.CloseAddMemoryOutput{}, nil
@@ -162,52 +170,56 @@ func (p *Window) CloseAddMemory(ctx context.Context, input window_dto.CloseAddMe
 	return &window_dto.CloseAddMemoryOutput{}, nil
 }
 
-// OpenOnboarding opens or focuses the first-launch onboarding window.
+// OpenOnboarding 打开首次启动引导窗口，窗口已存在时将其聚焦
+// 接收调用上下文和请求参数，返回操作结果及可能发生的错误
 func (p *Window) OpenOnboarding(ctx context.Context, input window_dto.OpenOnboardingInput) (*window_dto.OpenOnboardingOutput, error) {
-	if onboardingWindow, ok := p.wailsApp.Window.GetByName(window_id.Onboarding); ok {
+	if /* 首次引导窗口、是否成功取得对应值 */ onboardingWindow, ok := p.wailsApp.Window.GetByName(window_id.Onboarding); ok {
 		p.showCenteredOnHomeScreen(onboardingWindow)
 		return &window_dto.OpenOnboardingOutput{}, nil
 	}
 
-	onboardingWindow := p.wailsApp.Window.NewWithOptions(window_options.DefaultOnboarding())
+	onboardingWindow := p.wailsApp.Window.NewWithOptions(window_options.DefaultOnboarding()) // 首次引导窗口
 	p.showCenteredOnHomeScreen(onboardingWindow)
 	return &window_dto.OpenOnboardingOutput{}, nil
 }
 
-// OpenQuickChat opens or focuses the quick chat floating window.
+// OpenQuickChat 打开快捷聊天浮窗，窗口已存在时将其聚焦
+// 接收调用上下文和请求参数，返回操作结果及可能发生的错误
 func (p *Window) OpenQuickChat(ctx context.Context, input window_dto.OpenQuickChatInput) (*window_dto.OpenQuickChatOutput, error) {
 	if p.wailsApp == nil {
 		return &window_dto.OpenQuickChatOutput{}, nil
 	}
-	if quickChatWindow, ok := p.wailsApp.Window.GetByName(window_id.QuickChat); ok {
+	if /* 快捷聊天窗口、是否成功取得对应值 */ quickChatWindow, ok := p.wailsApp.Window.GetByName(window_id.QuickChat); ok {
 		p.resetAndShowQuickChatWindow(quickChatWindow)
 		return &window_dto.OpenQuickChatOutput{}, nil
 	}
 
-	options := window_options.DefaultQuickChat()
+	options := window_options.DefaultQuickChat() // 选项列表
 	options.Title = i18n.TCurrent("app.window.quick_chat_title", nil)
-	quickChatWindow := p.wailsApp.Window.NewWithOptions(p.childWindowOptions(options))
+	quickChatWindow := p.wailsApp.Window.NewWithOptions(p.childWindowOptions(options)) // 快捷聊天窗口
 	p.showCenteredOnHomeScreen(quickChatWindow)
 	return &window_dto.OpenQuickChatOutput{}, nil
 }
 
-// CloseQuickChat hides the quick chat floating window when it exists.
+// CloseQuickChat 隐藏已存在的快捷聊天浮窗
+// 接收调用上下文和请求参数，返回操作结果及可能发生的错误
 func (p *Window) CloseQuickChat(ctx context.Context, input window_dto.CloseQuickChatInput) (*window_dto.CloseQuickChatOutput, error) {
 	if p.wailsApp == nil {
 		return &window_dto.CloseQuickChatOutput{}, nil
 	}
-	if quickChatWindow, ok := p.wailsApp.Window.GetByName(window_id.QuickChat); ok {
+	if /* 快捷聊天窗口、是否成功取得对应值 */ quickChatWindow, ok := p.wailsApp.Window.GetByName(window_id.QuickChat); ok {
 		quickChatWindow.Hide()
 	}
 	return &window_dto.CloseQuickChatOutput{}, nil
 }
 
-// ToggleQuickChat shows the quick chat window or hides it when it is already visible.
+// ToggleQuickChat 切换快捷聊天浮窗的显示状态
+// 接收调用上下文和请求参数，返回操作结果及可能发生的错误
 func (p *Window) ToggleQuickChat(ctx context.Context, input window_dto.ToggleQuickChatInput) (*window_dto.ToggleQuickChatOutput, error) {
 	if p.wailsApp == nil {
 		return &window_dto.ToggleQuickChatOutput{}, nil
 	}
-	if quickChatWindow, ok := p.wailsApp.Window.GetByName(window_id.QuickChat); ok {
+	if /* 快捷聊天窗口、是否成功取得对应值 */ quickChatWindow, ok := p.wailsApp.Window.GetByName(window_id.QuickChat); ok {
 		if quickChatWindow.IsVisible() {
 			quickChatWindow.Hide()
 			return &window_dto.ToggleQuickChatOutput{}, nil
@@ -216,11 +228,12 @@ func (p *Window) ToggleQuickChat(ctx context.Context, input window_dto.ToggleQui
 		return &window_dto.ToggleQuickChatOutput{}, nil
 	}
 
-	_, err := p.OpenQuickChat(ctx, window_dto.OpenQuickChatInput{})
+	_, err := p.OpenQuickChat(ctx, window_dto.OpenQuickChatInput{}) // 打开快捷聊天时的错误
 	return &window_dto.ToggleQuickChatOutput{}, err
 }
 
-// SelectQuickChat emits the selected session to the home window and closes the quick chat popup.
+// SelectQuickChat 向主窗口发送选中的会话并关闭快捷聊天浮窗
+// 接收调用上下文和请求参数，返回操作结果及可能发生的错误
 func (p *Window) SelectQuickChat(ctx context.Context, input window_dto.SelectQuickChatInput) (*window_dto.SelectQuickChatOutput, error) {
 	if p.wailsApp == nil {
 		return &window_dto.SelectQuickChatOutput{}, nil
@@ -228,19 +241,20 @@ func (p *Window) SelectQuickChat(ctx context.Context, input window_dto.SelectQui
 	p.wailsApp.Event.Emit(event_id.QuickChatSelected, map[string]uint{
 		"sessionId": input.SessionID,
 	})
-	if homeWindow, ok := p.wailsApp.Window.GetByName(window_id.Home); ok {
+	if /* 主界面窗口、是否成功取得对应值 */ homeWindow, ok := p.wailsApp.Window.GetByName(window_id.Home); ok {
 		homeWindow.Show()
 		homeWindow.Focus()
 	}
 
-	if quickChatWindow, ok := p.wailsApp.Window.GetByName(window_id.QuickChat); ok {
+	if /* 快捷聊天窗口、是否成功取得对应值 */ quickChatWindow, ok := p.wailsApp.Window.GetByName(window_id.QuickChat); ok {
 		quickChatWindow.Hide()
 	}
 	return &window_dto.SelectQuickChatOutput{}, nil
 }
 
+// 重置快捷聊天窗口的界面状态并显示窗口，接收快捷聊天窗口，无返回值
 func (p *Window) resetAndShowQuickChatWindow(quickChatWindow application.Window) {
-	options := window_options.DefaultQuickChat()
+	options := window_options.DefaultQuickChat() // 选项列表
 	quickChatWindow.SetSize(options.Width, options.Height)
 	quickChatWindow.EmitEvent(event_id.QuickChatReset)
 	p.showCenteredOnHomeScreen(quickChatWindow)
