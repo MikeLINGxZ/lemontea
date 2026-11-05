@@ -13,12 +13,11 @@ func TestManifestLoadSaveRoundtrip(t *testing.T) {
 	path := filepath.Join(dir, "manifest.json")
 
 	original := Manifest{
-		Name:         "lark-cli",
-		Version:      "1.2.3",
-		Description:  "feishu cli",
-		Executable:   "lark",
-		LoginCommand: []string{"login"},
-		Isolation:    IsolationIsolated,
+		Name:        "lark-cli",
+		Version:     "1.2.3",
+		Description: "feishu cli",
+		Executable:  "lark",
+		Isolation:   IsolationIsolated,
 		Tools: []Tool{
 			{
 				Name:            "lark_send",
@@ -149,46 +148,5 @@ func TestRepairManifestExecutableBackfillsMissingExecutable(t *testing.T) {
 	}
 	if loaded.Executable == "" {
 		t.Fatalf("expected repaired manifest to be persisted: %+v", loaded)
-	}
-}
-
-// TestResolveLoginStepsPrefersLoginSteps verifies LoginSteps wins over the legacy LoginCommand
-// when both are present, and that empty inner arrays are dropped.
-func TestResolveLoginStepsPrefersLoginSteps(t *testing.T) {
-	m := Manifest{
-		LoginCommand: []string{"legacy"},
-		LoginSteps:   [][]string{{"config", "init"}, {}, {"auth", "login"}},
-	}
-	got := m.ResolveLoginSteps()
-	want := [][]string{{"config", "init"}, {"auth", "login"}}
-	if len(got) != len(want) {
-		t.Fatalf("got %v, want %v", got, want)
-	}
-	for i := range got {
-		if len(got[i]) != len(want[i]) {
-			t.Fatalf("step %d: got %v, want %v", i, got[i], want[i])
-		}
-		for j := range got[i] {
-			if got[i][j] != want[i][j] {
-				t.Fatalf("step %d: got %v, want %v", i, got[i], want[i])
-			}
-		}
-	}
-}
-
-// TestResolveLoginStepsFallsBackToLoginCommand verifies the legacy field is honored when LoginSteps is empty.
-func TestResolveLoginStepsFallsBackToLoginCommand(t *testing.T) {
-	m := Manifest{LoginCommand: []string{"auth", "login"}}
-	got := m.ResolveLoginSteps()
-	if len(got) != 1 || got[0][0] != "auth" || got[0][1] != "login" {
-		t.Fatalf("unexpected resolution: %v", got)
-	}
-}
-
-// TestResolveLoginStepsEmptyWhenNothingSet verifies a manifest without either field resolves to nil.
-func TestResolveLoginStepsEmptyWhenNothingSet(t *testing.T) {
-	m := Manifest{}
-	if got := m.ResolveLoginSteps(); got != nil {
-		t.Fatalf("expected nil, got %v", got)
 	}
 }

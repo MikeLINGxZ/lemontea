@@ -150,15 +150,6 @@ const (
 	// CLI工具Not是否找到对应的错误
 	ErrCliToolNotFound errorCode = "ierror.cli.tool_not_found"
 
-	// CLI 登录错误码
-	ErrCliLoginSessionConflict errorCode = "cli.login.session_conflict"
-	// CLI登录Not是否找到对应的错误
-	ErrCliLoginNotFound errorCode = "cli.login.not_found"
-	// CLI登录No命令对应的错误
-	ErrCliLoginNoCommand errorCode = "cli.login.no_command"
-	// CLI登录开始失败对应的错误
-	ErrCliLoginStartFailed errorCode = "cli.login.start_failed"
-
 	// 终端错误码
 	ErrTerminalList errorCode = "ierror.terminal.list"
 	// 终端已读输出对应的错误

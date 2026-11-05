@@ -34,30 +34,24 @@ The user's message contains one or more of:
    {"npm_package": "<determined-package-name>", "name": "<short-cli-name>"}
    ```
    - `name` should be a short kebab-case identifier derived from the package name (e.g. `@scope/foo-cli` → `foo-cli`).
-   - Immediately report progress with `ReportCliInstallProgress` when you know the package name or CLI name.
+   - `InstallCli` installs the package, creates usable tools, and reports those stages automatically.
+   - Keep the returned extension ID for setup and verification.
 
-4. **Call `GenerateCliManifest` to probe the CLI and generate a manifest.**
-   ```json
-   {"id": "cli:<name>"}
-   ```
-   - Use the `id` from the `InstallCli` result.
-   - Report progress again when the manifest step starts or completes.
-
-5. **Decide whether post-install initialization is needed.**
+4. **Decide whether post-install initialization is needed.**
    - Read the generated manifest and the documentation you already have.
    - Decide whether the CLI still needs setup steps such as auth, config initialization, API key entry, profile creation, or a verification command.
    - Prefer dynamic judgment from the docs + CLI output. Do not assume all CLIs follow the same fixed flow.
 
-6. **If initialization is needed, continue the workflow using `RunCliCommand`.**
+5. **If initialization is needed, continue the workflow using `RunCliCommand`.**
    - Use `RunCliCommand` to run setup/auth commands against the installed CLI with Lemontea's bundled runtime and isolated env.
-   - Use `ReportCliInstallProgress` to keep the UI in sync. Prefer phases such as `downloading`, `installed`, `generating`, `initializing`, `waiting_auth`, `verifying`, `done`, and `failed`.
+   - Use `ReportCliInstallProgress` with the returned extension ID to report `initializing`, `waiting_auth`, `verifying`, or `failed`. The installation tool already reports download and tool preparation.
    - Prefer structured outputs when possible:
      - use `output_mode: "json"` when the CLI offers JSON
      - otherwise use `text` or `lines`
    - Re-check CLI output after each step and decide the next step dynamically.
    - When the flow may need to resume in a later turn, persist state with `SaveTaskState` and recover it with `LoadTaskState`.
 
-7. **For device-code or browser-based login flows:**
+6. **For device-code or browser-based login flows:**
    - Prefer a non-blocking structured command first when the CLI supports it.
    - For `lark-cli`, prefer:
      - `["auth","login","--no-wait","--json"]`
@@ -72,7 +66,7 @@ The user's message contains one or more of:
    - Prefer storing temporary state keys such as `device_code`, `verification_url`, and `auth_expires_at` with `SaveTaskState`.
    - Do not immediately start blocking polling in the same turn after showing the URL if the user still needs to authorize in the browser.
 
-8. **After the user completes external authorization, resume with the saved state.**
+7. **After the user completes external authorization, resume with the saved state.**
    - Reuse the original device code or saved context.
    - Load saved values with `LoadTaskState` instead of assuming they are still present in model context.
    - Report progress with phase `verifying` before resuming the polling or verification command.
@@ -80,7 +74,7 @@ The user's message contains one or more of:
      - `["auth","login","--device-code","<saved_device_code>"]`
    - Then run a lightweight verification step if the CLI provides one.
 
-9. **Report success only when the CLI is usable.**
+8. **Report success only when the CLI is usable.**
    - Send a final `ReportCliInstallProgress` update with phase `done` only after successful verification.
    - Summarize:
      - what was installed
@@ -90,7 +84,6 @@ The user's message contains one or more of:
 ## Error Handling
 
 - If `InstallCli` fails (network error, package not found), report the error clearly and suggest alternatives.
-- If `GenerateCliManifest` fails, the CLI is still installed — report that the manifest needs manual configuration.
 - If initialization is partially complete but blocked on user action, present the next required user action clearly and preserve resume state.
 - If a device code or login session expires, explain that it expired and restart the authorization flow rather than hanging indefinitely.
 - If the user's input is completely empty or nonsensical, call `RequestUserAttention` asking for valid documentation.

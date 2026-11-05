@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
@@ -21,16 +22,64 @@ type PackageMeta struct {
 	// 作者
 	Author string            `json:"author"`
 	Bin    map[string]string `json:"-"` // 将字符串或对象形式的 bin 字段统一为名称到脚本的映射
+	// 安装目录根清单记录的直接依赖
+	dependencies map[string]string
 }
 
-// ReadPackageJSON 读取 {installDir}/package.json，找不到时尝试 .../node_modules/<name>/package.json
-// 返回所需的字段，并将 bin 规范化为名称到脚本的映射
-// 接收安装目录，返回包名元信息及可能发生的错误
-func ReadPackageJSON(installDir string) (PackageMeta, error) {
-	// 候选列表
-	candidates := []string{
-		filepath.Join(installDir, "package.json"),
+// ReadPackageJSON 读取实际安装的包元数据并规范化 bin 字段
+// 接收安装目录和可选的包来源或名称，返回包元数据及可能发生的错误
+func ReadPackageJSON(installDir string, sources ...string) (PackageMeta, error) {
+	root, rootErr := readOnePackageJSON(filepath.Join(installDir, "package.json")) // 安装目录的根清单和读取错误
+	if rootErr == nil {
+		// 根清单可能是 npm 写入的依赖清单，包的可执行入口在直接依赖中
+		dependencyName := "" // 安装目录中实际使用的依赖名
+		if len(sources) > 0 && sources[0] != "" {
+			source := sources[0] // 请求安装的包规格或清单里已有的包名
+			sourceName := source // 去掉 npm 包版本、标签或别名后缀后的依赖名
+			if suffix := strings.IndexByte(source[1:], '@'); suffix >= 0 {
+				sourceName = source[:suffix+1]
+			}
+			if _, exists := root.dependencies[sourceName]; exists {
+				dependencyName = sourceName
+			} else {
+				localSpec := "" // npm 记录本地包时使用的相对路径规格
+				if filepath.IsAbs(source) {
+					relativePath, err := filepath.Rel(installDir, source) // 本地包相对安装目录的路径和计算错误
+					if err == nil {
+						localSpec = "file:" + filepath.ToSlash(relativePath)
+					}
+				}
+				for name, spec := range root.dependencies {
+					if spec == source || (localSpec != "" && spec == localSpec) {
+						if dependencyName != "" {
+							return PackageMeta{}, fmt.Errorf("multiple npm dependencies match package source %q", source)
+						}
+						dependencyName = name
+					}
+				}
+			}
+		}
+		if dependencyName == "" && root.Name == "" && len(root.Bin) == 0 && len(root.dependencies) == 1 {
+			for name := range root.dependencies {
+				dependencyName = name
+			}
+		}
+		if dependencyName != "" {
+			if !filepath.IsLocal(dependencyName) {
+				return PackageMeta{}, fmt.Errorf("invalid npm dependency name %q", dependencyName)
+			}
+			return readOnePackageJSON(filepath.Join(installDir, "node_modules", dependencyName, "package.json"))
+		}
+		if root.Name != "" || len(root.Bin) > 0 {
+			return root, nil
+		}
+		if len(root.dependencies) > 1 {
+			return PackageMeta{}, errors.New("multiple direct npm dependencies; unable to identify the installed CLI")
+		}
 	}
+
+	// 兼容没有 npm 根清单的旧安装目录
+	var candidates []string // 候选包清单路径
 	// npm install --prefix 将包安装在 node_modules/<name>/ 下
 	entries, _ := os.ReadDir(filepath.Join(installDir, "node_modules"))
 	// 遍历条目列表，逐项取得e 对应的数据
@@ -52,8 +101,8 @@ func ReadPackageJSON(installDir string) (PackageMeta, error) {
 		candidates = append(candidates, filepath.Join(installDir, "node_modules", e.Name(), "package.json"))
 	}
 
-	// 最后一个错误
-	var lastErr error
+	// 最后一个清单读取错误
+	lastErr := rootErr
 	// 遍历候选列表，逐项取得文件路径
 	for _, path := range candidates {
 		meta, err := readOnePackageJSON(path) // 元信息、读取One包名JSON时的错误
@@ -89,6 +138,8 @@ func readOnePackageJSON(path string) (PackageMeta, error) {
 		Author json.RawMessage `json:"author"`
 		// 可执行目录
 		Bin json.RawMessage `json:"bin"`
+		// 直接依赖及其安装规格
+		Dependencies map[string]string `json:"dependencies"`
 	}
 	decodeErr := json.Unmarshal(bytes, &raw) // 解析序列化内容时的错误
 	if decodeErr != nil {
@@ -96,10 +147,11 @@ func readOnePackageJSON(path string) (PackageMeta, error) {
 	}
 	// 元信息
 	meta := PackageMeta{
-		Name:        raw.Name,
-		Version:     raw.Version,
-		Description: raw.Description,
-		Bin:         map[string]string{},
+		Name:         raw.Name,
+		Version:      raw.Version,
+		Description:  raw.Description,
+		Bin:          map[string]string{},
+		dependencies: raw.Dependencies,
 	}
 	if len(raw.Author) > 0 {
 		// 当前值

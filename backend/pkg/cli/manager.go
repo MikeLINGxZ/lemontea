@@ -106,7 +106,7 @@ func (m *Manager) install(ctx context.Context, name, source string) (InstallResu
 		return InstallResult{}, npmInstallErr
 	}
 
-	pkg, err := ReadPackageJSON(installDir) // 包名、读取包名JSON时的错误
+	pkg, err := ReadPackageJSON(installDir, source) // 包名、读取包名JSON时的错误
 	if err != nil {
 		return InstallResult{}, err
 	}
@@ -301,6 +301,24 @@ func renderArgv(t Tool, input map[string]any) ([]string, error) {
 	out := make([]string, 0, len(t.ArgvTemplate)) // 本次处理的输出
 	// 遍历命令参数模板，逐项取得片段
 	for _, segment := range t.ArgvTemplate {
+		if segment == ArgvListPlaceholder {
+			// 通用工具按参数边界传值，避免将整组参数拼成一个字符串
+			switch args := input["argv"].(type) {
+			case []string:
+				out = append(out, args...)
+			case []any:
+				for _, value := range args {
+					arg, ok := value.(string) // 解码得到的单个字符串参数
+					if !ok {
+						return nil, errors.New("cli: argv must be an array of strings")
+					}
+					out = append(out, arg)
+				}
+			default:
+				return nil, errors.New("cli: argv must be an array of strings")
+			}
+			continue
+		}
 		matches := placeholderRegex.FindAllStringSubmatchIndex(segment, -1) // 匹配项
 		if len(matches) == 0 {
 			out = append(out, segment)

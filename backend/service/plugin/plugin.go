@@ -27,6 +27,12 @@ type Plugin struct {
 	mcpManager *pkgmcp.Manager
 	// CLI管理器
 	cliManager *pkgcli.Manager
+	// CLI 管理器初始化互斥锁
+	cliManagerMu sync.Mutex
+	// 安装任务登记和扩展配置提交的互斥锁
+	cliInstallMu sync.Mutex
+	// 按安装名称登记正在运行的 CLI 安装任务
+	cliInstalling map[string]struct{}
 	// 处理探测CLI帮助，接收本次调用的上下文、可执行文件、环境变量，返回文本及可能发生的错误
 	probeCliHelp func(ctx context.Context, executable string, env []string) (string, error)
 	// 处理生成清单，接收本次调用的上下文、参数，返回清单及可能发生的错误
@@ -37,29 +43,26 @@ type Plugin struct {
 	loadPersistedRuntime func() (pkgRuntimeState.StateSnapshot, error)
 	// Wails 应用实例
 	wailsApp *application.App
-	// 登录互斥锁
-	loginMu     sync.Mutex
-	loginFields // 平台专用的登录会话和启动函数字段，在 Windows 上为空占位结构
 }
 
 // NewPlugin 使用当前应用的数据目录创建插件服务
 // 返回插件
 func NewPlugin() *Plugin {
-	// 当前条目
-	p := &Plugin{
+	return &Plugin{
 		mcpManager:              pkgmcp.NewManager(mustDataDir()),
+		cliInstalling:           make(map[string]struct{}),
 		probeCliHelp:            pkgcli.ProbeHelp,
 		generateManifest:        pkgcli.Generate,
 		resolveDefaultChatModel: loadDefaultChatModel,
 		loadPersistedRuntime:    pkgRuntimeState.LoadPersistedState,
 	}
-	initLoginFields(p)
-	return p
 }
 
 // resolveCliManager 首次调用时读取运行时 state.json 中的 Node.js 和 npm 路径，并据此创建 CLI 管理器
 // 运行时尚未下载或就绪时返回错误
 func (p *Plugin) resolveCliManager() (*pkgcli.Manager, error) {
+	p.cliManagerMu.Lock()
+	defer p.cliManagerMu.Unlock()
 	if p.cliManager != nil {
 		return p.cliManager, nil
 	}

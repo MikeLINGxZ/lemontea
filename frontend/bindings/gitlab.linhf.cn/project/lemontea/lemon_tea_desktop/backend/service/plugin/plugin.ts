@@ -18,16 +18,6 @@ import * as tools$0 from "../../pkg/agent/tools/models.js";
 import * as plugin_dto$0 from "./plugin_dto/models.js";
 
 /**
- * CancelLoginCli 终止正在运行的登录流程
- * 设置取消标记以跳过剩余步骤，并通知当前会话终止
- * 当前步骤的 PTY 随之关闭，使登录流程结束输出读取
- * 接收调用上下文和请求参数，返回操作错误
- */
-export function CancelLoginCli(input: plugin_dto$0.CancelLoginCliInput): $CancellablePromise<void> {
-    return $Call.ByID(1683333287, input);
-}
-
-/**
  * DeleteExtension 从配置中移除指定扩展，并删除其安装目录
  * CLI 插件的 plugins/cli_data/<name>/ 目录会保留，其中包含登录状态和清单
  * 可通过 ResetCliData 单独清理该目录
@@ -79,8 +69,7 @@ export function ImportExtension(input: plugin_dto$0.ImportExtensionInput): $Canc
 }
 
 /**
- * InstallCliFromNpm 将已发布的 npm 包安装为 CLI 插件，并把插件条目保存到 config.json
- * 接收调用上下文和请求参数，返回操作结果及可能发生的错误
+ * InstallCliFromNpm 安装并注册可调用的 CLI 工具，接收调用上下文和安装参数，返回扩展条目或错误
  */
 export function InstallCliFromNpm(input: plugin_dto$0.InstallCliFromNpmInput): $CancellablePromise<plugin_dto$0.InstallCliFromNpmOutput | null> {
     return $Call.ByID(2588570828, input).then(($result: any) => {
@@ -89,8 +78,7 @@ export function InstallCliFromNpm(input: plugin_dto$0.InstallCliFromNpmInput): $
 }
 
 /**
- * InstallCliSync 实现 tools.CliInstaller，调用 InstallCliFromNpm 执行安装并发送进度事件
- * 接收本次调用的上下文、npm包名、当前名称、on进度，返回文本及可能发生的错误
+ * InstallCliSync 安装 CLI 并上报工具准备阶段，接收上下文、包名、名称和进度回调，返回扩展 JSON 或错误
  */
 export function InstallCliSync(npmPackage: string, name: string, onProgress: any): $CancellablePromise<string> {
     return $Call.ByID(2165116820, npmPackage, name, onProgress);
@@ -117,25 +105,12 @@ export function ListExtensions(input: plugin_dto$0.ListExtensionsInput): $Cancel
 }
 
 /**
- * LoginCli 启动指定 CLI 插件的交互式登录流程后立即返回
- * 按 manifest.ResolveLoginSteps() 的顺序执行各步骤，并在同一个 PTY 对话框展示输出
- * 执行期间通过 cli.login.output 流式发送输出
- * 最后一步成功、任一步骤失败或用户取消时，仅发送一次 cli.login.done
- * 接收调用上下文和请求参数，返回操作结果及可能发生的错误
- */
-export function LoginCli(input: plugin_dto$0.LoginCliInput): $CancellablePromise<plugin_dto$0.LoginCliOutput | null> {
-    return $Call.ByID(1636532429, input).then(($result: any) => {
-        return $$createType15($result);
-    });
-}
-
-/**
  * ReloadExtension 根据指定扩展当前的磁盘配置重新发现工具
  * 接收调用上下文和请求参数，返回操作结果及可能发生的错误
  */
 export function ReloadExtension(input: plugin_dto$0.ReloadExtensionInput): $CancellablePromise<plugin_dto$0.ReloadExtensionOutput | null> {
     return $Call.ByID(97654438, input).then(($result: any) => {
-        return $$createType17($result);
+        return $$createType15($result);
     });
 }
 
@@ -153,16 +128,8 @@ export function ReportCliInstallProgress(sessionID: number, item: tools$0.CliIns
  */
 export function ResetCliData(input: plugin_dto$0.ResetCliDataInput): $CancellablePromise<plugin_dto$0.ResetCliDataOutput | null> {
     return $Call.ByID(563484271, input).then(($result: any) => {
-        return $$createType19($result);
+        return $$createType17($result);
     });
-}
-
-/**
- * ResizeLoginCli 调整运行中登录会话的 PTY 窗口尺寸
- * 接收调用上下文和请求参数，返回操作错误
- */
-export function ResizeLoginCli(input: plugin_dto$0.ResizeLoginCliInput): $CancellablePromise<void> {
-    return $Call.ByID(1741981989, input);
 }
 
 /**
@@ -179,16 +146,8 @@ export function RunCliCommandSync(extensionID: string, argv: string[], outputMod
  */
 export function SaveExtensionConfig(input: plugin_dto$0.SaveExtensionConfigInput): $CancellablePromise<plugin_dto$0.SaveExtensionConfigOutput | null> {
     return $Call.ByID(1438647368, input).then(($result: any) => {
-        return $$createType21($result);
+        return $$createType19($result);
     });
-}
-
-/**
- * SendLoginStdin 将原始字节写入运行中登录会话的 PTY 标准输入
- * 接收调用上下文和请求参数，返回操作错误
- */
-export function SendLoginStdin(input: plugin_dto$0.SendLoginStdinInput): $CancellablePromise<void> {
-    return $Call.ByID(1518424595, input);
 }
 
 /**
@@ -197,7 +156,7 @@ export function SendLoginStdin(input: plugin_dto$0.SendLoginStdinInput): $Cancel
  */
 export function ToggleExtension(input: plugin_dto$0.ToggleExtensionInput): $CancellablePromise<plugin_dto$0.ToggleExtensionOutput | null> {
     return $Call.ByID(1222899149, input).then(($result: any) => {
-        return $$createType23($result);
+        return $$createType21($result);
     });
 }
 
@@ -210,7 +169,7 @@ export function ToggleExtension(input: plugin_dto$0.ToggleExtensionInput): $Canc
  */
 export function UpdateCliManifest(input: plugin_dto$0.UpdateCliManifestInput): $CancellablePromise<plugin_dto$0.UpdateCliManifestOutput | null> {
     return $Call.ByID(3735920080, input).then(($result: any) => {
-        return $$createType25($result);
+        return $$createType23($result);
     });
 }
 
@@ -229,15 +188,13 @@ const $$createType10 = plugin_dto$0.ListAvailableToolsOutput.createFrom;
 const $$createType11 = $Create.Nullable($$createType10);
 const $$createType12 = plugin_dto$0.ListExtensionsOutput.createFrom;
 const $$createType13 = $Create.Nullable($$createType12);
-const $$createType14 = plugin_dto$0.LoginCliOutput.createFrom;
+const $$createType14 = plugin_dto$0.ReloadExtensionOutput.createFrom;
 const $$createType15 = $Create.Nullable($$createType14);
-const $$createType16 = plugin_dto$0.ReloadExtensionOutput.createFrom;
+const $$createType16 = plugin_dto$0.ResetCliDataOutput.createFrom;
 const $$createType17 = $Create.Nullable($$createType16);
-const $$createType18 = plugin_dto$0.ResetCliDataOutput.createFrom;
+const $$createType18 = plugin_dto$0.SaveExtensionConfigOutput.createFrom;
 const $$createType19 = $Create.Nullable($$createType18);
-const $$createType20 = plugin_dto$0.SaveExtensionConfigOutput.createFrom;
+const $$createType20 = plugin_dto$0.ToggleExtensionOutput.createFrom;
 const $$createType21 = $Create.Nullable($$createType20);
-const $$createType22 = plugin_dto$0.ToggleExtensionOutput.createFrom;
+const $$createType22 = plugin_dto$0.UpdateCliManifestOutput.createFrom;
 const $$createType23 = $Create.Nullable($$createType22);
-const $$createType24 = plugin_dto$0.UpdateCliManifestOutput.createFrom;
-const $$createType25 = $Create.Nullable($$createType24);

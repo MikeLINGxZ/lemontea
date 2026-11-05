@@ -12,6 +12,10 @@ const EXT_MIME: Record<string, string> = {
   '.jpeg': 'image/jpeg',
   '.webp': 'image/webp',
   '.gif': 'image/gif',
+  '.mp4': 'video/mp4', // MP4 视频
+  '.m4v': 'video/mp4', // M4V 视频
+  '.mov': 'video/quicktime', // QuickTime 视频
+  '.webm': 'video/webm', // WebM 视频
   '.pdf': 'application/pdf',
   '.txt': 'text/plain',
   '.log': 'text/plain',
@@ -56,6 +60,13 @@ export function inferAttachmentMeta(path: string): Attachment {
 /** 判断是否为图片的 MIME 类型类型，接收文件的 MIME 类型，返回是否满足条件 */
 export function isImageMime(mime: string): boolean {
   return mime.startsWith('image/')
+}
+
+/** 判断附件是否为视频，兼容历史附件未记录媒体类型的情况，接收附件，返回判断结果 */
+export function isVideoAttachment(attachment: Attachment): boolean {
+  return attachment.mime.startsWith('video/') ||
+    ((!attachment.mime || attachment.mime === 'application/octet-stream') &&
+      (EXT_MIME[extOf(attachment.path)]?.startsWith('video/') ?? false))
 }
 
 /** 判断是否为PDF 的 MIME 类型类型，接收文件的 MIME 类型，返回是否满足条件 */

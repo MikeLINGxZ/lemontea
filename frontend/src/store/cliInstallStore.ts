@@ -21,9 +21,11 @@ export const useCliInstallStore = create<State>((set) => ({
     set((s) => {
       /** 查找到的位置 */
       const idx = s.items.findIndex((i) =>
-        (item.session_id != null && i.session_id === item.session_id) ||
-        (!!item.extension_id && i.extension_id === item.extension_id) ||
-        (!!item.npm_package && i.npm_package === item.npm_package),
+        item.request_id || i.request_id
+          ? i.request_id === item.request_id
+          : (item.session_id != null && i.session_id === item.session_id) ||
+            (!!item.extension_id && i.extension_id === item.extension_id) ||
+            (!!item.npm_package && i.npm_package === item.npm_package),
       )
       if (idx >= 0) {
         const next = [...s.items] // 更新后的值
@@ -36,9 +38,11 @@ export const useCliInstallStore = create<State>((set) => ({
   remove: (id) =>
     set((s) => ({
       items: s.items.filter((i) =>
-        typeof id === 'number'
-          ? i.session_id !== id
-          : i.npm_package !== id && i.extension_id !== id,
+        i.request_id
+          ? i.request_id !== id
+          : typeof id === 'number'
+            ? i.session_id !== id
+            : i.npm_package !== id && i.extension_id !== id,
       ),
     })),
   /** 清除处理，返回表达式结果 */

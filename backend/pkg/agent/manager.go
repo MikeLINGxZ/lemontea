@@ -1,8 +1,11 @@
 package agent
 
 import (
+	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"slices"
@@ -22,6 +25,7 @@ import (
 	pkgRuntimeState "gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/runtime_state"
 	pkgterminal "gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/pkg/terminal"
 	"gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/storage"
+	agentpkg "trpc.group/trpc-go/trpc-agent-go/agent"
 	"trpc.group/trpc-go/trpc-agent-go/agent/llmagent"
 	"trpc.group/trpc-go/trpc-agent-go/model"
 	"trpc.group/trpc-go/trpc-agent-go/model/openai"
@@ -344,67 +348,153 @@ func (m *Manager) buildAgentTools(enabledUserTools []string, sessionKind string,
 	return agentTools
 }
 
-// 按 MCP 服务分组构建可注册的工具集，接收已启用的用户工具列表，返回工具集合列表
-func (m *Manager) buildMCPToolSets(enabledUserTools []string) []agenttool.ToolSet {
+// cachedMCPToolSet 保存同一运行器可跨轮复用的 MCP 工具集
+type cachedMCPToolSet struct {
+	// path 扩展连接配置的路径
+	path string
+	// revision 连接配置内容的摘要
+	revision [sha256.Size]byte
+	// toolSet 当前版本的 MCP 工具集
+	toolSet agenttool.ToolSet
+	// runs 正在使用当前版本的请求
+	runs sync.WaitGroup
+}
+
+// mcpToolSetCache 管理单个运行器的 MCP 工具集版本
+type mcpToolSetCache struct {
+	// mu 串行化版本替换和新请求登记
+	mu sync.Mutex
+	// items 按扩展 ID 保存可被新请求复用的版本
+	items map[string]*cachedMCPToolSet
+}
+
+// mcpToolSetSource 保存构建 MCP 工具集所需的扩展和配置快照
+type mcpToolSetSource struct {
+	// item 扩展条目
+	item data_models.ExtensionItem
+	// configBytes 已读取的连接配置
+	configBytes []byte
+}
+
+// buildMCPToolSets 根据已选工具 ID 和配置快照构建工具集，返回可注册的集合
+func (m *Manager) buildMCPToolSets(enabledUserTools []string, sources ...mcpToolSetSource) []agenttool.ToolSet {
 	if len(enabledUserTools) == 0 {
 		return nil
 	}
 
-	config, err := loadAgentConfig() // 配置、加载智能体配置时的错误
-	if err != nil || len(config.Extensions) == 0 {
-		return nil
-	}
-
-	toolSets := make([]agenttool.ToolSet, 0) // 工具集合
-	// 遍历扩展列表，逐项取得当前条目
-	for _, item := range config.Extensions {
-		if item.Kind != "mcp" || !item.Enabled {
+	toolSets := make([]agenttool.ToolSet, 0, len(sources)) // 可注册的 MCP 工具集
+	for _, source := range sources {
+		toolSet, err := m.mcpManager.BuildToolSetFromConfig(source.item, enabledUserTools, source.configBytes) // 当前扩展的工具集和构建错误
+		if err != nil {
+			slog.Warn("构建 MCP 工具集失败", "扩展编号", source.item.ID, "错误", err)
 			continue
 		}
-		toolSet, buildErr := m.mcpManager.BuildToolSet(item, enabledUserTools) // 工具集合、构造工具集合时的错误
-		if buildErr != nil {
-			continue
-		}
-		if toolSet.Name() != "" {
-			toolSets = append(toolSets, toolSet)
-		}
+		toolSets = append(toolSets, toolSet)
 	}
 	return toolSets
 }
 
-// 为已启用的 CLI 扩展构建工具集合，接收已启用的用户工具列表，返回工具集合列表
-func (m *Manager) buildCliToolSets(enabledUserTools []string) []agenttool.ToolSet {
+// buildExtensionToolSets 读取扩展配置并按类型构建工具集
+// 接收单轮上下文、已选工具 ID 和当前运行器的 MCP 缓存，返回可注册的工具集
+func (m *Manager) buildExtensionToolSets(ctx context.Context, enabledUserTools []string, cache *mcpToolSetCache) []agenttool.ToolSet {
 	if len(enabledUserTools) == 0 {
 		return nil
 	}
 
-	config, err := loadAgentConfig() // 配置、加载智能体配置时的错误
-	if err != nil || len(config.Extensions) == 0 {
+	// 在同一把锁内读取并登记版本，避免并发请求按旧配置替换新连接
+	cache.mu.Lock()
+	config, err := loadAgentConfig() // 扩展配置和读取错误
+	if err != nil {
+		cache.mu.Unlock()
+		slog.WarnContext(ctx, "读取工具扩展配置失败", "错误", err)
 		return nil
 	}
-	state, err := pkgRuntimeState.LoadPersistedState() // 状态
-	if err != nil || state.State != "ready" || state.NodePath == "" || state.NpmPath == "" {
-		return nil
-	}
-	mgr := pkgcli.NewManager(mustDataDir(), state.NodePath, state.NpmPath) // 管理器
 
-	toolSets := make([]agenttool.ToolSet, 0) // 工具集合
-	// 遍历扩展列表，逐项取得当前条目
+	var mcpItems, cliItems []data_models.ExtensionItem // 按类型分组的已启用扩展
 	for _, item := range config.Extensions {
-		if item.Kind != "cli" || !item.Enabled {
+		if !item.Enabled {
 			continue
 		}
-		manifest, loadErr := pkgcli.LoadManifest(item.ConfigFilePath) // 清单、加载 CLI 扩展清单时的错误
-		if loadErr != nil || manifest.Executable == "" {
+		switch item.Kind {
+		case "mcp":
+			mcpItems = append(mcpItems, item)
+		case "cli":
+			cliItems = append(cliItems, item)
+		}
+	}
+
+	toolSets := make([]agenttool.ToolSet, 0, len(mcpItems)+len(cliItems)) // 按 MCP、CLI 顺序注册的工具集
+	next := make(map[string]*cachedMCPToolSet, len(mcpItems))             // 供后续请求复用的版本
+	for _, item := range mcpItems {
+		if next[item.ID] != nil {
 			continue
 		}
-		toolSet, buildErr := pkgcli.BuildToolSet(mgr, item, manifest, enabledUserTools) // 工具集合、构造工具集合时的错误
-		if buildErr != nil {
+		configBytes, err := os.ReadFile(item.ConfigFilePath) // 连接配置内容和读取错误
+		if err != nil {
+			slog.WarnContext(ctx, "读取 MCP 配置失败", "扩展编号", item.ID, "错误", err)
 			continue
 		}
-		if toolSet.Name() != "" {
-			toolSets = append(toolSets, toolSet)
+		revision := sha256.Sum256(configBytes) // 当前连接配置摘要
+		entry := cache.items[item.ID]          // 当前运行器缓存的连接
+		if entry != nil && entry.path == item.ConfigFilePath && entry.revision == revision {
+			delete(cache.items, item.ID)
+		} else {
+			sets := m.buildMCPToolSets(enabledUserTools, mcpToolSetSource{item: item, configBytes: configBytes}) // 使用新配置构建的工具集
+			if len(sets) == 0 {
+				continue
+			}
+			entry = &cachedMCPToolSet{path: item.ConfigFilePath, revision: revision, toolSet: sets[0]}
 		}
+		next[item.ID] = entry
+		entry.runs.Add(1)
+		context.AfterFunc(ctx, entry.runs.Done)
+		toolSets = append(toolSets, entry.toolSet)
+	}
+	retired := cache.items // 配置已变化、停用或删除的旧版本
+	cache.items = next
+	cache.mu.Unlock()
+
+	for _, entry := range retired {
+		// 等待已登记的请求结束，再关闭无法被新请求获取的连接
+		go func() {
+			entry.runs.Wait()
+			err := entry.toolSet.Close() // 旧连接关闭错误
+			if err != nil {
+				slog.WarnContext(ctx, "关闭 MCP 工具集失败", "工具集", entry.toolSet.Name(), "错误", err)
+			}
+		}()
+	}
+
+	if len(cliItems) == 0 {
+		return toolSets
+	}
+
+	// CLI 运行时不可用时仍可注册 MCP 工具
+	state, err := pkgRuntimeState.LoadPersistedState() // Node 运行时状态和读取错误
+	if err != nil {
+		slog.WarnContext(ctx, "读取 CLI 运行时状态失败", "错误", err)
+		return toolSets
+	}
+	if state.State != "ready" || state.NodePath == "" || state.NpmPath == "" {
+		return toolSets
+	}
+
+	mgr := pkgcli.NewManager(mustDataDir(), state.NodePath, state.NpmPath) // CLI 执行管理器
+	for _, item := range cliItems {
+		manifest, err := pkgcli.LoadManifest(item.ConfigFilePath) // 当前扩展的清单和读取错误
+		if err != nil {
+			slog.WarnContext(ctx, "读取 CLI 工具清单失败", "扩展编号", item.ID, "错误", err)
+			continue
+		}
+		if manifest.Executable == "" {
+			continue
+		}
+		toolSet, err := pkgcli.BuildToolSet(mgr, item, manifest, enabledUserTools) // 当前扩展的工具集和构建错误
+		if err != nil {
+			slog.WarnContext(ctx, "构建 CLI 工具集失败", "扩展编号", item.ID, "错误", err)
+			continue
+		}
+		toolSets = append(toolSets, toolSet)
 	}
 	return toolSets
 }
@@ -424,7 +514,7 @@ func inferOpenAIVariant(providerType pkgProvider.Type) openai.Variant {
 
 // 根据提供商、模型、工具和会话配置获取运行器，返回运行器及可能发生的错误
 // 优先复用缓存中匹配的运行器
-// 缓存未命中时组装模型、会话服务和工具集合，并将新运行器写入缓存
+// 缓存未命中时创建模型和会话服务，工具集合在每轮运行时组装
 func (m *Manager) GetOrCreateRunner(
 	baseURL string,
 	apiKey string,
@@ -454,34 +544,62 @@ func (m *Manager) GetOrCreateRunner(
 	}
 
 	variant := inferOpenAIVariant(providerType) // 变体
+	// DeepSeek 视觉版 Flash 模型及其兼容别名
+	deepSeekVision := false
+	if variant == openai.VariantDeepSeek {
+		switch strings.ToLower(strings.TrimSpace(modelName)) {
+		case "deepseek-flash", "deepseek-v4-flash", "deepseek-v4-flash-vision-exp":
+			deepSeekVision = true
+		}
+	}
 
-	// 模型
-	mdl := openai.New(
-		modelName,
+	// 创建模型时使用的连接与协议选项
+	modelOptions := []openai.Option{
 		openai.WithBaseURL(baseURL),
 		openai.WithAPIKey(apiKey),
 		openai.WithVariant(variant),
-	)
+	}
+	if deepSeekVision {
+		// 当前 SDK 的 DeepSeek 变体会丢弃图片，使用兼容协议并保留 DeepSeek 的推理历史处理
+		modelOptions = append(modelOptions,
+			openai.WithVariant(openai.VariantOpenAI),
+			openai.WithReasoningContentBackfill(true),
+			openai.WithOptimizeForCache(false),
+			openai.WithOmitFileContentParts(true),
+		)
+	}
+	mdl := openai.New(modelName, modelOptions...) // 对话模型
 
-	// ag 对应的数据
-	ag := llmagent.New(
-		"main",
-		llmagent.WithModel(mdl),
-		llmagent.WithInstruction(instruction),
-		llmagent.WithGenerationConfig(model.GenerationConfig{
-			Stream: true,
-		}),
-		llmagent.WithTools(m.buildAgentTools(enabledUserTools, sessionKind, sessionID)),
-		llmagent.WithToolSets(append(m.buildMCPToolSets(enabledUserTools), m.buildCliToolSets(enabledUserTools)...)),
-		llmagent.WithRefreshToolSetsOnRun(true),
-		llmagent.WithToolCallbacks(m.newToolCallbacks()),
-	)
-
-	sessionSvc := inmemory.NewSessionService() // 会话服务
-	// 创建
-	created := runner.NewRunner(
+	// 保留本运行器的工具选择，每轮重新读取扩展配置和清单
+	selectedToolIDs := slices.Clone(enabledUserTools) // 运行器缓存键对应的工具选择
+	sessionSvc := inmemory.NewSessionService()        // 运行器复用的会话服务
+	mcpCache := &mcpToolSetCache{}                    // 当前运行器复用的 MCP 连接
+	created := runner.NewRunnerWithAgentFactory(
 		"lemontea",
-		ag,
+		"main",
+		// 根据单轮上下文构建 Agent，返回本轮实例和构建错误
+		func(ctx context.Context, _ agentpkg.RunOptions) (agentpkg.Agent, error) {
+			currentSessionID := sessionID           // 缺少运行上下文时沿用调用方会话编号
+			if info, ok := getRunContext(ctx); ok { // 本轮会话信息
+				currentSessionID = info.SessionID
+			}
+
+			m.mu.RLock()
+			builtinTools := m.buildAgentTools(selectedToolIDs, sessionKind, currentSessionID) // 本轮可用的内置工具
+			m.mu.RUnlock()
+			toolSets := m.buildExtensionToolSets(ctx, selectedToolIDs, mcpCache) // 本轮外部扩展工具集
+
+			return llmagent.New(
+				"main",
+				llmagent.WithModel(mdl),
+				llmagent.WithInstruction(instruction),
+				llmagent.WithGenerationConfig(model.GenerationConfig{Stream: true}),
+				llmagent.WithTools(builtinTools),
+				llmagent.WithToolSets(toolSets),
+				llmagent.WithRefreshToolSetsOnRun(true),
+				llmagent.WithToolCallbacks(m.newToolCallbacks()),
+			), nil
+		},
 		runner.WithSessionService(sessionSvc),
 	)
 

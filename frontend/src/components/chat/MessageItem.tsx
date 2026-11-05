@@ -1,5 +1,5 @@
 import { isObjectRecord } from '@/lib/guards'
-import { memo } from 'react'
+import { memo, useEffect, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
@@ -9,12 +9,14 @@ import { ToolCallBlock } from './ToolCallBlock'
 import { ToolCallsGroup } from './ToolCallsGroup'
 import { ToolConfirmCard } from './ToolConfirmCard'
 import { AttachmentChips } from './AttachmentChips'
+import { AttachmentPreview } from './AttachmentPreview'
 import { ErrorMessageBubble } from './ErrorMessageBubble'
 import { ResponseMeta } from './ResponseMeta'
 import { InteractiveTerminalBlock } from '@/components/chat/InteractiveTerminalBlock'
 import { File as FileBinding } from '@bindings/gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/service/file'
-import type { DisplayMessage } from '@/types'
+import type { Attachment, DisplayMessage } from '@/types'
 import { cn } from '@/lib/utils'
+import { isImageMime, isVideoAttachment } from '@/lib/attachments'
 import {
   getInteractiveTerminalState,
   isInteractiveTerminalControl,
@@ -66,26 +68,89 @@ export const MessageItem = memo(function MessageItem({
 }: Props) {
   /** 取出消息发送方的角色、消息内容类型、内容、模型名称、输入 Token 数、输出 Token 数、附加数据 */
   const { role, contentType, content, modelName, tokensIn, tokensOut, extra } = message
+  /** 当前用户消息的附件 */
+  const attachments = role === 'user' && contentType === 'text' ? message.attachments : undefined
+  /** 按文件路径记录已加载的图片预览 */
+  const [imagePreviews, setImagePreviews] = useState<Record<string, string>>({})
+  /** 正在应用内预览的附件 */
+  const [selectedAttachment, setSelectedAttachment] = useState<Attachment | null>(null)
+
+  // 从本地附件读取图片，消息切换或卸载后忽略旧请求结果
+  useEffect((): (() => void) => {
+    let active = true // 当前预览请求是否仍有效
+    for (const attachment of attachments ?? []) {
+      if (attachment.kind !== 'image' && !isImageMime(attachment.mime)) continue
+      void (async (): Promise<void> => {
+        try {
+          const preview = await FileBinding.ReadMediaPreview(attachment.path) // 图片预览数据
+          if (active && preview.startsWith('data:image/')) {
+            setImagePreviews(previous => ({ ...previous, [attachment.path]: preview }))
+          }
+        } catch {
+          // 预览不可用时继续显示可打开的附件标签
+        }
+      })()
+    }
+    return (): void => { active = false }
+  }, [attachments])
+
   /** 打开附件，接收文件路径，无返回值 */
   const openAttachment = (path: string) => {
     void FileBinding.OpenFile({ path })
   }
 
   if (role === 'user' && contentType === 'text') {
-    const attachments = message.attachments ?? [] // 附件列表
+    /** 未加载预览的附件及普通文件 */
+    const attachmentChips = (attachments ?? []).filter(attachment => !imagePreviews[attachment.path])
 
     return (
-      <div className="flex justify-end">
-        <div className="max-w-[70%] select-text rounded-2xl rounded-br-sm bg-primary text-primary-foreground px-4 py-2.5 text-sm dark:bg-muted dark:text-foreground">
-          {content && <div className="whitespace-pre-wrap break-words">{content}</div>}
-          {attachments.length > 0 && (
-            <AttachmentChips
-              items={attachments}
-              variant="message"
-              onOpen={(attachment) => openAttachment(attachment.path)}
+      <div className="flex flex-col items-end gap-2">
+        {attachments?.map((attachment, index) => imagePreviews[attachment.path] && (
+          <button
+            key={`${attachment.path}-${index}`}
+            type="button"
+            className="max-w-[70%] cursor-pointer overflow-hidden rounded-2xl"
+            onClick={() => setSelectedAttachment(attachment)}
+          >
+            <img
+              src={imagePreviews[attachment.path]}
+              alt={attachment.name}
+              className="block h-auto max-h-80 w-auto max-w-full object-contain"
+              decoding="async"
+              onError={(): void => {
+                // 图片解码失败时恢复附件标签
+                setImagePreviews(previous => ({ ...previous, [attachment.path]: '' }))
+              }}
             />
-          )}
-        </div>
+          </button>
+        ))}
+        {(content || attachmentChips.length > 0) && (
+          <div className="max-w-[70%] select-text rounded-2xl rounded-br-sm bg-primary text-primary-foreground px-4 py-2.5 text-sm dark:bg-muted dark:text-foreground">
+            {content && <div className="whitespace-pre-wrap break-words">{content}</div>}
+            {attachmentChips.length > 0 && (
+              <AttachmentChips
+                items={attachmentChips}
+                variant="message"
+                onOpen={(attachment: Attachment): void => {
+                  // 图片和视频始终在应用内预览，普通文件沿用原有打开方式
+                  if (attachment.kind === 'image' || isImageMime(attachment.mime) || isVideoAttachment(attachment)) {
+                    setSelectedAttachment(attachment)
+                  } else {
+                    openAttachment(attachment.path)
+                  }
+                }}
+              />
+            )}
+          </div>
+        )}
+        {selectedAttachment && (
+          <AttachmentPreview
+            key={selectedAttachment.path}
+            attachment={selectedAttachment}
+            imageSource={imagePreviews[selectedAttachment.path]}
+            onClose={() => setSelectedAttachment(null)}
+          />
+        )}
       </div>
     )
   }

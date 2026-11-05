@@ -10,33 +10,6 @@ import { Create as $Create } from "@wailsio/runtime";
 import * as data_models$0 from "../../../models/data_models/models.js";
 
 /**
- * CancelLoginCliInput 指定要终止的登录会话
- */
-export class CancelLoginCliInput {
-    /**
-     * 唯一标识
-     */
-    "id": string;
-
-    /** Creates a new CancelLoginCliInput instance. */
-    constructor($$source: Partial<CancelLoginCliInput> = {}) {
-        if (!("id" in $$source)) {
-            this["id"] = "";
-        }
-
-        Object.assign(this, $$source);
-    }
-
-    /**
-     * Creates a new CancelLoginCliInput instance from a string or object.
-     */
-    static createFrom($$source: any = {}): CancelLoginCliInput {
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        return new CancelLoginCliInput($$parsedSource as Partial<CancelLoginCliInput>);
-    }
-}
-
-/**
  * 封装删除扩展所需的请求参数
  */
 export class DeleteExtensionInput {
@@ -442,53 +415,6 @@ export class ListExtensionsOutput {
 }
 
 /**
- * LoginCliInput 指定要启动登录会话的 CLI 插件
- */
-export class LoginCliInput {
-    /**
-     * 唯一标识
-     */
-    "id": string;
-
-    /** Creates a new LoginCliInput instance. */
-    constructor($$source: Partial<LoginCliInput> = {}) {
-        if (!("id" in $$source)) {
-            this["id"] = "";
-        }
-
-        Object.assign(this, $$source);
-    }
-
-    /**
-     * Creates a new LoginCliInput instance from a string or object.
-     */
-    static createFrom($$source: any = {}): LoginCliInput {
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        return new LoginCliInput($$parsedSource as Partial<LoginCliInput>);
-    }
-}
-
-/**
- * LoginCliOutput 是空响应，登录输出和结束状态分别通过 cli.login.output 和 cli.login.done 事件返回
- */
-export class LoginCliOutput {
-
-    /** Creates a new LoginCliOutput instance. */
-    constructor($$source: Partial<LoginCliOutput> = {}) {
-
-        Object.assign(this, $$source);
-    }
-
-    /**
-     * Creates a new LoginCliOutput instance from a string or object.
-     */
-    static createFrom($$source: any = {}): LoginCliOutput {
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        return new LoginCliOutput($$parsedSource as Partial<LoginCliOutput>);
-    }
-}
-
-/**
  * 封装处理重新加载扩展所需的请求参数
  */
 export class ReloadExtensionInput {
@@ -594,49 +520,6 @@ export class ResetCliDataOutput {
 }
 
 /**
- * ResizeLoginCliInput 携带运行中登录会话的 PTY 新尺寸
- */
-export class ResizeLoginCliInput {
-    /**
-     * 唯一标识
-     */
-    "id": string;
-
-    /**
-     * 行数
-     */
-    "rows": number;
-
-    /**
-     * 列数
-     */
-    "cols": number;
-
-    /** Creates a new ResizeLoginCliInput instance. */
-    constructor($$source: Partial<ResizeLoginCliInput> = {}) {
-        if (!("id" in $$source)) {
-            this["id"] = "";
-        }
-        if (!("rows" in $$source)) {
-            this["rows"] = 0;
-        }
-        if (!("cols" in $$source)) {
-            this["cols"] = 0;
-        }
-
-        Object.assign(this, $$source);
-    }
-
-    /**
-     * Creates a new ResizeLoginCliInput instance from a string or object.
-     */
-    static createFrom($$source: any = {}): ResizeLoginCliInput {
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        return new ResizeLoginCliInput($$parsedSource as Partial<ResizeLoginCliInput>);
-    }
-}
-
-/**
  * 封装保存扩展配置所需的请求参数
  */
 export class SaveExtensionConfigInput {
@@ -699,41 +582,6 @@ export class SaveExtensionConfigOutput {
             $$parsedSource["extension"] = $$createField0_0($$parsedSource["extension"]);
         }
         return new SaveExtensionConfigOutput($$parsedSource as Partial<SaveExtensionConfigOutput>);
-    }
-}
-
-/**
- * SendLoginStdinInput 携带写入运行中登录会话标准输入的原始字节
- */
-export class SendLoginStdinInput {
-    /**
-     * 唯一标识
-     */
-    "id": string;
-
-    /**
-     * 数据
-     */
-    "data": string;
-
-    /** Creates a new SendLoginStdinInput instance. */
-    constructor($$source: Partial<SendLoginStdinInput> = {}) {
-        if (!("id" in $$source)) {
-            this["id"] = "";
-        }
-        if (!("data" in $$source)) {
-            this["data"] = "";
-        }
-
-        Object.assign(this, $$source);
-    }
-
-    /**
-     * Creates a new SendLoginStdinInput instance from a string or object.
-     */
-    static createFrom($$source: any = {}): SendLoginStdinInput {
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        return new SendLoginStdinInput($$parsedSource as Partial<SendLoginStdinInput>);
     }
 }
 

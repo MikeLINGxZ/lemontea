@@ -7,7 +7,7 @@ import { SettingsContentLayout } from '@/components/settings/common/SettingsCont
 import { SettingsDirtyGuard } from '@/components/settings/common/SettingsDirtyGuard'
 import { SettingsFieldRow } from '@/components/settings/common/SettingsFieldRow'
 import { SettingsPanelHeader } from '@/components/settings/common/SettingsPanelHeader'
-import { cn } from '@/lib/utils'
+import { cn, isMac } from '@/lib/utils'
 import type { ShortcutValidationStatus } from '@/types/settings'
 
 /** 定义快捷键校验的数据结构 */
@@ -121,7 +121,7 @@ export function ShortcutSettingsView(props: {
                 <span className="flex min-w-0 items-center gap-3">
                   <Keyboard size={18} className="shrink-0 text-muted-foreground" />
                   <span className="min-w-0 truncate text-sm font-medium text-foreground">
-                    {props.quickChatShortcut}
+                    {props.quickChatShortcut.replace(/\bCmdOrCtrl\b/g, isMac ? 'Cmd' : 'Ctrl')}
                   </span>
                 </span>
                 <span className="shrink-0 text-xs text-muted-foreground">

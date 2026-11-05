@@ -4,6 +4,33 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Lemontea</title>
+    <style>
+      /* 主样式加载前，用设置窗口当前主题的底色填充首屏 */
+      html.settings-window {
+        color-scheme: light;
+        background-color: hsl(var(--background, 0 0% 100%));
+      }
+      html.settings-window.dark {
+        color-scheme: dark;
+        background-color: hsl(var(--background, 222.2 84% 4.9%));
+      }
+    </style>
+    <script>
+      if (new URLSearchParams(window.location.search).get('entry') === 'settings') {
+        const root = document.documentElement // 设置窗口的根节点
+        const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches // 系统是否使用深色模式
+        let dark = systemDark // 首屏是否使用深色模式
+        try {
+          // 读取与前端应用共用的已保存主题
+          const theme = JSON.parse(localStorage.getItem('lemontea-app-settings') ?? 'null')?.state?.theme
+          if (theme === 'light' || theme === 'dark') dark = theme === 'dark'
+        } catch {
+          // 存储不可读时跟随系统配色
+        }
+        root.classList.add('settings-window')
+        root.classList.toggle('dark', dark)
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

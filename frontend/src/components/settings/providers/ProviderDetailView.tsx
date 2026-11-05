@@ -333,7 +333,7 @@ function ProviderDetailInner(props: {
             onClick={() => setEnable(v => !v)}
             className={cn(
               'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 ease-in-out',
-              enable ? 'bg-primary' : 'bg-muted'
+              enable ? 'bg-switch-on' : 'bg-switch-off'
             )}
           >
             <span className={cn(
@@ -452,7 +452,7 @@ function ProviderDetailInner(props: {
             </div>
           </div>
 
-          <div className="scrollbar-track-transparent min-h-0 flex-1 overflow-y-auto rounded-xl border border-border">
+          <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-border">
             {models.length === 0 && (
               <div className="flex items-center justify-center gap-1.5 px-3 py-4 text-xs text-muted-foreground">
                 {refreshing ? (

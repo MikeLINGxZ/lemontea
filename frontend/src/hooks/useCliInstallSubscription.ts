@@ -5,6 +5,8 @@ import type { CliInstallItem } from '@/types/cliInstall'
 
 /** 进度事件的数据 */
 type ProgressEvent = {
+  /** 从设置页提交的安装请求标识 */
+  request_id?: string
   /** 会话编号 */
   session_id?: number
   /** npm包名 */
@@ -12,7 +14,7 @@ type ProgressEvent = {
   /** 名称 */
   name: string
   /** 阶段 */
-  phase: string
+  phase: CliInstallItem['phase']
   /** 详情 */
   detail: string
   /** 当前条目的唯一编号 */
@@ -43,12 +45,19 @@ export function useCliInstallSubscription() {
     /** 订阅 cli.install.progress 并保存解绑方法 */
     const offProgress = Events.On('cli.install.progress', (event: { /* 事件携带的数据 */ data: ProgressEvent }) => {
       const d = event.data // 当前处理位置的值
+      // 设置页直接安装由 RPC 完成，忽略迟到的阶段事件
+      if (d.request_id && !useCliInstallStore.getState().items.some(
+        (item) => item.request_id === d.request_id && item.phase !== 'failed',
+      )) return
+
+      const extensionId = d.extension_id || d.id // 已登记的扩展编号
       upsert({
+        request_id: d.request_id,
         npm_package: d.npm_package ?? d.id ?? '',
         name: d.name ?? '',
-        phase: d.phase as CliInstallItem['phase'],
+        phase: d.phase,
         detail: d.detail ?? '',
-        extension_id: d.extension_id ?? d.id,
+        ...(extensionId ? { extension_id: extensionId } : {}),
         session_id: d.session_id,
         action_url: d.action_url,
         action_label: d.action_label,

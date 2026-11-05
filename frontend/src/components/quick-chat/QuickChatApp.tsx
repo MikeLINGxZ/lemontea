@@ -220,7 +220,7 @@ export function QuickChatApp() {
 
   return (
     <div
-      className="flex h-screen w-screen flex-col overflow-hidden bg-transparent text-foreground"
+      className="flex h-screen w-full flex-col overflow-hidden bg-transparent text-foreground"
       onKeyDown={handleKeyDown}
     >
       {activeSessionId ? (

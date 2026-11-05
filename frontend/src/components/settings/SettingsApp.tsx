@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Globe2, Keyboard, Languages, MonitorSmartphone } from 'lucide-react'
 import { Events } from '@wailsio/runtime'
@@ -9,7 +9,6 @@ import { SettingsSubmenuList } from '@/components/settings/common/SettingsSubmen
 import { GeneralSettingsPanel } from '@/components/settings/general/GeneralSettingsPanel'
 import { MemoryList, MemorySettingsView, useMemoryController } from '@/components/settings/memory/MemorySettingsView'
 import { CliInstallModal } from '@/components/settings/plugins/CliInstallModal'
-import { CliLoginDialog } from '@/components/settings/plugins/CliLoginDialog'
 import { PluginToolDetailView } from '@/components/settings/plugins/PluginToolDetailView'
 import { PluginToolList } from '@/components/settings/plugins/PluginToolList'
 import { ProviderDetailView } from '@/components/settings/providers/ProviderDetailView'
@@ -29,7 +28,7 @@ import { Plugin as PluginBinding } from '@bindings/gitlab.linhf.cn/project/lemon
 import { File as FileBinding } from '@bindings/gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/service/file'
 import { Runtime } from '@bindings/gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/service/runtime/index'
 import { EditProviderInput } from '@bindings/gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/service/provider/provider_dto/models'
-import { CancelLoginCliInput, GenerateCliManifestInput, ImportExtensionInput, InstallCliFromNpmInput, LoginCliInput, ReloadExtensionInput, ResetCliDataInput, SaveExtensionConfigInput, ToggleExtensionInput } from '@bindings/gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/service/plugin/plugin_dto/models'
+import { ImportExtensionInput, InstallCliFromNpmInput, ReloadExtensionInput, ResetCliDataInput, SaveExtensionConfigInput, ToggleExtensionInput } from '@bindings/gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/service/plugin/plugin_dto/models'
 import { SelectFolderInput } from '@bindings/gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/service/file/file_dto/models'
 import type { ProviderWrapper } from '@bindings/gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/service/provider/provider_dto/models'
 import type { ExtensionItem as BindingExtensionItem } from '@bindings/gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/models/data_models/models'
@@ -49,14 +48,6 @@ type RuntimeProgressEvent = {
   total: number
   /** 百分比 */
   percent: number
-}
-
-/** 登录对话框的状态数据 */
-type LoginDialogState = {
-  /** 当前条目的唯一编号 */
-  id: string
-  /** 标题 */
-  title: string
 }
 
 /** 运行环境浮动提示键 */
@@ -118,9 +109,6 @@ export function SettingsApp() {
   const [selectedExtensionConfig, setSelectedExtensionConfig] = useState<string>('') // 选中项扩展配置及其更新方法
   const [pluginLoading, setPluginLoading] = useState(false) // 插件加载中及其更新方法
   const [cliModalOpen, setCliModalOpen] = useState(false) // CLI模态框展开及其更新方法
-  const [loginDialog, setLoginDialog] = useState<LoginDialogState | null>(null) // 登录对话框及其更新方法
-  const loginDialogRef = useRef<LoginDialogState | null>(null) // 登录对话框引用，供后续读取当前值
-
   /** 刷新服务商列表，完成后结束异步任务 */
   const refreshProviders = useCallback(async () => {
     try {
@@ -153,7 +141,14 @@ export function SettingsApp() {
       void refreshExtensions()
     }
     window.addEventListener('focus', handleFocus)
-    return () => window.removeEventListener('focus', handleFocus)
+    /** 智能安装完成后刷新扩展列表，接收进度事件，无返回值 */
+    const offInstallProgress = Events.On('cli.install.progress', (event: { /** 进度数据 */ data: { /** 安装阶段 */ phase: string } }) => {
+      if (event.data.phase === 'done') void refreshExtensions()
+    })
+    return () => {
+      window.removeEventListener('focus', handleFocus)
+      offInstallProgress()
+    }
   }, [refreshExtensions, refreshProviders])
 
   /** 处理切换启用，接收当前条目，完成后结束异步任务 */
@@ -370,24 +365,6 @@ export function SettingsApp() {
     void loadDetail()
   }, [selectedExtensionId, extensions])
 
-  /** 同步外部状态并管理本次副作用的生命周期 */
-  useEffect(() => {
-    loginDialogRef.current = loginDialog
-  }, [loginDialog])
-
-  /** 同步外部状态并管理本次副作用的生命周期 */
-  useEffect(() => {
-    return () => {
-      const activeDialog = loginDialogRef.current // 当前对话框
-      if (!activeDialog) {
-        return
-      }
-      void Promise.resolve(
-        PluginBinding.CancelLoginCli(new CancelLoginCliInput({ id: activeDialog.id })),
-      ).catch(() => undefined)
-    }
-  }, [])
-
   let content: ReactNode // 内容
 
   if (activeTab === 'about') {
@@ -427,19 +404,37 @@ export function SettingsApp() {
     /** 选中项扩展 */
     const selectedExtension = extensions.find((extension) => extension.id === selectedExtensionId) ?? extensions[0] ?? null
 
-    /** 处理npm提交，接收npm包名、名称，完成后结束异步任务 */
-    const handleNpmSubmit = async (npmPackage: string, name: string) => {
+    /** 提交 npm 安装或重试，接收包名和显示名称，返回安装处理完成的异步任务 */
+    const handleNpmSubmit = async (npmPackage: string, name: string): Promise<void> => {
+      const requestId = `npm:${npmPackage}` // 同一 npm 包共用一条直接安装记录
+      const { items, remove } = useCliInstallStore.getState() // 当前安装记录和移除操作
+      if (items.some((item) => item.request_id === requestId && item.phase !== 'failed')) return
+
+      const install = { request_id: requestId, npm_package: npmPackage, name } // 安装记录和重试参数
+      cliInstallUpsert({ ...install, phase: 'pending', detail: '' })
       try {
-        /** 保存输出 */
         const out = await PluginBinding.InstallCliFromNpm(
           new InstallCliFromNpmInput({ npm_package: npmPackage, name }),
-        )
-        if (out?.extension) {
-          await refreshExtensions()
-          setSelectedExtensionId(out.extension.id)
+        ) // 安装结果
+        if (!out?.extension?.id) {
+          throw new Error(t('settingsPage.plugins.cliNpmMissingResult'))
         }
+
+        // 直接使用安装结果更新列表，避免等待其他扩展刷新
+        const extension = mapExtensionItem(out.extension) // 新安装的扩展
+        const currentExtensions = useSettingsStore.getState().extensions // 安装完成时的扩展列表
+        setExtensions([...currentExtensions.filter((item) => item.id !== extension.id), extension])
+        setSelectedExtensionId(extension.id)
+        remove(requestId)
+        pushAlert({
+          kind: 'success',
+          placement: 'toast',
+          title: extension.name,
+          message: t('settingsPage.plugins.cliNpmInstalled'),
+        })
       } catch (err) {
-        pushAlert({ kind: 'error', placement: 'banner', title: '', message: String(err) })
+        const { msg, detail } = parseUnknownIError(err) // 后端错误摘要和详情
+        cliInstallUpsert({ ...install, phase: 'failed', detail: msg === detail ? msg : `${msg}\n${detail}` })
       }
     }
 
@@ -579,54 +574,6 @@ export function SettingsApp() {
       }
     }
 
-    /** 处理重新生成CLI清单，完成后结束异步任务 */
-    const handleRegenerateCliManifest = async (): Promise<void> => {
-      if (!selectedExtension || selectedExtension.kind !== 'cli') return
-      setPluginLoading(true)
-      try {
-        /** 保存本次调用的结果 */
-        const result = await PluginBinding.GenerateCliManifest(new GenerateCliManifestInput({ id: selectedExtension.id }))
-        if (result?.extension) {
-          updateExtension(mapExtensionItem(result.extension))
-        }
-        const detail = await PluginBinding.GetExtensionDetail({ id: selectedExtension.id }) // 保存详情
-        setSelectedExtensionConfig(detail?.config_text ?? '')
-      } finally {
-        setPluginLoading(false)
-      }
-    }
-
-    /** 处理登录CLI，完成后结束异步任务 */
-    const handleLoginCli = async (): Promise<void> => {
-      if (!selectedExtension || selectedExtension.kind !== 'cli') return
-      setLoginDialog({
-        id: selectedExtension.id,
-        title: t('settingsPage.plugins.cliLoginDialogTitle', { name: selectedExtension.name }),
-      })
-    }
-
-    /** 处理登录开始错误，接收捕获的异常，无返回值 */
-    const handleLoginStartError = (err: unknown): void => {
-      const parsed = parseUnknownIError(err) // 从文本解析出的数据
-      pushAlert({
-        kind: 'error',
-        placement: 'banner',
-        title: '',
-        message: parsed.msg,
-        detail: parsed.detail !== parsed.msg ? parsed.detail : null,
-      })
-    }
-
-    /** 处理取消登录，完成后结束异步任务 */
-    const handleCancelLogin = async (): Promise<void> => {
-      if (!loginDialog) return
-      try {
-        await PluginBinding.CancelLoginCli(new CancelLoginCliInput({ id: loginDialog.id }))
-      } finally {
-        setLoginDialog(null)
-      }
-    }
-
     content = (
       <>
         <SettingsSectionLayout
@@ -640,6 +587,7 @@ export function SettingsApp() {
               onToggleEnable={handleToggleExtension}
               onReload={handleReloadExtension}
               onDelete={handleDeleteExtension}
+              onRetryNpm={handleNpmSubmit}
             />
           )}
         >
@@ -652,42 +600,16 @@ export function SettingsApp() {
                 void handleReloadExtension(selectedExtension.id)
               }
             }}
-            onLoginCli={() => { void handleLoginCli() }}
             onSave={(configText) => { void handleSaveExtensionConfig(configText) }}
             onResetData={() => { void handleResetCliData() }}
-            onRegenerateCliManifest={() => { void handleRegenerateCliManifest() }}
           />
         </SettingsSectionLayout>
         <CliInstallModal
           open={cliModalOpen}
           onClose={() => setCliModalOpen(false)}
-          onNpmSubmit={(npmPackage, name) => { void handleNpmSubmit(npmPackage, name) }}
+          onNpmSubmit={handleNpmSubmit}
           onSmartSubmit={(content) => { void handleSmartSubmit(content) }}
         />
-        {loginDialog ? (
-          <CliLoginDialog
-            open={true}
-            extensionId={loginDialog.id}
-            title={loginDialog.title}
-            onStart={() => PluginBinding.LoginCli(new LoginCliInput({ id: loginDialog.id })).then(() => undefined)}
-            onClose={() => setLoginDialog(null)}
-            onCancel={() => { void handleCancelLogin() }}
-            onStartError={handleLoginStartError}
-            onDone={(exitCode: number) => {
-              pushAlert({
-                kind: exitCode === 0 ? 'success' : 'error',
-                placement: 'toast',
-                title: selectedExtension?.name ?? loginDialog.title,
-                message: exitCode === 0
-                  ? t('settingsPage.plugins.cliLoginDoneSuccess')
-                  : t('settingsPage.plugins.cliLoginDoneFailureShort', { code: exitCode }),
-                detail: null,
-                autoClose: true,
-                durationMs: 4000,
-              })
-            }}
-          />
-        ) : null}
       </>
     )
   } else if (activeTab === 'skills') {

@@ -100,10 +100,6 @@ var zhCN = map[string]string{
 	"ierror.cli.tool_not_found":           "未找到 CLI 工具",
 
 	// CLI 登录消息
-	"cli.login.session_conflict": "该 CLI 已有进行中的登录会话",
-	"cli.login.not_found":        "找不到对应的 CLI 登录会话",
-	"cli.login.no_command":       "该 CLI 的 manifest 未声明 login_command",
-	"cli.login.start_failed":     "启动 CLI 登录失败：{detail}",
 
 	// 终端消息
 	"ierror.terminal.list":        "获取终端列表失败",

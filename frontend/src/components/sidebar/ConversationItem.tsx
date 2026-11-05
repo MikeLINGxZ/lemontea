@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { MoreHorizontal, Star, Pencil, Trash2, Loader2 } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { useChatStore } from '@/store/chatStore'
@@ -71,7 +72,20 @@ export function ConversationItem({ conversation, isActive, onClick }: Props) {
               {t('sidebar.taskBadge')}
             </span>
           )}
-          <span className="truncate text-sm text-foreground">{title}</span>
+          <span className="truncate text-sm text-foreground">
+            {title.includes('**') || title.includes('__') ? (
+              <ReactMarkdown
+                allowedElements={['p', 'strong']}
+                unwrapDisallowed
+                components={{
+                  /** 接收段落内容并原样返回，使标题保持行内显示 */
+                  p: ({ children }): React.ReactNode => children,
+                }}
+              >
+                {title}
+              </ReactMarkdown>
+            ) : title}
+          </span>
         </span>
       )}
 

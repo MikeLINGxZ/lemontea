@@ -18,10 +18,6 @@ const {
   deleteExtensionMock,
   saveExtensionConfigMock,
   importExtensionMock,
-  loginCliMock,
-  cancelLoginCliMock,
-  sendLoginStdinMock,
-  resizeLoginCliMock,
 } = vi.hoisted(() => ({
   downloadNodeMock: vi.fn(),
   getStatusMock: vi.fn(),
@@ -33,10 +29,6 @@ const {
   deleteExtensionMock: vi.fn(),
   saveExtensionConfigMock: vi.fn(),
   importExtensionMock: vi.fn(),
-  loginCliMock: vi.fn(),
-  cancelLoginCliMock: vi.fn(),
-  sendLoginStdinMock: vi.fn(),
-  resizeLoginCliMock: vi.fn(),
 }))
 
 vi.mock('@/hooks/useSettingsBootstrap', () => ({
@@ -69,10 +61,6 @@ vi.mock('@bindings/gitlab.linhf.cn/project/lemontea/lemon_tea_desktop/backend/se
     DeleteExtension: deleteExtensionMock,
     SaveExtensionConfig: saveExtensionConfigMock,
     ImportExtension: importExtensionMock,
-    LoginCli: loginCliMock,
-    CancelLoginCli: cancelLoginCliMock,
-    SendLoginStdin: sendLoginStdinMock,
-    ResizeLoginCli: resizeLoginCliMock,
   },
 }))
 
@@ -118,10 +106,6 @@ describe('Plugin settings', () => {
     deleteExtensionMock.mockReset()
     saveExtensionConfigMock.mockReset()
     importExtensionMock.mockReset()
-    loginCliMock.mockReset()
-    cancelLoginCliMock.mockReset()
-    sendLoginStdinMock.mockReset()
-    resizeLoginCliMock.mockReset()
 
     listExtensionsMock.mockResolvedValue({
       extensions: [{
@@ -257,141 +241,5 @@ describe('Plugin settings', () => {
 
     expect(await screen.findByText('Downloading… 50% · Download · 5.0 MB / 10.0 MB')).toBeInTheDocument()
     expect(screen.queryByText(/^x\d+$/)).not.toBeInTheDocument()
-  })
-
-  it('starts a CLI login session and opens the login dialog from the detail view', async () => {
-    const user = userEvent.setup()
-    listExtensionsMock.mockResolvedValueOnce({
-      extensions: [{
-        id: 'cli:lark-cli:1.0.0',
-        name: 'Lark CLI',
-        description: 'Lark tools',
-        author: 'Lemontea',
-        version: '1.0.0',
-        kind: 'cli',
-        enabled: true,
-        root_dir: '/tmp/lark-cli',
-        source_dir: '/tmp/source',
-        config_file_path: '/tmp/lark-cli/manifest.json',
-        tools: [],
-      }],
-    })
-    getExtensionDetailMock.mockResolvedValueOnce({
-      extension: {
-        id: 'cli:lark-cli:1.0.0',
-        name: 'Lark CLI',
-        description: 'Lark tools',
-        author: 'Lemontea',
-        version: '1.0.0',
-        kind: 'cli',
-        enabled: true,
-        root_dir: '/tmp/lark-cli',
-        source_dir: '/tmp/source',
-        config_file_path: '/tmp/lark-cli/manifest.json',
-        tools: [],
-      },
-      config_text: JSON.stringify({
-        executable: '/tmp/lark-cli/bin/lark',
-        login_command: ['config', 'init', '--new'],
-        isolation: 'isolated',
-        tools: [],
-      }, null, 2),
-    })
-    let subscribedBeforeStart = false
-    loginCliMock.mockImplementation(() => {
-      subscribedBeforeStart = onMock.mock.calls.some(([name]) => name === 'cli.login.output')
-      return Promise.resolve({})
-    })
-
-    render(
-      <>
-        <SettingsApp />
-        <AlertViewport />
-      </>
-    )
-
-    expect(await screen.findByRole('heading', { name: /Lark CLI/ })).toBeInTheDocument()
-    const startButton = await screen.findByRole('button', { name: 'Start login' })
-    await user.click(startButton)
-
-    expect(await screen.findByText('Lark CLI login')).toBeInTheDocument()
-    await waitFor(() => {
-      expect(loginCliMock).toHaveBeenCalledWith({ id: 'cli:lark-cli:1.0.0' })
-    })
-    expect(subscribedBeforeStart).toBe(true)
-  })
-
-  it('persists shared isolation when the CLI login toggle is enabled', async () => {
-    const user = userEvent.setup()
-    const manifestText = JSON.stringify({
-      executable: '/tmp/lark-cli/bin/lark',
-      login_command: ['config', 'init', '--new'],
-      isolation: 'isolated',
-      tools: [],
-    }, null, 2)
-
-    listExtensionsMock.mockResolvedValueOnce({
-      extensions: [{
-        id: 'cli:lark-cli:1.0.0',
-        name: 'Lark CLI',
-        description: 'Lark tools',
-        author: 'Lemontea',
-        version: '1.0.0',
-        kind: 'cli',
-        enabled: true,
-        root_dir: '/tmp/lark-cli',
-        source_dir: '/tmp/source',
-        config_file_path: '/tmp/lark-cli/manifest.json',
-        tools: [],
-      }],
-    })
-    getExtensionDetailMock.mockResolvedValueOnce({
-      extension: {
-        id: 'cli:lark-cli:1.0.0',
-        name: 'Lark CLI',
-        description: 'Lark tools',
-        author: 'Lemontea',
-        version: '1.0.0',
-        kind: 'cli',
-        enabled: true,
-        root_dir: '/tmp/lark-cli',
-        source_dir: '/tmp/source',
-        config_file_path: '/tmp/lark-cli/manifest.json',
-        tools: [],
-      },
-      config_text: manifestText,
-    })
-    saveExtensionConfigMock.mockResolvedValue({
-      extension: {
-        id: 'cli:lark-cli:1.0.0',
-        name: 'Lark CLI',
-        description: 'Lark tools',
-        author: 'Lemontea',
-        version: '1.0.0',
-        kind: 'cli',
-        enabled: true,
-        root_dir: '/tmp/lark-cli',
-        source_dir: '/tmp/source',
-        config_file_path: '/tmp/lark-cli/manifest.json',
-        tools: [],
-      },
-    })
-
-    render(
-      <>
-        <SettingsApp />
-        <AlertViewport />
-      </>
-    )
-
-    const toggle = await screen.findByRole('checkbox', { name: 'Use system global login state' })
-    await user.click(toggle)
-    await user.click(screen.getByRole('button', { name: 'Apply' }))
-
-    expect(saveExtensionConfigMock).toHaveBeenCalledTimes(1)
-    expect(saveExtensionConfigMock.mock.calls[0]?.[0]).toMatchObject({
-      id: 'cli:lark-cli:1.0.0',
-    })
-    expect(saveExtensionConfigMock.mock.calls[0]?.[0]?.config_text).toContain('"isolation": "shared"')
   })
 })
